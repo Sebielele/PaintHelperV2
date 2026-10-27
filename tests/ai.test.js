@@ -238,13 +238,17 @@ test("paint search uses a cached embedding index and producer filters", async t 
   const store2 = openDatabase(dataDir);
   const server2 = createServer(loadConfig({ DATA_DIR: dataDir }), store2, silentLog, again);
   await new Promise(resolve => server2.listen(0, "127.0.0.1", resolve));
-  t.after(() => {
-    server2.close();
+  // Close the second instance inside the test: Windows cannot delete the data folder
+  // while its database is still open, and t.after hooks run after setup's cleanup.
+  try {
+    const call2 = await login(`http://127.0.0.1:${server2.address().port}`, "anna", "anna-pass-1");
+    assert.equal((await call2("POST", "/api/ai/search", { query: "bone" })).status, 200);
+    assert.equal(fake.state.embedCalls, callsAfterBuild + 2);
+  } finally {
+    server2.closeAllConnections();
+    await new Promise(resolve => server2.close(resolve));
     store2.close();
-  });
-  const call2 = await login(`http://127.0.0.1:${server2.address().port}`, "anna", "anna-pass-1");
-  assert.equal((await call2("POST", "/api/ai/search", { query: "bone" })).status, 200);
-  assert.equal(fake.state.embedCalls, callsAfterBuild + 2);
+  }
 });
 
 test("closing the browser cancels the guide upstream and frees the model", async t => {

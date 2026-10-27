@@ -80,3 +80,29 @@ test("guide steps are numbered across sections; tips stay separate", () => {
   assert.equal(guide.sections[1].lead, "Wo: Rüstung");
   assert.deepEqual(guide.sections[2].bullets, ["Rost tupfen"]);
 });
+
+test("next units prefer nearly finished, then big units", () => {
+  const parsed = army.parseRoster(roster);
+  const units = parsed.regiments.flatMap(regiment => regiment.units);
+  // Set Daemonettes: 8 of 10 models painted (stage 3)
+  const daemonettes = units.filter(u => u.name === "Daemonettes")[0];
+  daemonettes.models.forEach((m, i) => { m.stage = i < 8 ? 3 : 0; });
+  // Set Fiends: 1 of 3 models painted (stage 1)
+  const fiends = units.find(u => u.name === "Fiends");
+  fiends.models.forEach((m, i) => { m.stage = i === 0 ? 1 : 0; });
+  // Set a finished unit (all models stage 3) to ensure it is excluded
+  const finished = units.find(u => u.name === "Lord of Pain");
+  finished.models.forEach(m => { m.stage = 3; });
+  // Set a big not started unit (Shalaxi Helbane, 410 pts)
+  const big = units.find(u => u.name === "Shalaxi Helbane");
+  big.models.forEach(m => { m.stage = 0; });
+  const next = army.nextUnits(parsed, 3);
+  assert.equal(next.length, 3);
+  assert.equal(next[0].unit.name, "Daemonettes");
+  assert.equal(next[1].unit.name, "Fiends");
+  assert.equal(next[2].unit.name, "Shalaxi Helbane");
+  // Ensure finished unit is not in the list
+  assert.ok(!next.some(entry => entry.unit.name === "Lord of Pain"));
+  // Ensure manifestations and terrain are not in the list
+  assert.ok(next.every(entry => entry.unit.kind === "unit"));
+});

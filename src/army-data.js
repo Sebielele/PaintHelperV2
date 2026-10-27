@@ -367,5 +367,29 @@
     return { sections, total: index };
   }
 
-  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps };
+  // Up to `limit` units to paint next: units in progress first (most painted share,
+  // then points), then untouched units by points. Manifestations and terrain are skipped.
+  function nextUnits(army, limit = 3) {
+    const unitsWithRegiment = army.regiments.flatMap(regiment => regiment.units.map(unit => ({ unit, regiment: regiment.name })));
+    const candidates = unitsWithRegiment.filter(({ unit }) => unit.kind === "unit" && !unitProgress(unit).done);
+    const inWork = candidates.filter(({ unit }) => unit.models.some(model => model.stage > 0));
+    const notStarted = candidates.filter(({ unit }) => unit.models.every(model => model.stage === 0));
+    inWork.sort((a, b) => {
+      const shareA = unitProgress(a.unit).share;
+      const shareB = unitProgress(b.unit).share;
+      if (shareB !== shareA) {
+        return shareB - shareA;
+      }
+      return b.unit.points - a.unit.points;
+    });
+    notStarted.sort((a, b) => b.unit.points - a.unit.points);
+    const result = inWork.concat(notStarted).slice(0, limit).map(({ unit, regiment }) => ({
+      unit,
+      regiment,
+      progress: unitProgress(unit)
+    }));
+    return result;
+  }
+
+  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps, nextUnits };
 }));

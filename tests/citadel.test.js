@@ -299,3 +299,26 @@ test("closest paint matching handles invalid targets and empty catalogues", () =
   invalidTargetMatches.forEach(match => assert.equal(match.distance, Infinity));
   assert.deepEqual(mapped[0].matches, []);
 });
+
+test("PaintRack rows without SKU are imported by brand and name", () => {
+  const parsed = citadel.parsePaintRackCsv([
+    "Brand,SKU,Paint Name,Paint Class,Size,Count",
+    "Army Painter,,Zephyr Pink,Metallics,18 ml,1",
+    ",,No Brand,Metallics,18 ml,1"
+  ].join("\n"));
+  assert.equal(parsed.paints.length, 1);
+  assert.equal(parsed.paints[0].name, "Zephyr Pink");
+  assert.equal(parsed.invalid.length, 1);
+});
+
+test("PaintRack brand names match catalogue aliases", () => {
+  const paints = [
+    { name: "Castellan Green", manufacturer: "Citadel Colours", collection: "Air", hex: "#264715" },
+    { name: "Ivory White", manufacturer: "Army Painter", collection: "John Blanche Masterclass", hex: "#EEE6CC" },
+    { name: "Offwhite", manufacturer: "AK Interactive", collection: "Standard (3rd Gen)", hex: "#F0EDE0", manufacturerCode: "AK11002" }
+  ];
+  assert.equal(citadel.findPaintRackCatalogueMatch({ brand: "Citadel Classic", name: "Castellan Green", paintClass: "Air" }, paints).name, "Castellan Green");
+  assert.equal(citadel.findPaintRackCatalogueMatch({ brand: "The Army Painter", name: "Ivory White" }, paints).name, "Ivory White");
+  assert.equal(citadel.findPaintRackCatalogueMatch({ brand: "AK Interactive", sku: "AK11002", name: "Off White" }, paints).hex, "#F0EDE0");
+  assert.equal(citadel.findPaintRackCatalogueMatch({ brand: "Vallejo", name: "Castellan Green" }, paints), null);
+});

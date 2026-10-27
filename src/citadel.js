@@ -223,7 +223,8 @@
         count: parsePaintRackCount(record.fields[index.count]),
         lineNumber: record.lineNumber
       };
-      if (!row.brand || !row.name || !row.sku) {
+      // Many PaintRack rows (e.g. Army Painter metallics) have no SKU; brand + name is enough.
+      if (!row.brand || !row.name) {
         invalid.push({ lineNumber: row.lineNumber, reason: "missing paint identity", row });
         return;
       }
@@ -376,12 +377,28 @@
     return Array.from(new Set(full ? [full, ...parts] : parts));
   }
 
+  // Brand names differ between PaintRack, the catalogue and product generations.
+  const PAINT_BRAND_ALIASES = {
+    citadel: ["citadel", "citadelcolour", "citadelcolours", "citadelclassic", "warhammer", "gamesworkshop"],
+    armypainter: ["armypainter", "thearmypainter"],
+    akinteractive: ["ak", "akinteractive", "akinteractive3rdgen"],
+    mig: ["mig", "ammo", "ammobymig", "ammobymigjimenez"],
+    p3: ["p3", "formulap3", "privateerpress", "privateerpressp3"],
+    scale75: ["scale75", "scalecolor", "scale75scalecolor"]
+  };
+
+  function canonicalPaintBrand(key) {
+    const entry = Object.entries(PAINT_BRAND_ALIASES).find(([, aliases]) => aliases.includes(key));
+    return entry ? entry[0] : key;
+  }
+
   function paintRackBrandMatches(brandKey, manufacturer) {
-    const manufacturerKey = normalizePaintRackText(manufacturer);
-    return Boolean(brandKey && manufacturerKey && (
-      brandKey === manufacturerKey ||
-      manufacturerKey.includes(brandKey) ||
-      brandKey.includes(manufacturerKey)
+    const manufacturerKey = canonicalPaintBrand(normalizePaintRackText(manufacturer));
+    const rowKey = canonicalPaintBrand(brandKey);
+    return Boolean(rowKey && manufacturerKey && (
+      rowKey === manufacturerKey ||
+      manufacturerKey.includes(rowKey) ||
+      rowKey.includes(manufacturerKey)
     ));
   }
 

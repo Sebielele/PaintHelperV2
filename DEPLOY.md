@@ -118,6 +118,32 @@ verschwinden dann, die Foto-Palette bleibt.
 Langsame Antworten halten die Verbindung offen, damit der DSM-Reverse-Proxy (Standard
 60 s) sie nicht abschneidet. Eine Anpassung des Proxys ist nicht nötig.
 
+## Farbkatalog aktualisieren
+
+Der Farbkatalog (`data/paint-catalogue.json`, rund 5'400 Farben von 11 Marken) kommt
+aus [Paintdex](https://github.com/s10-steve/paintdex). Das ist eine offene,
+gemeinschaftlich gepflegte Farbdatenbank unter MIT-Lizenz, mit Hex-Werten und
+Herstellercodes.
+
+- **Automatisch:** Die GitHub Action `Update paint catalogue` prüft am 1. jedes Monats,
+  ob es neue Farben gibt, und eröffnet dann einen Pull Request. Mit „Merge“ baut GitHub
+  das Image neu, danach wie gewohnt in Portainer mit **Re-pull image** aktualisieren.
+  Von Hand starten geht unter Actions → *Update paint catalogue* → *Run workflow*.
+  Einmalig nötig: Settings → Actions → General → *Workflow permissions* → „Allow GitHub
+  Actions to create and approve pull requests“ aktivieren.
+- **Manuell:** `npm run update:catalogue` (Probelauf: `-- --dry-run`).
+- **Bestehende Farben** behalten Name, Hex, Sammlung und Linie. Daran hängen „eigene
+  Farben“ und Einkaufslisten, die bleiben also gültig. Bestehende Einträge bekommen nur
+  einen fehlenden Herstellercode dazu.
+- Der PaintRack-Import erkennt Farben zuerst über die SKU (Herstellercode), sonst über
+  Marke und Name. Farben, die noch fehlen, werden als vorhanden ohne Farbwert
+  gespeichert und beim nächsten Import automatisch ersetzt, sobald der Katalog sie
+  kennt.
+- Falsche oder fehlende Farben am besten direkt bei Paintdex melden oder ergänzen. Dann
+  kommen sie mit dem nächsten monatlichen Update auch hier an.
+- Nach einer Katalogänderung baut der Server den Suchindex für die Farbsuche einmal neu
+  auf. Bei rund 5'400 Farben dauert das wenige Minuten.
+
 ## Daten und Backups
 
 | Pfad auf der NAS | Inhalt |

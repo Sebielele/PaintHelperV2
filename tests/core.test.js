@@ -314,3 +314,14 @@ test("base suggestions respect an explicit theme and remove duplicates", () => {
   assert.equal(new Set(suggestions.map(item => item.key)).size, suggestions.length);
   suggestions.forEach(item => assert.match(item.hex, /^#[0-9A-F]{6}$/));
 });
+
+test("GirlyPop keeps its signature colours whatever the main colour", () => {
+  const core = require("../src/core.js");
+  const pink = core.buildPalette({ h: 330, s: 70, l: 60, style: 0 }, "girlyPop");
+  const blue = core.buildPalette({ h: 220, s: 40, l: 30, style: 0 }, "girlyPop");
+  assert.deepEqual(pink.map(color => color.roleKey), ["primary", "bubblegum", "lilac", "mint", "blush", "glitterGold"]);
+  assert.deepEqual(pink.slice(1).map(color => color.hex), blue.slice(1).map(color => color.hex));
+  assert.ok(blue[0].l >= 60 && blue[0].s >= 62, "main colour becomes a candy version");
+  assert.ok(core.getSchemeKeysForSystem("aos").includes("girlyPop"));
+  assert.ok(core.getSchemeKeysForSystem("k40").includes("girlyPop"));
+});

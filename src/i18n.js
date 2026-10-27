@@ -2721,6 +2721,53 @@
     TRANSLATIONS[language].ai = AI_TRANSLATIONS[language];
   }
 
+  const GIRLY_POP_TRANSLATIONS = {
+    en: {
+      scheme: {
+        title: "GirlyPop",
+        desc: "Bubblegum pink, lilac, mint, blush and glitter gold, joined by a candy version of your main colour.",
+        note: "Keep the colours clean and bright: smooth basecoats, soft pink or lilac shades instead of brown washes, and tiny gold or glitter details as jewellery."
+      },
+      roles: { bubblegum: "Bubblegum pink", lilac: "Lilac", mint: "Mint", blush: "Blush", glitterGold: "Glitter gold" }
+    },
+    de: {
+      scheme: {
+        title: "GirlyPop",
+        desc: "Bubblegum-Pink, Flieder, Mint, Zartrosa und Glitzergold, dazu eine Bonbon-Variante deiner Hauptfarbe.",
+        note: "Halte die Farben sauber und hell: glatte Grundierung, sanfte Schatten in Rosa oder Flieder statt brauner Washes und winzige Gold- oder Glitzerdetails als Schmuck."
+      },
+      roles: { bubblegum: "Bubblegum-Pink", lilac: "Flieder", mint: "Mint", blush: "Zartrosa", glitterGold: "Glitzergold" }
+    },
+    fr: {
+      scheme: {
+        title: "GirlyPop",
+        desc: "Rose bonbon, lilas, menthe, rose poudré et or pailleté, avec une version bonbon de ta couleur principale.",
+        note: "Garde des couleurs nettes et lumineuses : sous-couches lisses, ombres douces rose ou lilas plutôt que des lavis bruns, et de minuscules détails dorés ou pailletés comme bijoux."
+      },
+      roles: { bubblegum: "Rose bonbon", lilac: "Lilas", mint: "Menthe", blush: "Rose poudré", glitterGold: "Or pailleté" }
+    },
+    es: {
+      scheme: {
+        title: "GirlyPop",
+        desc: "Rosa chicle, lila, menta, rosa palo y oro con purpurina, junto a una versión caramelo de tu color principal.",
+        note: "Mantén los colores limpios y luminosos: capas base lisas, sombras suaves en rosa o lila en lugar de lavados marrones y pequeños detalles dorados o con purpurina como joyas."
+      },
+      roles: { bubblegum: "Rosa chicle", lilac: "Lila", mint: "Menta", blush: "Rosa palo", glitterGold: "Oro con purpurina" }
+    },
+    it: {
+      scheme: {
+        title: "GirlyPop",
+        desc: "Rosa confetto, lilla, menta, rosa cipria e oro glitter, insieme a una versione caramella del tuo colore principale.",
+        note: "Mantieni i colori puliti e luminosi: basi lisce, ombre morbide rosa o lilla invece di lavaggi marroni e piccoli dettagli oro o glitter come gioielli."
+      },
+      roles: { bubblegum: "Rosa confetto", lilac: "Lilla", mint: "Menta", blush: "Rosa cipria", glitterGold: "Oro glitter" }
+    }
+  };
+  for (const language of LANGUAGE_KEYS) {
+    TRANSLATIONS[language].schemes.girlyPop = GIRLY_POP_TRANSLATIONS[language].scheme;
+    Object.assign(TRANSLATIONS[language].schemeRoles, GIRLY_POP_TRANSLATIONS[language].roles);
+  }
+
   return {
     LANGUAGE_KEYS,
     TRANSLATIONS,

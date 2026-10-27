@@ -95,6 +95,17 @@
     neon: {
       colors: [[0, 20, 8, "primary"], [180, 24, 18, "strongAccent"], [120, 22, 14, "accent"], [0, -10, -30, "darkBase"]]
     },
+    // Fixed signature colours (absolute HSL) plus the main colour as a candy version.
+    girlyPop: {
+      colors: [
+        { candy: true, roleKey: "primary" },
+        { h: 333, s: 82, l: 69, roleKey: "bubblegum" },
+        { h: 272, s: 58, l: 76, roleKey: "lilac" },
+        { h: 157, s: 58, l: 78, roleKey: "mint" },
+        { h: 340, s: 75, l: 93, roleKey: "blush" },
+        { h: 42, s: 70, l: 62, roleKey: "glitterGold" }
+      ]
+    },
     realm: {
       colors: [[0, 0, 0, "primary"], [42, -8, 16, "realmGlow"], [180, 12, 8, "realmAccent"], [-35, -14, -16, "realmShadow"]]
     },
@@ -289,7 +300,7 @@
 
   const SYSTEMS = {
     aos: {
-      schemeKeys: ["monochrome", "analogous", "complementary", "split", "triadic", "tetradic", "limitedPalette", "zorn", "highContrast", "lowContrast", "analogousWide", "zenithal", "accented", "compound", "warmCool", "boxArt", "eavyMetal", "grimdark", "adrianSmith", "blanchitsu", "comicBook", "military", "paradeReady", "battleReady", "display", "muted", "saturated", "pastel", "neon", "realm"],
+      schemeKeys: ["monochrome", "analogous", "complementary", "split", "triadic", "tetradic", "limitedPalette", "zorn", "highContrast", "lowContrast", "analogousWide", "zenithal", "accented", "compound", "warmCool", "boxArt", "eavyMetal", "grimdark", "adrianSmith", "blanchitsu", "comicBook", "military", "paradeReady", "battleReady", "display", "muted", "saturated", "pastel", "neon", "girlyPop", "realm"],
       roleProfileKeys: ["balanced", "stormcast", "death", "destruction", "chaos", "wizard", "beast"],
       baseThemeKeys: ["auto", "city", "ruins", "graveyard", "forest", "swamp", "desert", "snow", "volcanic", "arcane", "ghur", "coastal"],
       profileBaseKeys: {
@@ -303,7 +314,7 @@
       }
     },
     k40: {
-      schemeKeys: ["chapter", "monochrome", "analogous", "complementary", "split", "triadic", "tetradic", "limitedPalette", "zorn", "highContrast", "lowContrast", "zenithal", "accented", "warmCool", "boxArt", "eavyMetal", "grimdark", "adrianSmith", "blanchitsu", "comicBook", "military", "paradeReady", "battleReady", "display", "muted", "saturated", "pastel", "neon"],
+      schemeKeys: ["chapter", "monochrome", "analogous", "complementary", "split", "triadic", "tetradic", "limitedPalette", "zorn", "highContrast", "lowContrast", "zenithal", "accented", "warmCool", "boxArt", "eavyMetal", "grimdark", "adrianSmith", "blanchitsu", "comicBook", "military", "paradeReady", "battleReady", "display", "muted", "saturated", "pastel", "neon", "girlyPop"],
       roleProfileKeys: ["balanced", "spaceMarines", "guard", "chaosMarines", "xenos", "tyranids", "vehicle"],
       baseThemeKeys: ["auto", "urban", "ashWaste", "hive", "jungle", "desert", "snow", "volcanic", "alien", "shipDeck"],
       profileBaseKeys: {
@@ -592,6 +603,9 @@
   function buildPalette(state, schemeKey) {
     const scheme = SCHEMES[schemeKey] || SCHEMES.complementary;
     return scheme.colors.map((color, index) => {
+      if (!Array.isArray(color)) {
+        return buildSpecialSchemeColor(state, color, index);
+      }
       if (index === 0) {
         return {
           h: state.h,
@@ -614,6 +628,19 @@
         hex: styled.hex
       };
     });
+  }
+
+  // Object entries in SCHEMES: { candy } turns the main colour into a sweet, light
+  // version; { h, s, l } is a fixed colour. The finish slider still applies.
+  function buildSpecialSchemeColor(state, color, index) {
+    if (color.candy) {
+      const s = clamp(Math.max(state.s, 62), 5, 100);
+      const l = clamp(Math.min(Math.max(state.l, 60), 80), 8, 96);
+      const styled = applyFinishToColor(state.h, s, l, Math.max(index, 1), state.style);
+      return { h: styled.h, s: styled.s, l: styled.l, roleKey: color.roleKey, hex: styled.hex };
+    }
+    const styled = applyFinishToColor(normHue(color.h), color.s, color.l, Math.max(index, 1), state.style);
+    return { h: styled.h, s: styled.s, l: styled.l, roleKey: color.roleKey, hex: styled.hex };
   }
 
   function ladderForColor(color, style, recipeModeKey) {

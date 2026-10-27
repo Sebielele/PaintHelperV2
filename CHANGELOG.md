@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.16.0 (PaintHelperV2)
+
+- Added the GirlyPop scheme: bubblegum pink, lilac, mint, blush and glitter gold as fixed
+  signature colours, plus a candy version of the main colour.
+- Extended the paint catalogue from 579 to about 5,400 paints (11 brands) with
+  manufacturer codes, using the open Paintdex database (MIT). Existing entries keep
+  their identity, so owned paints and shopping lists stay valid.
+- Added `npm run update:catalogue` and a monthly GitHub Action that proposes catalogue
+  updates as a pull request.
+- PaintRack import: rows without SKU are accepted, brand aliases (e.g. "Citadel Classic")
+  are recognised, and colourless placeholder entries are replaced once a paint is known.
+
 ## v0.15.1 (PaintHelperV2)
 
 - Palette from a description: when the description names a faction or subfaction from

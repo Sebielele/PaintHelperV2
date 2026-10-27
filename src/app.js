@@ -1436,6 +1436,13 @@
       parsed.paints.forEach(row => {
         const match = W.findPaintRackCatalogueMatch(row, cataloguePaints.filter(paint => paint.hex && !paint.paintRackImport));
         if (match) {
+          // A row imported earlier without a catalogue match leaves a colourless entry;
+          // drop it now that the catalogue knows the paint.
+          const staleKey = paintKey(W.createPaintRackCustomPaint(row));
+          if (customByKey.has(staleKey)) {
+            customByKey.delete(staleKey);
+            ownedPaintKeys.delete(staleKey);
+          }
           const key = paintKey(match);
           ownedPaintKeys.add(key);
           shoppingPaintKeys.delete(key);

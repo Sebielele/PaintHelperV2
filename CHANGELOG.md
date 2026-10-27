@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.23.0 (PaintHelperV2)
+
+- Painting guide: "Missing paints" lists every catalogue paint of the guide you do not
+  own, with a stand-in from your collection when one is close (ΔE ≤ 10), and puts the
+  rest on the shopping list with one button.
+- Changing game system, palette mode or scheme no longer silently drops edited and
+  locked colours: an "Undo – bring back my colours" button restores the previous
+  settings, edits and locks.
+
 ## v0.22.0 (PaintHelperV2)
 
 - Colour matching uses CIEDE2000 (CIE Lab, D65) instead of the RGB distance, so

@@ -38,7 +38,7 @@
       "aiDeletePaletteBtn", "aiRecipeBtn", "aiRecipeStopBtn", "aiRecipeCopyBtn", "aiRecipeStatus",
       "aiRecipeOutput", "aiSearchForm", "aiSearchStatus", "aiSearchResults", "aiSearchBlock",
       "aiPaletteFeedback", "aiRecipeFeedback", "aiRefineForm", "aiRefineInput", "aiRefineBtn", "aiUndoBtn",
-      "aiRefineStatus", "aiRecipeOwnedOnly", "aiRecipeOwnedOnlyLabel", "aiPhotoOnlyBtn", "aiRecipeBenchBtn", "aiRecipeProgress"
+      "aiRefineStatus", "aiRecipeOwnedOnly", "aiRecipeOwnedOnlyLabel", "aiPhotoOnlyBtn", "aiRecipeBenchBtn", "aiRecipeProgress", "aiRecipeMissing"
     ].forEach(id => { el[id] = document.getElementById(id); });
     // One search box on the paints page: names filter right away, descriptions go to the
     // embedding search (Enter, the ✨ button, or by itself when no paint name matches).
@@ -471,6 +471,64 @@
     el.aiRecipeBenchBtn.hidden = !saved;
     el.aiRecipeBtn.textContent = t(saved ? "assist.rewriteGuide" : "ai.recipeButton");
     renderGuideProgress(saved);
+    renderMissing(saved ? text : "");
+  }
+
+  // "What am I missing?": catalogue paints of the guide that are not owned, each with the
+  // closest owned paint that can stand in, and one button for the shopping list.
+  function renderMissing(text) {
+    const seen = new Set();
+    const missing = [];
+    Array.from(String(text).matchAll(/\*\*([^*]+)\*\*/g)).forEach(match => {
+      const name = match[1].trim();
+      const paint = app.findPaintByName(name);
+      if (!paint || seen.has(name) || app.isOwned(paint)) {
+        return;
+      }
+      seen.add(name);
+      missing.push({ paint, substitute: app.ownedSubstitute(paint) });
+    });
+    el.aiRecipeMissing.hidden = !missing.length;
+    if (!missing.length) {
+      el.aiRecipeMissing.replaceChildren();
+      return;
+    }
+    const toBuy = missing.filter(item => !item.substitute && !app.isOnShoppingList(item.paint));
+    const head = document.createElement("div");
+    head.className = "guide-missing-head";
+    const title = document.createElement("strong");
+    title.textContent = t("assist.missingTitle", { count: missing.length });
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "secondary";
+    add.textContent = toBuy.length ? t("assist.missingAdd", { count: toBuy.length }) : t("assist.missingAllListed");
+    add.disabled = !toBuy.length;
+    add.addEventListener("click", () => {
+      toBuy.forEach(item => app.addToShoppingList(item.paint));
+      renderMissing(text);
+    });
+    head.append(title, add);
+    const list = document.createElement("ul");
+    missing.forEach(({ paint, substitute }) => {
+      const item = document.createElement("li");
+      const swatch = document.createElement("span");
+      swatch.className = "ai-paint-swatch";
+      swatch.style.background = paint.hex || "transparent";
+      const name = document.createElement("span");
+      name.className = "guide-missing-name";
+      name.textContent = paint.name;
+      const note = document.createElement("span");
+      note.className = "meta";
+      note.textContent = substitute
+        ? t("assist.missingSubstitute", { name: substitute.name, distance: substitute.distance })
+        : app.isOnShoppingList(paint) ? t("ai.onList") : t("assist.missingNone");
+      item.append(swatch, name, note);
+      list.appendChild(item);
+    });
+    const hint = document.createElement("p");
+    hint.className = "meta";
+    hint.textContent = t("assist.missingHint");
+    el.aiRecipeMissing.replaceChildren(head, list, hint);
   }
 
   function renderGuideProgress(saved) {

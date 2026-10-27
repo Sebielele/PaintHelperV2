@@ -95,6 +95,8 @@
     let translator = W.createTranslator(state.language);
     let currentPalette = [];
     // Declared early: the assistant may look up paint names during the first update().
+    let lastSnapshot = null;
+    let resetUndo = null;
     let paintNameIndex = null;
     let paintNameIndexSource = null;
     let cataloguePaints = mergePaintRackCustomPaints(W.DEFAULT_PAINT_CATALOGUE || W.DEFAULT_CITADEL_PAINTS);
@@ -194,6 +196,7 @@
       baseAdviceTitle: $("baseAdviceTitle"),
       paintLadderTitle: $("paintLadderTitle"),
       paintTooltip: createPaintTooltip(),
+      undoResetBtn: $("undoResetBtn"),
       controlGroups: Array.from(document.querySelectorAll("[data-control-group]")),
       sectionCollapseButtons: Array.from(document.querySelectorAll("[data-section-collapse]"))
     };
@@ -288,6 +291,13 @@
           return cataloguePaints.find(paint => paintKey(paint) === key) || null;
         },
         isOwned: paint => ownedPaintKeys.has(paintKey(paint)),
+        // Closest owned brush paint that can stand in for a missing one (or null).
+        ownedSubstitute(paint) {
+          const owned = filteredCataloguePaints()
+            .filter(entry => entry.hex && ownedPaintKeys.has(paintKey(entry)) && isBrushPaint(entry) && paintKey(entry) !== paintKey(paint));
+          const match = owned.length && paint.hex ? W.findClosestPaints(paint.hex, owned, 1)[0] : null;
+          return match && match.distance <= OWNED_MATCH_MAX_DISTANCE ? match : null;
+        },
         isOnShoppingList: paint => shoppingPaintKeys.has(paintKey(paint)),
         addToShoppingList(paint) {
           addShoppingPaintByKey(paintKey(paint));
@@ -969,6 +979,19 @@
         rerollPalette();
       });
       document.getElementById("rerollPaletteBtn").addEventListener("click", rerollPalette);
+      el.undoResetBtn.addEventListener("click", () => {
+        const snapshot = resetUndo;
+        resetUndo = null;
+        if (!snapshot) {
+          return;
+        }
+        const currentCustomSchemes = state.customSchemes;
+        applySettingsToState(snapshot);
+        state.customSchemes = currentCustomSchemes;
+        syncControlsFromState();
+        update();
+        el.undoResetBtn.hidden = true;
+      });
 
       document.addEventListener("mouseover", handlePaintHoverStart);
       document.addEventListener("mouseout", handlePaintHoverEnd);
@@ -1014,6 +1037,10 @@
       const paletteContext = [state.system, state.mode, state.factionSchemeId, schemeKey].join("|");
       const paletteSource = currentPalette.map(color => color.hex).join(",");
       if (!state.paletteEdits || state.paletteEdits.context !== paletteContext) {
+        // Edited or locked colours are about to be dropped: keep the previous settings
+        // so "Undo" can bring them back.
+        const hadEdits = state.paletteEdits && (state.paletteEdits.colors || []).some(Boolean);
+        resetUndo = hadEdits && lastSnapshot ? lastSnapshot : null;
         state.paletteEdits = { context: paletteContext, source: paletteSource, colors: [] };
       } else if (lastPaletteSource !== null && lastPaletteSource !== paletteSource) {
         state.paletteEdits.colors = state.paletteEdits.colors.map(color => color && color.locked ? color : null);
@@ -1122,6 +1149,8 @@
         finish: finishLabel
       });
       saveLastSettings();
+      lastSnapshot = createSettingsSnapshot();
+      el.undoResetBtn.hidden = !resetUndo;
       document.dispatchEvent(new CustomEvent("wph:update"));
     }
 

@@ -1916,3 +1916,13 @@ main[data-workflow-view="army"] > .controls, main[data-workflow-view="army"] > .
   .collection-search { flex-basis: 100%; }
   .collection-search button span:last-child { display: none; }
 }
+
+/* v0.23: missing paints of a guide, undo after a reset */
+.guide-missing { margin-top: 12px; max-width: 78ch; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.guide-missing-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.guide-missing ul { margin: 10px 0 6px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.guide-missing li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.guide-missing .ai-paint-swatch { width: 16px; height: 16px; }
+.guide-missing-name { font-weight: 650; }
+.guide-missing p { margin: 0; }
+.assist-undo { min-height: 42px; }

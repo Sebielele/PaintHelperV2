@@ -75,6 +75,12 @@ async function main() {
     await page.locator("#aiRecipeOutput .guide-step input").first().check();
     assert.match(await page.textContent("#aiRecipeProgress"), new RegExp(`1 von ${steps}`));
 
+    // What am I missing: unowned guide paints go to the shopping list with one button.
+    await page.waitForSelector("#aiRecipeMissing:not([hidden])");
+    await page.locator("#aiRecipeMissing .guide-missing-head button").click();
+    assert.ok(await page.locator("#shoppingList .shopping-item, #shoppingList li, #shoppingList > *").count() > 0, "missing paints listed");
+    assert.equal(await page.locator("#aiRecipeMissing .guide-missing-head button").isDisabled(), true);
+
     // Painting desk: starts at the first open step; "done, next" ticks and moves on.
     await page.click("#aiRecipeBenchBtn");
     await page.waitForSelector(".bench:not([hidden])");
@@ -86,6 +92,18 @@ async function main() {
     assert.equal(await page.isVisible(".bench-done"), true);
     await page.click(".bench-close");
     assert.match(await page.textContent("#aiRecipeProgress"), new RegExp(`2 von ${steps}`));
+
+    // A lock is lost when the game system changes; "undo" brings settings and lock back.
+    await page.click('[data-workflow="palette"]');
+    await page.locator("#palette .palette-lock").first().click();
+    assert.equal(await page.locator("#undoResetBtn").isHidden(), true);
+    const system = await page.inputValue("#systemSelect");
+    await page.selectOption("#systemSelect", system === "aos" ? "k40" : "aos");
+    await page.waitForSelector("#undoResetBtn:not([hidden])");
+    await page.click("#undoResetBtn");
+    assert.equal(await page.inputValue("#systemSelect"), system);
+    assert.equal(await page.locator("#palette .palette-lock").first().getAttribute("aria-pressed"), "true");
+    assert.equal(await page.locator("#undoResetBtn").isHidden(), true);
 
     // Army: import the NewRecruit list, set stages, assign the palette, write a unit guide.
     await page.click('[data-dock="army"]');

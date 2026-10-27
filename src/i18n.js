@@ -3062,6 +3062,8 @@
       collection: { searchSemantic: "Name, code or description – e.g. “warm bone white”", searchMeaning: "By description", meaningTitle: "Matching the description" },
       ui: { subtitle: "Describe your army – the assistant builds the palette and a step-by-step guide with your paints. Track every model on the army page." },
       assist: {
+        undoReset: "Undo – bring back my colours", missingTitle: "Missing paints in this guide ({count})", missingAdd: "Put {count} on the shopping list", missingAllListed: "All on the shopping list",
+        missingSubstitute: "Your {name} can stand in (difference {distance})", missingNone: "Nothing close in your collection", missingHint: "Paints with a stand-in from your collection are not added to the list.",
         jump: "Assistant", eyebrow: "Assistant", title: "What do you want to paint?",
         lead: "Describe your army or scheme – the assistant builds the palette, then a step-by-step guide with your paints.",
         manualHeading: "Set up manually", writeGuide: "Write painting guide", openGuide: "Open painting guide",
@@ -3110,6 +3112,8 @@
       collection: { searchSemantic: "Name, Code oder Beschreibung – z. B. „warmes Knochenweiss“", searchMeaning: "Nach Beschreibung", meaningTitle: "Passend zur Beschreibung" },
       ui: { subtitle: "Beschreib deine Armee – der Assistent erstellt die Palette und eine Schritt-für-Schritt-Anleitung mit deinen Farben. Den Fortschritt jedes Modells verfolgst du auf der Armee-Seite." },
       assist: {
+        undoReset: "Rückgängig – meine Farben zurückholen", missingTitle: "Fehlende Farben in dieser Anleitung ({count})", missingAdd: "{count} auf die Einkaufsliste", missingAllListed: "Alle auf der Einkaufsliste",
+        missingSubstitute: "Ersatz aus deinem Bestand: {name} (Abstand {distance})", missingNone: "Nichts Ähnliches in deinem Bestand", missingHint: "Farben mit Ersatz aus deinem Bestand kommen nicht auf die Liste.",
         jump: "Assistent", eyebrow: "Assistent", title: "Was möchtest du malen?",
         lead: "Beschreib deine Armee oder dein Farbschema – der Assistent erstellt die Palette und danach eine Schritt-für-Schritt-Anleitung mit deinen Farben.",
         manualHeading: "Manuell einstellen", writeGuide: "Bemalanleitung schreiben", openGuide: "Bemalanleitung öffnen",
@@ -3158,6 +3162,8 @@
       collection: { searchSemantic: "Nom, code ou description – p. ex. « blanc os chaud »", searchMeaning: "Par description", meaningTitle: "Correspondant à la description" },
       ui: { subtitle: "Décrivez votre armée – l'assistant crée la palette et un guide pas à pas avec vos peintures. Suivez chaque figurine sur la page Armée." },
       assist: {
+        undoReset: "Annuler – récupérer mes couleurs", missingTitle: "Peintures manquantes dans ce guide ({count})", missingAdd: "Ajouter {count} à la liste d’achats", missingAllListed: "Toutes sur la liste d’achats",
+        missingSubstitute: "Votre {name} peut la remplacer (écart {distance})", missingNone: "Rien de proche dans votre collection", missingHint: "Les peintures remplaçables par votre collection ne sont pas ajoutées.",
         jump: "Assistant", eyebrow: "Assistant", title: "Que voulez-vous peindre ?",
         lead: "Décrivez votre armée ou votre schéma – l'assistant crée la palette, puis un guide pas à pas avec vos peintures.",
         manualHeading: "Réglage manuel", writeGuide: "Écrire le guide de peinture", openGuide: "Ouvrir le guide de peinture",
@@ -3206,6 +3212,8 @@
       collection: { searchSemantic: "Nombre, código o descripción – p. ej. «blanco hueso cálido»", searchMeaning: "Por descripción", meaningTitle: "Según la descripción" },
       ui: { subtitle: "Describe tu ejército: el asistente crea la paleta y una guía paso a paso con tus pinturas. Sigue cada miniatura en la página Ejército." },
       assist: {
+        undoReset: "Deshacer – recuperar mis colores", missingTitle: "Pinturas que faltan en esta guía ({count})", missingAdd: "Añadir {count} a la lista de compra", missingAllListed: "Todas en la lista de compra",
+        missingSubstitute: "Tu {name} puede sustituirla (diferencia {distance})", missingNone: "Nada parecido en tu colección", missingHint: "Las pinturas con sustituto de tu colección no se añaden.",
         jump: "Asistente", eyebrow: "Asistente", title: "¿Qué quieres pintar?",
         lead: "Describe tu ejército o esquema: el asistente crea la paleta y luego una guía paso a paso con tus pinturas.",
         manualHeading: "Ajuste manual", writeGuide: "Escribir guía de pintura", openGuide: "Abrir guía de pintura",
@@ -3254,6 +3262,8 @@
       collection: { searchSemantic: "Nome, codice o descrizione – es. «bianco osso caldo»", searchMeaning: "Per descrizione", meaningTitle: "In base alla descrizione" },
       ui: { subtitle: "Descrivi il tuo esercito: l'assistente crea la palette e una guida passo passo con i tuoi colori. Segui ogni miniatura nella pagina Esercito." },
       assist: {
+        undoReset: "Annulla – riporta i miei colori", missingTitle: "Colori mancanti in questa guida ({count})", missingAdd: "Metti {count} nella lista della spesa", missingAllListed: "Tutti nella lista della spesa",
+        missingSubstitute: "Il tuo {name} può sostituirlo (differenza {distance})", missingNone: "Niente di simile nella tua collezione", missingHint: "I colori sostituibili con la tua collezione non vengono aggiunti.",
         jump: "Assistente", eyebrow: "Assistente", title: "Cosa vuoi dipingere?",
         lead: "Descrivi il tuo esercito o schema: l'assistente crea la palette e poi una guida passo passo con i tuoi colori.",
         manualHeading: "Impostazione manuale", writeGuide: "Scrivi la guida di pittura", openGuide: "Apri la guida di pittura",

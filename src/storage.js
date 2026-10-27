@@ -399,8 +399,19 @@
     const bar = document.createElement("div");
     bar.className = "wph-account";
     fillAccountBar(bar);
+    // Close the account menu after an action and when clicking elsewhere.
+    document.addEventListener("click", event => {
+      const menu = bar.querySelector(".wph-account-menu");
+      if (menu && menu.open && !menu.contains(event.target)) {
+        menu.open = false;
+      }
+    });
     bar.addEventListener("click", event => {
       const action = event.target.closest("[data-action]");
+      const menu = bar.querySelector(".wph-account-menu");
+      if (action && menu) {
+        menu.open = false;
+      }
       if (action && action.dataset.action === "password") {
         showChangePassword();
       } else if (action && action.dataset.action === "logout") {
@@ -421,12 +432,15 @@
 
   function fillAccountBar(bar) {
     bar.innerHTML = `
-      <span class="wph-account-id">
-        <span class="wph-account-user" title="${esc(t("signedInAs"))} ${esc(user)}">${esc(user)}</span>
-        <span class="wph-account-status" aria-live="polite"></span>
-      </span>
-      <button type="button" class="secondary" data-action="password">${esc(t("changePassword"))}</button>
-      <button type="button" class="secondary" data-action="logout">${esc(t("signOut"))}</button>`;
+      <span class="wph-account-status" aria-live="polite"></span>
+      <details class="wph-account-menu">
+        <summary aria-label="${esc(t("account"))}: ${esc(user)}"><span aria-hidden="true">👤</span> <span class="wph-account-user">${esc(user)}</span></summary>
+        <div class="wph-account-panel">
+          <span class="wph-account-signed">${esc(t("signedInAs"))} <strong>${esc(user)}</strong></span>
+          <button type="button" class="secondary" data-action="password">${esc(t("changePassword"))}</button>
+          <button type="button" class="secondary" data-action="logout">${esc(t("signOut"))}</button>
+        </div>
+      </details>`;
     bar.setAttribute("aria-label", t("account"));
     statusEl = bar.querySelector(".wph-account-status");
     setStatus(pending.size ? "saving" : "saved");

@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.18.0 (PaintHelperV2)
+
+- Light mode: the theme button in the header cycles automatic (follows the device),
+  light and dark; the choice is saved per device.
+- Owned paints moved to a full-width collection panel under "Paints and supplies":
+  search by name, code or range, filter all/owned/missing/on shopping list, brand chips
+  with counts, groups per brand and range (opened on demand), and a shopping-list
+  button on every paint.
+- Cleaner screen: compact header, account actions in a small menu, lock buttons with
+  icons, duplicate meta labels removed, the debug panel and the old start buttons hidden.
+- Phones: a compact palette strip stays at the top while the settings scroll by; tapping
+  it jumps back to the palette.
+
 ## v0.17.0 (PaintHelperV2)
 
 - Palette from a description: the request is embedded once; the closest faction schemes

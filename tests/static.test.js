@@ -85,13 +85,15 @@ test("asset cache buster matches package major and minor version", () => {
   assert.deepEqual(localAssets, [
     `assets/favicon.png?v=${majorMinor}`,
     `styles.css?v=${majorMinor}`,
+    `src/theme.js?v=${majorMinor}`,
     `src/core.js?v=${majorMinor}`,
     `src/factions.js?v=${majorMinor}`,
     `src/i18n.js?v=${majorMinor}`,
     `src/citadel.js?v=${majorMinor}`,
     `src/storage.js?v=${majorMinor}`,
     `src/app.js?v=${majorMinor}`,
-    `src/ai.js?v=${majorMinor}`
+    `src/ai.js?v=${majorMinor}`,
+    `src/ui.js?v=${majorMinor}`
   ]);
   localAssets.forEach(asset => assert.match(asset, new RegExp(`\\?v=${escapeRegExp(majorMinor)}$`)));
   assert.match(html, new RegExp(`>v${majorMinor}<`));
@@ -112,13 +114,15 @@ test("application scripts load dependencies before app bootstrap", () => {
   const scripts = Array.from(html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*><\/script\s*>/gi), match => match[1].split("?")[0]);
 
   assert.deepEqual(scripts, [
+    "src/theme.js",
     "src/core.js",
     "src/factions.js",
     "src/i18n.js",
     "src/citadel.js",
     "src/storage.js",
     "src/app.js",
-    "src/ai.js"
+    "src/ai.js",
+    "src/ui.js"
   ]);
 });
 

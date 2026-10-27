@@ -70,7 +70,7 @@ a paint from the catalogue, select a fixed faction scheme, or vary unlocked pale
 It then generates painting-friendly color schemes with role suggestions, paint matches,
 and steps you can turn into a practical miniature painting plan.
 
-Current app version: `v0.17` (`package.json` version `0.17.0`). The static HTML uses the
+Current app version: `v0.18` (`package.json` version `0.18.0`). The static HTML uses the
 major/minor version as a cache-buster on local CSS and JavaScript assets so deployed
 updates on GitHub Pages are less likely to reuse stale browser-cached files.
 

@@ -7,8 +7,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Warhammer Paint Helper</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png?v=0.17" />
-  <link rel="stylesheet" href="styles.css?v=0.17" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=0.18" />
+  <link rel="stylesheet" href="styles.css?v=0.18" />
+  <script src="src/theme.js?v=0.18"></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace" data-i18n="ui.skipWorkspace">Skip to workspace</a>
@@ -17,7 +18,7 @@
       <div class="header-utility" aria-label="Application settings">
         <div class="brand-meta">
           <span class="eyebrow" data-i18n="ui.eyebrow">Miniature Palette Tool</span>
-          <p class="app-version" aria-label="Application version">v0.17</p>
+          <p class="app-version" aria-label="Application version">v0.18</p>
         </div>
         <label class="language-control">
           <span data-i18n="ui.language">Language</span>
@@ -51,7 +52,7 @@
       <details class="control-group" data-control-group="start" data-workflow-panel="palette" open>
         <summary data-i18n="ui.controlStart">Start</summary>
         <div class="control-group-body">
-          <div class="button-row">
+          <div class="button-row" hidden>
             <button id="randomBtn" type="button" data-i18n="ui.randomColor">Random palette</button>
           </div>
 
@@ -268,27 +269,14 @@
             <div id="producerFilters" class="producer-filters"></div>
           </div>
 
-          <div class="owned-paints-panel" aria-label="Owned paint colours">
-            <div class="owned-paints-heading">
-              <div class="section-head compact">
-                <h3 data-i18n="ui.ownedPaints">Owned colours</h3>
-                <p data-i18n="ui.ownedPaintsDescription">Tick the catalogue colours you own, then optionally limit closest matches to those paints.</p>
-              </div>
-              <button id="ownedPaintsCollapseBtn" type="button" class="secondary collapse-button" aria-expanded="true" aria-controls="ownedPaintsBody"></button>
-            </div>
-            <div id="ownedPaintsBody" class="owned-paints-body">
-              <label class="toggle-option">
-                <input id="ownedOnlyMatchesToggle" type="checkbox" />
-                <span data-i18n="ui.onlyOwnedMatches">Only show owned colours in closest matches</span>
-              </label>
-              <div class="paint-import-actions">
-                <button id="paintRackImportBtn" type="button" class="secondary" data-i18n="ui.importPaintRackCsv">Import PaintRack CSV</button>
-                <input id="paintRackImportInput" type="file" accept=".csv,text/csv" hidden />
-                <div id="paintRackImportReport" class="paint-import-popover" popover aria-live="polite"></div>
-              </div>
-              <div id="ownedPaintStatus" class="owned-paint-status" aria-live="polite"></div>
-              <div id="ownedPaintList" class="owned-paint-list"></div>
-            </div>
+          <label class="toggle-option">
+            <input id="ownedOnlyMatchesToggle" type="checkbox" />
+            <span data-i18n="ui.onlyOwnedMatches">Only show owned colours in closest matches</span>
+          </label>
+          <div class="paint-import-actions">
+            <button id="paintRackImportBtn" type="button" class="secondary" data-i18n="ui.importPaintRackCsv">Import PaintRack CSV</button>
+            <input id="paintRackImportInput" type="file" accept=".csv,text/csv" hidden />
+            <div id="paintRackImportReport" class="paint-import-popover" popover aria-live="polite"></div>
           </div>
         </div>
       </details>
@@ -320,7 +308,7 @@
           </div>
         </div>
       </details>
-      <div id="debugState" class="debug"></div>
+      <div id="debugState" class="debug" hidden></div>
     </section>
 
     <section class="panel output" aria-label="Generated color scheme">
@@ -474,6 +462,30 @@
 
     </section>
 
+    <section data-workflow-panel="paints" id="collectionPanel" class="panel collection-panel" aria-label="Owned paint colours">
+      <div class="owned-paints-heading">
+        <div class="section-head compact">
+          <h3 data-i18n="ui.ownedPaints">Owned colours</h3>
+          <p data-i18n="collection.description">Your paints by brand and range. Tick what you own, add missing ones to the shopping list.</p>
+        </div>
+        <button id="ownedPaintsCollapseBtn" type="button" class="secondary collapse-button" aria-expanded="true" aria-controls="ownedPaintsBody"></button>
+      </div>
+      <div id="ownedPaintsBody" class="owned-paints-body">
+        <div class="collection-toolbar">
+          <input id="collectionSearchInput" type="search" autocomplete="off" data-i18n-aria="collection.search" />
+          <div class="collection-filter" role="group" data-i18n-aria="collection.filter">
+            <button type="button" class="secondary" data-collection-filter="all" data-i18n="collection.filterAll">All</button>
+            <button type="button" class="secondary" data-collection-filter="owned" data-i18n="collection.filterOwned">Owned</button>
+            <button type="button" class="secondary" data-collection-filter="missing" data-i18n="collection.filterMissing">Not owned</button>
+            <button type="button" class="secondary" data-collection-filter="shopping" data-i18n="collection.filterShopping">Shopping list</button>
+          </div>
+        </div>
+        <div id="collectionBrands" class="collection-brands" role="group" data-i18n-aria="collection.brands"></div>
+        <div id="ownedPaintStatus" class="owned-paint-status" aria-live="polite"></div>
+        <div id="ownedPaintList" class="owned-paint-list collection-groups"></div>
+      </div>
+    </section>
+
     <section data-workflow-panel="paints" id="shoppingListPanel" class="panel shopping-list-panel" aria-label="Shopping list">
       <div class="shopping-list-heading">
         <div class="section-head compact">
@@ -501,12 +513,13 @@
 
   </main>
 
-  <script src="src/core.js?v=0.17"></script>
-  <script src="src/factions.js?v=0.17"></script>
-  <script src="src/i18n.js?v=0.17"></script>
-  <script src="src/citadel.js?v=0.17"></script>
-  <script src="src/storage.js?v=0.17"></script>
-  <script src="src/app.js?v=0.17"></script>
-  <script src="src/ai.js?v=0.17"></script>
+  <script src="src/core.js?v=0.18"></script>
+  <script src="src/factions.js?v=0.18"></script>
+  <script src="src/i18n.js?v=0.18"></script>
+  <script src="src/citadel.js?v=0.18"></script>
+  <script src="src/storage.js?v=0.18"></script>
+  <script src="src/app.js?v=0.18"></script>
+  <script src="src/ai.js?v=0.18"></script>
+  <script src="src/ui.js?v=0.18"></script>
 </body>
 </html>

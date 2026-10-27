@@ -6,6 +6,7 @@
   const CUSTOM_FACTION = "__custom__";
   const CUSTOM_ROLE_CODES = ["D", "S", "ND", "NL", "A1", "A2"];
   const MAX_CUSTOM_SCHEMES = 30;
+  const COLLECTION_PAGE = 200;
   const STORAGE_KEYS = {
     lastSettings: "wph.settings.v1",
     profiles: "wph.profiles.v1"
@@ -89,6 +90,9 @@
     let producerFiltersInitialized = false;
     let paintSelectorOptions = [];
     let hoverTimer = null;
+    // Collection view (not saved): search, filter, brand chips, open groups.
+    const collection = { search: "", filter: "all", brands: new Set(), open: new Set(), limits: new Map() };
+    let collectionSearchTimer = null;
     let activeHoverTarget = null;
 
     const $ = id => document.getElementById(id);
@@ -133,6 +137,9 @@
       paintRackImportReport: $("paintRackImportReport"),
       ownedPaintStatus: $("ownedPaintStatus"),
       ownedPaintList: $("ownedPaintList"),
+      collectionSearch: $("collectionSearchInput"),
+      collectionBrands: $("collectionBrands"),
+      collectionFilters: Array.from(document.querySelectorAll("[data-collection-filter]")),
       shoppingListPanel: $("shoppingListPanel"),
       shoppingListCollapse: $("shoppingListCollapseBtn"),
       shoppingListBody: $("shoppingListBody"),
@@ -619,6 +626,64 @@
           return;
         }
         toggleOwnedPaint(event.target.value, event.target.checked);
+      });
+      el.ownedPaintList.addEventListener("click", event => {
+        const shop = event.target.closest("[data-shop-key]");
+        const more = event.target.closest("[data-more-group]");
+        if (shop) {
+          const key = shop.dataset.shopKey;
+          if (shoppingPaintKeys.has(key)) {
+            removeShoppingPaint(key);
+          } else {
+            addShoppingPaintByKey(key);
+          }
+        } else if (more) {
+          const group = more.dataset.moreGroup;
+          collection.limits.set(group, (collection.limits.get(group) || COLLECTION_PAGE) + COLLECTION_PAGE);
+          renderOwnedPaintList();
+        }
+      });
+      // "toggle" does not bubble: listen in the capture phase to render groups lazily.
+      el.ownedPaintList.addEventListener("toggle", event => {
+        const group = event.target.closest && event.target.closest("[data-group-key]");
+        if (!group || group !== event.target) {
+          return;
+        }
+        const key = group.dataset.groupKey;
+        if (group.open) {
+          collection.open.add(key);
+          if (!group.querySelector(".collection-items")) {
+            renderOwnedPaintList();
+          }
+        } else {
+          collection.open.delete(key);
+        }
+      }, true);
+      el.collectionSearch.addEventListener("input", () => {
+        clearTimeout(collectionSearchTimer);
+        collectionSearchTimer = setTimeout(() => {
+          collection.search = el.collectionSearch.value;
+          renderOwnedPaintList();
+        }, 150);
+      });
+      el.collectionFilters.forEach(button => button.addEventListener("click", () => {
+        collection.filter = button.dataset.collectionFilter;
+        renderOwnedPaintList();
+      }));
+      el.collectionBrands.addEventListener("click", event => {
+        const chip = event.target.closest("[data-brand]");
+        if (!chip) {
+          return;
+        }
+        const brand = chip.dataset.brand;
+        if (!brand) {
+          collection.brands.clear();
+        } else if (collection.brands.has(brand)) {
+          collection.brands.delete(brand);
+        } else {
+          collection.brands.add(brand);
+        }
+        renderOwnedPaintList();
       });
       el.paintRackImport.addEventListener("click", () => {
         el.paintRackImportInput.click();
@@ -1129,8 +1194,11 @@
       });
       const lock = createElement("button", {
         className: "secondary palette-lock",
-        text: t(locked ? "ui.paletteLocked" : "ui.paletteUnlocked")
-      });
+        title: t(locked ? "ui.paletteLocked" : "ui.paletteUnlocked")
+      }, [
+        createElement("span", { className: "palette-lock-icon", text: locked ? "🔒" : "🔓", attributes: { "aria-hidden": "true" } }),
+        createElement("span", { className: "palette-lock-text", text: t(locked ? "ui.paletteLocked" : "ui.paletteUnlocked") })
+      ]);
       lock.type = "button";
       lock.setAttribute("aria-pressed", String(locked));
       lock.setAttribute("aria-label", `${t("ui.lockPaletteColor")}: ${colorName(color)}`);
@@ -1323,12 +1391,22 @@
     }
 
     function paintMatchMeta(match) {
-      return [
-        match.manufacturer,
-        match.collection,
-        match.range,
-        match.finish
-      ].filter(Boolean).join(" / ");
+      return uniqueMeta([match.manufacturer, match.collection, match.range, match.finish]).join(" / ");
+    }
+
+    // Drops empty, repeated and uninformative parts ("opaque" is the default type).
+    function uniqueMeta(values) {
+      const seen = new Set();
+      return values
+        .map(value => String(value || "").trim())
+        .filter(value => {
+          const key = value.toLowerCase();
+          if (!value || key === "opaque" || seen.has(key)) {
+            return false;
+          }
+          seen.add(key);
+          return true;
+        });
     }
 
     function renderPaintSelectorOptions() {
@@ -1367,7 +1445,7 @@
     }
 
     function paintSelectorMeta(paint) {
-      return [paint.manufacturer, paint.collection, paint.range].filter(Boolean).join(" / ");
+      return uniqueMeta([paint.manufacturer, paint.collection, paint.range]).join(" / ");
     }
 
     function paintOwnedMeta(paint) {
@@ -1427,13 +1505,6 @@
       return cataloguePaints.filter(paint => selectedManufacturers.has(paintProducerKey(paint)));
     }
 
-    function ownedListPaints() {
-      const query = el.paintSearch.value.trim().toLowerCase();
-      return filteredCataloguePaints()
-        .filter(paint => !query || paintSelectorText(paint).toLowerCase().includes(query))
-        .sort((a, b) => paintSelectorText(a).localeCompare(paintSelectorText(b)));
-    }
-
     function closestMatchCataloguePaints() {
       return W.filterOwnedPaints(filteredCataloguePaints().filter(paint => paint.hex), {
         onlyOwnedMatches: state.onlyOwnedMatches,
@@ -1452,31 +1523,147 @@
       setCollapseButtonLabel(el.ownedPaintsCollapse, t(collapsed ? "ui.expandOwnedPaints" : "ui.collapseOwnedPaints"));
     }
 
+    // The collection: every catalogue paint (plus PaintRack entries without colour),
+    // grouped by brand and range. Groups render their items only when opened.
+    function collectionPaints() {
+      const query = normalizePaintName(collection.search);
+      return cataloguePaints.filter(paint => {
+        const key = paintKey(paint);
+        if (collection.brands.size && !collection.brands.has(paintProducerKey(paint))) {
+          return false;
+        }
+        if (collection.filter === "owned" && !ownedPaintKeys.has(key)) {
+          return false;
+        }
+        if (collection.filter === "missing" && ownedPaintKeys.has(key)) {
+          return false;
+        }
+        if (collection.filter === "shopping" && !shoppingPaintKeys.has(key)) {
+          return false;
+        }
+        return !query || normalizePaintName([paint.name, paint.manufacturerCode, paint.collection, paint.range].join(" ")).includes(query);
+      });
+    }
+
+    // Range of a paint for grouping. Older catalogue entries keep the line in "finish"
+    // ("base", "layer"); pure type words ("opaque", "medium") are not ranges.
+    const NON_RANGE_WORDS = new Set(["opaque", "opaque-metallic", "metallic", "medium", "varnish", "acrylic", "confirmed"]);
+    function collectionGroupLabel(paint) {
+      const value = paint.collection || paint.range || (NON_RANGE_WORDS.has(String(paint.finish || "").toLowerCase()) ? "" : paint.finish);
+      const label = String(value || "").trim();
+      return label ? label.charAt(0).toUpperCase() + label.slice(1) : t("collection.otherGroup");
+    }
+
+    function renderCollectionBrands() {
+      const owned = new Map();
+      cataloguePaints.forEach(paint => {
+        if (ownedPaintKeys.has(paintKey(paint))) {
+          const brand = paintProducerKey(paint);
+          owned.set(brand, (owned.get(brand) || 0) + 1);
+        }
+      });
+      const chip = (brand, label, count, active) => createElement("button", {
+        type: "button",
+        className: `secondary collection-chip${active ? " is-active" : ""}`,
+        dataset: { brand },
+        attributes: { "aria-pressed": String(active) }
+      }, [label, count ? createElement("span", { className: "collection-chip-count", text: count }) : null]);
+      replaceChildren(el.collectionBrands, [chip("", t("collection.allBrands"), ownedPaintKeys.size, !collection.brands.size)]
+        .concat(catalogueManufacturers().map(producer => chip(producer.key, producer.label, owned.get(producer.key) || 0, collection.brands.has(producer.key)))));
+    }
+
     function renderOwnedPaintList() {
-      const paints = ownedListPaints();
-      el.ownedPaintStatus.textContent = t(
-        "ui.ownedPaintsStatus",
-        { owned: ownedPaintKeys.size, visible: paints.length }
-      );
-      replaceChildren(el.ownedPaintList, paints.length
-        ? paints.map(paint => {
-          const key = paintKey(paint);
-          return createElement("label", { className: "owned-paint-option" }, [
-            createElement("input", {
-              type: "checkbox",
-              value: key,
-              checked: ownedPaintKeys.has(key)
-            }),
-            paint.hex
-              ? createSwatch("owned-paint-chip", paint.hex)
-              : createElement("span", { className: "owned-paint-chip no-colour-chip", text: "?" }),
-            createElement("span", {}, [
-              createElement("span", { className: "owned-paint-name", text: paint.name }),
-              createElement("span", { className: "owned-paint-meta", text: paintOwnedMeta(paint) })
-            ])
-          ]);
+      el.collectionSearch.placeholder = t("collection.search");
+      el.collectionFilters.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.collectionFilter === collection.filter)));
+      renderCollectionBrands();
+      const paints = collectionPaints();
+      el.ownedPaintStatus.textContent = t("collection.status", {
+        owned: ownedPaintKeys.size,
+        shopping: shoppingPaintKeys.size,
+        visible: paints.length
+      });
+      if (!paints.length) {
+        replaceChildren(el.ownedPaintList, [createElement("p", { className: "notes", text: t("collection.empty") })]);
+        return;
+      }
+      const groups = new Map();
+      paints.forEach(paint => {
+        const brand = paint.manufacturer || t("ui.unknownProducer");
+        const key = `${brand}|${collectionGroupLabel(paint).toLowerCase()}`;
+        if (!groups.has(key)) {
+          groups.set(key, { key, brand, label: collectionGroupLabel(paint), paints: [] });
+        }
+        groups.get(key).paints.push(paint);
+      });
+      const narrowed = Boolean(collection.search.trim()) || collection.filter !== "all";
+      const autoOpen = narrowed && paints.length <= 400;
+      const sorted = Array.from(groups.values())
+        .sort((a, b) => a.brand.localeCompare(b.brand) || a.label.localeCompare(b.label));
+      replaceChildren(el.ownedPaintList, sorted.map(group => {
+        const ownedInGroup = group.paints.filter(paint => ownedPaintKeys.has(paintKey(paint))).length;
+        const open = autoOpen || collection.open.has(group.key);
+        const details = createElement("details", {
+          className: "collection-group",
+          dataset: { groupKey: group.key },
+          attributes: { open }
+        }, [
+          createElement("summary", {}, [
+            createElement("span", { className: "collection-group-brand", text: group.brand }),
+            createElement("span", { className: "collection-group-name", text: group.label }),
+            createElement("span", {
+              className: `collection-group-count${ownedInGroup ? " has-owned" : ""}`,
+              text: t("collection.groupOwned", { owned: ownedInGroup, count: group.paints.length })
+            })
+          ])
+        ]);
+        if (open) {
+          const limit = collection.limits.get(group.key) || COLLECTION_PAGE;
+          const items = group.paints
+            .slice()
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .slice(0, limit)
+            .map(collectionItem);
+          details.appendChild(createElement("div", { className: "collection-items" }, items));
+          if (group.paints.length > limit) {
+            details.appendChild(createElement("button", {
+              type: "button",
+              className: "secondary collection-more",
+              dataset: { moreGroup: group.key },
+              text: t("collection.more", { count: Math.min(COLLECTION_PAGE, group.paints.length - limit) })
+            }));
+          }
+        }
+        return details;
+      }));
+    }
+
+    function collectionItem(paint) {
+      const key = paintKey(paint);
+      const owned = ownedPaintKeys.has(key);
+      const listed = shoppingPaintKeys.has(key);
+      return createElement("div", { className: `collection-item${owned ? " is-owned" : ""}` }, [
+        createElement("label", { className: "owned-paint-option" }, [
+          createElement("input", { type: "checkbox", value: key, checked: owned }),
+          paint.hex
+            ? createSwatch("owned-paint-chip", paint.hex)
+            : createElement("span", { className: "owned-paint-chip no-colour-chip", text: "?" }),
+          createElement("span", {}, [
+            createElement("span", { className: "owned-paint-name", text: paint.name }),
+            createElement("span", {
+              className: "owned-paint-meta",
+              text: [paint.manufacturerCode, paint.hex || t("ui.paintRackNoColourData")].filter(Boolean).join(" · ")
+            })
+          ])
+        ]),
+        owned ? null : createElement("button", {
+          type: "button",
+          className: `secondary collection-shop${listed ? " is-listed" : ""}`,
+          dataset: { shopKey: key },
+          title: listed ? t("collection.onList") : t("collection.addToList"),
+          attributes: { "aria-label": `${listed ? t("collection.onList") : t("collection.addToList")}: ${paint.name}`, "aria-pressed": String(listed) },
+          text: listed ? "✓" : "+"
         })
-        : [createElement("p", { className: "notes", text: t("ui.ownedPaintsEmpty") })]);
+      ]);
     }
 
     async function importPaintRackFile() {
@@ -1850,6 +2037,7 @@
       shoppingPaintKeys.add(key);
       state.shoppingPaintKeys = Array.from(shoppingPaintKeys);
       renderShoppingList();
+      renderOwnedPaintList();
       saveLastSettings();
     }
 
@@ -1857,6 +2045,7 @@
       shoppingPaintKeys.delete(key);
       state.shoppingPaintKeys = Array.from(shoppingPaintKeys);
       renderShoppingList();
+      renderOwnedPaintList();
       saveLastSettings();
     }
 

@@ -2847,6 +2847,157 @@
     Object.assign(TRANSLATIONS[language].ai, AI_LEARNING_TRANSLATIONS[language]);
   }
 
+  const UI_TRANSLATIONS = {
+    "en": {
+      "collection": {
+        "description": "Your paints by brand and range. Tick what you own and add missing paints to the shopping list.",
+        "search": "Search paints: name, code or range",
+        "filter": "Filter",
+        "filterAll": "All",
+        "filterOwned": "Owned",
+        "filterMissing": "Not owned",
+        "filterShopping": "Shopping list",
+        "brands": "Brands",
+        "allBrands": "All brands",
+        "groupOwned": "{owned} of {count} owned",
+        "addToList": "Add to shopping list",
+        "onList": "On the shopping list – remove",
+        "status": "{owned} owned · {shopping} on the shopping list · {visible} shown",
+        "empty": "No paints match the search and filters.",
+        "more": "Show {count} more",
+        "otherGroup": "Other"
+      },
+      "theme": {
+        "label": "Theme",
+        "auto": "Theme: automatic",
+        "light": "Theme: light",
+        "dark": "Theme: dark"
+      },
+      "account": {
+        "menu": "Account"
+      }
+    },
+    "de": {
+      "collection": {
+        "description": "Deine Farben nach Marke und Serie. Hake an, was du hast, und setze fehlende Farben auf die Einkaufsliste.",
+        "search": "Farben suchen: Name, Code oder Serie",
+        "filter": "Filter",
+        "filterAll": "Alle",
+        "filterOwned": "Vorhanden",
+        "filterMissing": "Nicht vorhanden",
+        "filterShopping": "Einkaufsliste",
+        "brands": "Marken",
+        "allBrands": "Alle Marken",
+        "groupOwned": "{owned} von {count} vorhanden",
+        "addToList": "Auf die Einkaufsliste",
+        "onList": "Auf der Einkaufsliste – entfernen",
+        "status": "{owned} vorhanden · {shopping} auf der Einkaufsliste · {visible} angezeigt",
+        "empty": "Keine Farben passen zu Suche und Filter.",
+        "more": "{count} weitere anzeigen",
+        "otherGroup": "Weitere"
+      },
+      "theme": {
+        "label": "Design",
+        "auto": "Design: automatisch",
+        "light": "Design: hell",
+        "dark": "Design: dunkel"
+      },
+      "account": {
+        "menu": "Konto"
+      }
+    },
+    "fr": {
+      "collection": {
+        "description": "Tes peintures par marque et gamme. Coche celles que tu possèdes et ajoute les manquantes à la liste d'achats.",
+        "search": "Chercher : nom, code ou gamme",
+        "filter": "Filtre",
+        "filterAll": "Toutes",
+        "filterOwned": "Possédées",
+        "filterMissing": "Non possédées",
+        "filterShopping": "Liste d'achats",
+        "brands": "Marques",
+        "allBrands": "Toutes les marques",
+        "groupOwned": "{owned} sur {count} possédées",
+        "addToList": "Ajouter à la liste d'achats",
+        "onList": "Sur la liste d'achats – retirer",
+        "status": "{owned} possédées · {shopping} sur la liste d'achats · {visible} affichées",
+        "empty": "Aucune peinture ne correspond à la recherche et aux filtres.",
+        "more": "Afficher {count} de plus",
+        "otherGroup": "Autres"
+      },
+      "theme": {
+        "label": "Thème",
+        "auto": "Thème : automatique",
+        "light": "Thème : clair",
+        "dark": "Thème : sombre"
+      },
+      "account": {
+        "menu": "Compte"
+      }
+    },
+    "es": {
+      "collection": {
+        "description": "Tus pinturas por marca y gama. Marca las que tienes y añade las que faltan a la lista de compra.",
+        "search": "Buscar pinturas: nombre, código o gama",
+        "filter": "Filtro",
+        "filterAll": "Todas",
+        "filterOwned": "En propiedad",
+        "filterMissing": "Sin tener",
+        "filterShopping": "Lista de compra",
+        "brands": "Marcas",
+        "allBrands": "Todas las marcas",
+        "groupOwned": "{owned} de {count} en propiedad",
+        "addToList": "Añadir a la lista de compra",
+        "onList": "En la lista de compra – quitar",
+        "status": "{owned} en propiedad · {shopping} en la lista de compra · {visible} mostradas",
+        "empty": "Ninguna pintura coincide con la búsqueda y los filtros.",
+        "more": "Mostrar {count} más",
+        "otherGroup": "Otras"
+      },
+      "theme": {
+        "label": "Tema",
+        "auto": "Tema: automático",
+        "light": "Tema: claro",
+        "dark": "Tema: oscuro"
+      },
+      "account": {
+        "menu": "Cuenta"
+      }
+    },
+    "it": {
+      "collection": {
+        "description": "I tuoi colori per marca e gamma. Spunta quelli che possiedi e aggiungi quelli mancanti alla lista della spesa.",
+        "search": "Cerca colori: nome, codice o gamma",
+        "filter": "Filtro",
+        "filterAll": "Tutti",
+        "filterOwned": "Posseduti",
+        "filterMissing": "Non posseduti",
+        "filterShopping": "Lista della spesa",
+        "brands": "Marche",
+        "allBrands": "Tutte le marche",
+        "groupOwned": "{owned} di {count} posseduti",
+        "addToList": "Aggiungi alla lista della spesa",
+        "onList": "Nella lista della spesa – rimuovi",
+        "status": "{owned} posseduti · {shopping} nella lista della spesa · {visible} mostrati",
+        "empty": "Nessun colore corrisponde a ricerca e filtri.",
+        "more": "Mostra altri {count}",
+        "otherGroup": "Altri"
+      },
+      "theme": {
+        "label": "Tema",
+        "auto": "Tema: automatico",
+        "light": "Tema: chiaro",
+        "dark": "Tema: scuro"
+      },
+      "account": {
+        "menu": "Account"
+      }
+    }
+  };
+  for (const language of LANGUAGE_KEYS) {
+    Object.assign(TRANSLATIONS[language], UI_TRANSLATIONS[language]);
+  }
+
   const GIRLY_POP_TRANSLATIONS = {
     en: {
       scheme: {

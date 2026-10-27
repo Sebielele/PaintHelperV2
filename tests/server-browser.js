@@ -85,6 +85,7 @@ async function main() {
     assert.match(await page2.locator("#savedProfilesSelect").textContent(), /Annas Armee/);
 
     // Logout and a different user on the same device sees nothing of Anna's.
+    await page2.locator(".wph-account-menu > summary").click();
     await page2.locator(".wph-account [data-action=logout]").click();
     await page2.waitForSelector(".wph-auth-overlay");
     await login(page2, "ben", "ben-pass-12");
@@ -108,6 +109,7 @@ async function main() {
     assert.equal(await page.textContent("#currentHex"), hexBeforeReload);
 
     // Change password from the account bar.
+    await page.locator(".wph-account-menu > summary").click();
     await page.locator(".wph-account [data-action=password]").click();
     await page.fill("[name=currentPassword]", "anna-pass-1");
     await page.fill("[name=newPassword]", "anna-pass-2");
@@ -166,6 +168,7 @@ async function main() {
     await page.dispatchEvent("#hexInput", "change");
     await page.waitForTimeout(700);
     const benLatest = await page.textContent("#currentHex");
+    await page.locator(".wph-account-menu > summary").click();
     await page.locator(".wph-account [data-action=logout]").click();
     await page.waitForSelector(".wph-auth-form");
     await page.unroute("**/api/storage/**");

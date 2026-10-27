@@ -47,7 +47,7 @@ async function main() {
     });
 
     await page.goto(`${baseUrl}/WarhammerPaintHelper.html`, { waitUntil: "networkidle" });
-    await page.click("#randomBtn");
+    await page.click("#rerollPaletteBtn");
     await page.waitForTimeout(250);
 
     // Edit a non-primary palette role, pin it, and vary only the remaining slots.

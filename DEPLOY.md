@@ -64,6 +64,60 @@ Die Daten in `/volume1/docker/painthelper` bleiben erhalten.
 Ohne GitHub-Registry geht es auch mit [`docker-compose.build.yml`](docker-compose.build.yml):
 Portainer baut das Image dann direkt aus dem Repo.
 
+## Assistent mit dem KI-Rechner (Lenovo)
+
+Die Funktionen nutzen den OpenVINO Model Server, der auf dem Lenovo bereits für
+Paperless läuft. Am Lenovo muss dafür nichts geändert werden: Die ufw-Regel für die NAS
+(Ports 8001 und 8002) gilt auch für diesen Container, weil seine Anfragen mit der IP der
+NAS ankommen.
+
+| Funktion | Wo | Dauer (ca.) |
+|---|---|---|
+| Palette aus Beschreibung | Schritt 1, „Assistent & Foto“ | 10–30 s |
+| Bemalanleitung mit deinen Farben | Schritt 2, unter der Farbleiter | 30–90 s, erscheint laufend |
+| Farbsuche in Worten | Schritt 3 | 1 s, beim ersten Mal ca. 1 min für den Suchindex |
+| Palette aus Foto | Schritt 1 | sofort, läuft im Browser ohne KI |
+
+Paletten vom Assistenten und aus Fotos landen unter **Fraktion → ★ Eigene Paletten**.
+Sie werden mit dem Konto gespeichert, sind in Profilen enthalten und reisen in
+Teilen-Links mit.
+
+So funktioniert es:
+- Der Browser spricht nie direkt mit dem Lenovo. Der PaintHelper-Server leitet nur
+  Anfragen angemeldeter Benutzer weiter.
+- Es läuft immer nur eine Anfrage gleichzeitig, zusätzlich warten höchstens vier in der
+  Schlange. Jede Person kann eine Anfrage gleichzeitig stellen, standardmässig 40 pro
+  Stunde.
+- Schliesst jemand den Tab oder drückt „Stopp“, bricht der Server die Anfrage beim
+  Lenovo ab und blockiert ihn nicht weiter.
+- Die Anleitung bekommt die Farbleiter der App und dazu die passenden Katalogfarben mit
+  (eigene Farben zuerst). Das Modell soll keine anderen Farbnamen verwenden.
+- Paperless nutzt dasselbe Modell. Läuft dort gerade eine Verarbeitung, wartet der
+  PaintHelper.
+- Ist der Lenovo aus, bleibt die App voll nutzbar. Die KI-Knöpfe melden dann „nicht
+  erreichbar“.
+- Der Suchindex liegt nach dem ersten Aufbau als `ai-search-index.json` im
+  Datenordner. Er wird nur neu gebaut, wenn sich der Farbkatalog oder das
+  Embedding-Modell ändert.
+
+KI ausschalten: `AI_LLM_URL` und `AI_EMBED_URL` im Stack leeren. Die Knöpfe
+verschwinden dann, die Foto-Palette bleibt.
+
+| Variable | Standard | Bedeutung |
+|---|---|---|
+| `AI_LLM_URL` / `AI_LLM_MODEL` | – | Sprachmodell (Palette, Anleitung) |
+| `AI_EMBED_URL` / `AI_EMBED_MODEL` | – | Embedding-Modell (Farbsuche) |
+| `AI_REQUESTS_PER_HOUR` | `40` | Paletten und Anleitungen pro Person und Stunde (Suche: das Fünffache) |
+| `AI_TIMEOUT_SECONDS` | `180` | so lange darf der Model-Server bis zur ersten Antwort brauchen |
+| `AI_IDLE_SECONDS` | `90` | erlaubte Pause während einer laufenden Anleitung |
+| `AI_QUEUE_WAIT_SECONDS` | `300` | maximale Wartezeit in der Schlange |
+| `AI_MAX_QUEUE` | `4` | Plätze in der Warteschlange |
+| `AI_LLM_PARAMS` | Qwen-Sampling | JSON, z. B. `{"temperature":0.6}` |
+| `AI_JSON_SCHEMA` | `true` | strukturierte Ausgabe anfragen. Lehnt der Server das ab, schaltet die App automatisch auf reines JSON-Prompting um |
+
+Langsame Antworten halten die Verbindung offen, damit der DSM-Reverse-Proxy (Standard
+60 s) sie nicht abschneidet. Eine Anpassung des Proxys ist nicht nötig.
+
 ## Daten und Backups
 
 | Pfad auf der NAS | Inhalt |
@@ -132,6 +186,7 @@ npm start                       # http://localhost:8080
 npm test                        # Unit- und Server-Tests
 npm run test:browser            # Browser-Test ohne Server (statischer Modus)
 npm run test:server-browser     # Browser-Test mit Login und Datenbank
+npm run test:ai-browser         # Browser-Test der KI-Funktionen gegen einen Fake-Model-Server
 ```
 
 Die App läuft weiterhin auch als reine statische Seite, etwa per `file://` oder auf

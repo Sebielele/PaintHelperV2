@@ -2,6 +2,10 @@
   "use strict";
 
   const SETTINGS_VERSION = 1;
+  // Own palettes (from the assistant or a photo) appear as faction "custom palettes".
+  const CUSTOM_FACTION = "__custom__";
+  const CUSTOM_ROLE_CODES = ["D", "S", "ND", "NL", "A1", "A2"];
+  const MAX_CUSTOM_SCHEMES = 30;
   const STORAGE_KEYS = {
     lastSettings: "wph.settings.v1",
     profiles: "wph.profiles.v1"
@@ -12,10 +16,13 @@
     baseAdvice: false,
     modelRoles: false,
     paintLadder: false,
+    aiRecipe: false,
+    aiSearch: false,
     catalogueMatches: false
   };
   const DEFAULT_CONTROL_GROUP_COLLAPSE = {
     start: false,
+    assistant: false,
     color: false,
     paletteRules: false,
     paintingPlan: false,
@@ -59,6 +66,7 @@
       shoppingPaintKeys: [],
       shoppingListCollapsed: false,
       shoppingSearch: "",
+      customSchemes: [],
       controlGroupsCollapsed: { ...DEFAULT_CONTROL_GROUP_COLLAPSE },
       collapsedSections: { ...DEFAULT_SECTION_COLLAPSE }
     };
@@ -175,6 +183,7 @@
     renderProfiles();
     drawWheel();
     attachEvents();
+    W.app = createAppApi();
     update();
 
     W.loadPaintCatalogue("data/paint-catalogue.json").then(result => {
@@ -189,6 +198,151 @@
 
     function t(path, params) {
       return translator(path, params);
+    }
+
+    // Small API for src/ai.js (assistant, photo palette, paint search).
+    function createAppApi() {
+      return {
+        language: () => state.language,
+        system: () => state.system,
+        t: (path, params) => t(path, params),
+        palette: () => currentPalette.map(color => ({ name: colorName(color), hex: color.hex })),
+        recipeContext,
+        addCustomPalette,
+        deleteCustomPalette,
+        selectedCustomPalette: () => state.customSchemes.find(scheme => scheme.id === state.factionSchemeId) || null,
+        setPrimaryHex(hex) {
+          if (!setPrimaryFromHex(hex)) {
+            return false;
+          }
+          clearFactionScheme();
+          syncSlidersToActiveColor();
+          update();
+          return true;
+        },
+        selectedManufacturers: () => Array.from(selectedManufacturers),
+        findPaint(fields) {
+          const key = paintKey(fields);
+          return cataloguePaints.find(paint => paintKey(paint) === key) || null;
+        },
+        isOwned: paint => ownedPaintKeys.has(paintKey(paint)),
+        isOnShoppingList: paint => shoppingPaintKeys.has(paintKey(paint)),
+        addToShoppingList(paint) {
+          addShoppingPaintByKey(paintKey(paint));
+        },
+        nearestPaints(hex, limit = 3) {
+          return W.mapPaletteToCatalogue([{ hex }], closestMatchCataloguePaints(), { limit })[0].matches;
+        }
+      };
+    }
+
+    function addCustomPalette({ name, source, prompt, notes, colors }) {
+      const roles = (colors || []).slice(0, CUSTOM_ROLE_CODES.length).map((color, index) => ({
+        code: CUSTOM_ROLE_CODES.includes(color.role) ? color.role : CUSTOM_ROLE_CODES[index],
+        name: color.name || "",
+        hex: String(color.hex || "").toUpperCase()
+      }));
+      const scheme = sanitizeCustomScheme({
+        id: `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        name,
+        source,
+        prompt,
+        notes,
+        createdAt: new Date().toISOString(),
+        roles
+      });
+      if (!scheme) {
+        return null;
+      }
+      state.customSchemes = [scheme].concat(state.customSchemes).slice(0, MAX_CUSTOM_SCHEMES);
+      state.factionSchemeId = scheme.id;
+      state.mode = "single";
+      el.mode.value = "single";
+      populateFactionControls();
+      update();
+      return scheme.id;
+    }
+
+    // Closest catalogue paint per role, computed live so it follows the loaded
+    // catalogue, the producer filter, owned-only matching and the language.
+    function customPaintEquivalents(scheme) {
+      const matches = W.mapPaletteToCatalogue(scheme.roles, closestMatchCataloguePaints(), { limit: 1 });
+      return matches
+        .map((color, index) => color.matches[0] ? `${scheme.roles[index].name}: ${color.matches[0].name}` : "")
+        .filter(Boolean)
+        .join("; ");
+    }
+
+    function deleteCustomPalette(id) {
+      state.customSchemes = state.customSchemes.filter(scheme => scheme.id !== id);
+      if (state.factionSchemeId === id) {
+        // Stay among the own palettes while there are any left.
+        state.factionSchemeId = state.customSchemes.length ? state.customSchemes[0].id : "";
+      }
+      populateFactionControls();
+      update();
+    }
+
+    // Everything the assistant needs to write a recipe grounded in real catalogue paints.
+    function recipeContext() {
+      const allPaints = filteredCataloguePaints().filter(paint => paint.hex);
+      const ownedPaints = allPaints.filter(paint => ownedPaintKeys.has(paintKey(paint)));
+      const describe = match => ({
+        name: match.name,
+        manufacturer: match.manufacturer || "",
+        range: match.range || match.finish || "",
+        owned: ownedPaintKeys.has(paintKey(match)),
+        distance: Math.round(match.distance)
+      });
+      const paintsFor = hex => {
+        const best = W.mapPaletteToCatalogue([{ hex }], allPaints, { limit: 2 })[0].matches.map(describe);
+        const owned = ownedPaints.length
+          ? W.mapPaletteToCatalogue([{ hex }], ownedPaints, { limit: 1 })[0].matches.map(describe)
+          : [];
+        const seen = new Set();
+        return owned.concat(best).filter(paint => {
+          const key = `${paint.manufacturer}|${paint.name}`;
+          return seen.has(key) ? false : seen.add(key);
+        }).slice(0, 3);
+      };
+      const bases = W.baseSuggestions({
+        palette: currentPalette,
+        state,
+        systemKey: state.system,
+        roleProfileKey: el.roleStyle.value,
+        baseThemeKey: el.baseTheme.value
+      }).slice(0, 1).map(base => {
+        const recipe = t(`bases.${base.key}.recipe`);
+        return {
+          title: t(`bases.${base.key}.title`),
+          steps: Array.isArray(recipe) ? recipe : [],
+          paints: paintsFor(base.hex)
+        };
+      });
+      return {
+        language: state.language,
+        system: t(`systems.${state.system}`),
+        scheme: el.title.textContent,
+        finish: t(`finish.${W.styleLabelKey(state.style)}`),
+        recipeMode: t(`recipeModes.${state.recipeModeKey}.title`),
+        recipeModeDescription: t(`recipeModes.${state.recipeModeKey}.description`),
+        ownedPaintCount: ownedPaintKeys.size,
+        onlyOwnedPaints: Boolean(state.onlyOwnedMatches),
+        areas: rolePlannerItems().slice(0, 12).map(item => {
+          const color = resolveRoleColor(item.colorRef);
+          return { area: item.extra ? color.name : t(`roleAreas.${item.areaKey}`), color: color.name, hex: color.hex };
+        }),
+        colors: currentPalette.slice(0, 6).map(color => ({
+          name: colorName(color),
+          hex: color.hex,
+          steps: W.ladderForColor(color, state.style, state.recipeModeKey).map(step => ({
+            step: t(`ladder.steps.${step.key}`),
+            hex: step.hex,
+            paints: paintsFor(step.hex)
+          }))
+        })),
+        base: bases[0] || null
+      };
     }
 
     function translateStatic() {
@@ -293,7 +447,9 @@
 
       el.system.addEventListener("change", () => {
         state.system = el.system.value;
-        state.factionSchemeId = "";
+        if (!state.factionSchemeId.startsWith("custom-")) {
+          state.factionSchemeId = "";
+        }
         populateDynamicControls();
         update();
       });
@@ -633,9 +789,13 @@
       el.title.textContent = isFactionScheme
         ? factionSchemeTitle(factionScheme)
         : isHeraldic ? t("heraldic.title") : t(`schemes.${schemeKey}.title`);
-      el.desc.textContent = isFactionScheme
+      el.desc.textContent = isFactionScheme && factionScheme.custom
+        ? (factionScheme.source === "photo"
+          ? t("ai.createdFromPhoto", { name: factionScheme.subfaction })
+          : factionScheme.prompt ? t("ai.createdFrom", { prompt: factionScheme.prompt }) : factionScheme.subfaction)
+        : isFactionScheme
         ? t("factionSchemes.description", {
-          faction: factionScheme.faction,
+          faction: factionLabel(factionScheme.faction),
           subfaction: factionScheme.subfaction,
           scheme: factionScheme.schemeName
         })
@@ -652,7 +812,8 @@
         mode: t(`recipeModes.${state.recipeModeKey}.title`)
       });
       const paintEquivalentText = factionScheme
-        ? factionScheme.paintEquivalents || t("factionSchemes.noPaintEquivalents")
+        ? (factionScheme.custom ? customPaintEquivalents(factionScheme) : factionScheme.paintEquivalents)
+          || t("factionSchemes.noPaintEquivalents")
         : "";
       replaceChildren(el.notes, [
         createElement("strong", { text: `${t("ui.paintingNotes")}:` }),
@@ -691,18 +852,20 @@
         finish: finishLabel
       });
       saveLastSettings();
+      document.dispatchEvent(new CustomEvent("wph:update"));
     }
 
     function populateFactionControls(preferredFaction) {
       const schemes = factionSchemesForCurrentSystem();
       const selected = selectedFactionScheme();
-      const factionNames = unique(schemes.map(scheme => scheme.faction));
+      const factionNames = unique(schemes.map(scheme => scheme.faction))
+        .sort((a, b) => (b === CUSTOM_FACTION) - (a === CUSTOM_FACTION));
       const factionValue = preferredFaction || (selected && selected.faction) || "";
 
       setSelectOptions(
         el.faction,
         ["", ...factionNames],
-        key => key || t("factionSchemes.custom"),
+        key => key ? factionLabel(key) : t("factionSchemes.custom"),
         factionValue
       );
 
@@ -727,11 +890,41 @@
     }
 
     function factionSchemesForCurrentSystem() {
-      return W.getFactionSchemesForSystem(factionSchemes, state.system);
+      return customSchemeObjects().concat(W.getFactionSchemesForSystem(factionSchemes, state.system));
     }
 
     function selectedFactionScheme() {
-      return factionSchemes.find(scheme => scheme.id === state.factionSchemeId && scheme.system === state.system) || null;
+      return customSchemeObjects().find(scheme => scheme.id === state.factionSchemeId)
+        || factionSchemes.find(scheme => scheme.id === state.factionSchemeId && scheme.system === state.system)
+        || null;
+    }
+
+    // Custom palettes work in both game systems and are shown like fixed faction schemes.
+    function customSchemeObjects() {
+      return state.customSchemes.map(scheme => ({
+        id: scheme.id,
+        system: state.system,
+        faction: CUSTOM_FACTION,
+        subfaction: scheme.name,
+        schemeName: t(`ai.source.${scheme.source}`),
+        roles: scheme.roles.map(role => ({ code: role.code, name: role.name || t(`schemeRoles.${customRoleKey(role.code)}`), hex: role.hex })),
+        paintEquivalents: scheme.paintEquivalents,
+        notes: scheme.notes,
+        source: scheme.source,
+        prompt: scheme.prompt,
+        custom: true
+      }));
+    }
+
+    function customRoleKey(code) {
+      return {
+        D: "factionDominant", S: "factionSecondary", ND: "factionDarkNeutral",
+        NL: "factionLightNeutral", A1: "factionAccentOne", A2: "factionAccentTwo"
+      }[code] || "factionAccentOne";
+    }
+
+    function factionLabel(faction) {
+      return faction === CUSTOM_FACTION ? t("ai.customFaction") : faction;
     }
 
     function clearFactionScheme() {
@@ -765,7 +958,7 @@
         return;
       }
       el.factionMeta.textContent = t("factionSchemes.selectedMeta", {
-        faction: factionScheme.faction,
+        faction: factionLabel(factionScheme.faction),
         count: currentPalette.length
       });
     }
@@ -1670,10 +1863,16 @@
         setProfileStatus(t("ui.profileMissing"));
         return;
       }
+      const currentCustomSchemes = state.customSchemes;
       if (!applySettingsToState(profile.settings)) {
         setProfileStatus(t("ui.profileMissing"));
         return;
       }
+      // Own palettes are a library: loading an older profile must not drop newer ones.
+      const profileIds = new Set(state.customSchemes.map(scheme => scheme.id));
+      state.customSchemes = state.customSchemes
+        .concat(currentCustomSchemes.filter(scheme => !profileIds.has(scheme.id)))
+        .slice(0, MAX_CUSTOM_SCHEMES);
       syncControlsFromState();
       renderProfiles(profile.id);
       update();
@@ -1760,6 +1959,7 @@
         shoppingPaintKeys: Array.from(shoppingPaintKeys),
         shoppingListCollapsed: Boolean(state.shoppingListCollapsed),
         shoppingSearch: state.shoppingSearch,
+        customSchemes: state.customSchemes.map(sanitizeCustomScheme).filter(Boolean),
         controlGroupsCollapsed: {
           ...DEFAULT_CONTROL_GROUP_COLLAPSE,
           ...state.controlGroupsCollapsed
@@ -1789,6 +1989,15 @@
 
       if (snapshot.factionSchemeId) {
         params.set("faction", snapshot.factionSchemeId);
+        const custom = state.customSchemes.find(scheme => scheme.id === snapshot.factionSchemeId);
+        if (custom) {
+          params.set("custom", JSON.stringify({
+            name: custom.name,
+            source: custom.source,
+            notes: custom.notes,
+            roles: custom.roles
+          }));
+        }
       }
       if (snapshot.mode === "heraldic") {
         params.set("active", snapshot.activeColor);
@@ -1865,7 +2074,65 @@
       state.shoppingSearch = typeof snapshot.shoppingSearch === "string" ? snapshot.shoppingSearch : "";
       state.controlGroupsCollapsed = normalizeControlGroupsCollapsed(snapshot.controlGroupsCollapsed);
       state.collapsedSections = normalizeCollapsedSections(snapshot.collapsedSections);
+      if (Array.isArray(snapshot.customSchemes)) {
+        state.customSchemes = snapshot.customSchemes.map(sanitizeCustomScheme).filter(Boolean).slice(0, MAX_CUSTOM_SCHEMES);
+      }
+      if (snapshot.sharedCustomScheme) {
+        importSharedCustomScheme(snapshot.sharedCustomScheme);
+      }
       return true;
+    }
+
+    function sanitizeCustomScheme(scheme) {
+      if (!scheme || typeof scheme !== "object" || !/^custom-[a-z0-9-]{1,40}$/.test(String(scheme.id || ""))) {
+        return null;
+      }
+      const roles = (Array.isArray(scheme.roles) ? scheme.roles : [])
+        .map(role => {
+          const hex = String(role && role.hex || "").trim().toUpperCase();
+          return CUSTOM_ROLE_CODES.includes(role && role.code) && /^#[0-9A-F]{6}$/.test(hex)
+            ? { code: role.code, name: cleanText(role.name, 60), hex }
+            : null;
+        })
+        .filter(Boolean)
+        .slice(0, CUSTOM_ROLE_CODES.length);
+      if (!roles.length) {
+        return null;
+      }
+      return {
+        id: scheme.id,
+        name: cleanText(scheme.name, 60) || "Palette",
+        source: ["ai", "photo"].includes(scheme.source) ? scheme.source : "ai",
+        prompt: cleanText(scheme.prompt, 400),
+        notes: cleanText(scheme.notes, 1200),
+        paintEquivalents: cleanText(scheme.paintEquivalents, 1200),
+        createdAt: typeof scheme.createdAt === "string" ? scheme.createdAt.slice(0, 40) : "",
+        roles
+      };
+    }
+
+    // A palette received through a share link is added to the own palettes once
+    // (same colours = same id) and selected.
+    function importSharedCustomScheme(shared) {
+      const roles = Array.isArray(shared.roles) ? shared.roles : [];
+      const fingerprint = roles.map(role => `${role && role.code}${role && role.hex}`).join("") + String(shared.name || "");
+      let hash = 5381;
+      for (let i = 0; i < fingerprint.length; i += 1) {
+        hash = ((hash * 33) ^ fingerprint.charCodeAt(i)) >>> 0;
+      }
+      const scheme = sanitizeCustomScheme({ ...shared, id: `custom-s${hash.toString(36)}`, createdAt: new Date().toISOString() });
+      if (!scheme) {
+        return;
+      }
+      if (!state.customSchemes.some(existing => existing.id === scheme.id)) {
+        state.customSchemes = [scheme].concat(state.customSchemes).slice(0, MAX_CUSTOM_SCHEMES);
+      }
+      state.factionSchemeId = scheme.id;
+      state.mode = "single";
+    }
+
+    function cleanText(value, maxLength) {
+      return String(value || "").replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, maxLength);
     }
 
     function sanitizePaintRackCustomPaint(paint) {
@@ -1943,6 +2210,14 @@
         setStringSetting(snapshot, "system", params.get("system"));
         setStringSetting(snapshot, "mode", params.get("mode"));
         setStringSetting(snapshot, "factionSchemeId", params.get("faction"));
+        try {
+          const shared = JSON.parse(params.get("custom") || "null");
+          if (shared && typeof shared === "object") {
+            snapshot.sharedCustomScheme = shared;
+          }
+        } catch (error) {
+          snapshot.sharedCustomScheme = null;
+        }
         setStringSetting(snapshot, "activeColor", params.get("active"));
         setStringSetting(snapshot, "heraldicLayout", params.get("layout"));
         setStringSetting(snapshot, "heraldicRatio", params.get("ratio"));

@@ -9,6 +9,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const zlib = require("node:zlib");
 const { openDatabase, UserError, STORAGE_KEY_PATTERN } = require("./db");
+const { createAi, loadAiConfig, AiError } = require("./ai");
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_VALUE_BYTES = 2 * 1024 * 1024;
@@ -65,7 +66,7 @@ function loadConfig(env = process.env) {
   };
 }
 
-function createServer(config, store, log = console) {
+function createServer(config, store, log = console, ai = null) {
   assertDataDirIsPrivate(config);
   const loginAttempts = new Map();
   const gzipCache = new Map();
@@ -82,7 +83,19 @@ function createServer(config, store, log = console) {
         serveStatic(req, res, url.pathname);
       }
     } catch (error) {
-      if (error instanceof HttpError) {
+      if (res.headersSent) {
+        if (!(error instanceof AiError)) {
+          log.error("Fehler nach Antwortbeginn:", error);
+        }
+        res.end();
+        return;
+      }
+      if (error instanceof AiError) {
+        if (error.status >= 500 && error.code !== "busy") {
+          log.warn(`KI: ${error.message}`);
+        }
+        sendJson(res, error.status === 499 ? 400 : error.status, { error: error.message, code: error.code });
+      } else if (error instanceof HttpError) {
         if (error.status === 413) {
           res.setHeader("Connection", "close");
         }
@@ -148,6 +161,25 @@ function createServer(config, store, log = console) {
       store.changeOwnPassword(user.id, String(body.currentPassword || ""), body.newPassword, user.tokenHash);
       log.info(`Passwort geändert: ${user.username}`);
       return sendJson(res, 200, { ok: true });
+    }
+
+    if (url.pathname.startsWith("/api/ai/")) {
+      if (route === "GET /api/ai/status") {
+        return sendJson(res, 200, ai ? ai.status() : { llm: false, search: false, searchReady: false });
+      }
+      if (!ai) {
+        throw new HttpError(404, "KI ist nicht eingerichtet.", "disabled");
+      }
+      if (route === "POST /api/ai/palette") {
+        return ai.palette(user, await readJson(req), req, res);
+      }
+      if (route === "POST /api/ai/recipe") {
+        return ai.recipe(user, await readJson(req), req, res);
+      }
+      if (route === "POST /api/ai/search") {
+        return ai.search(user, await readJson(req), req, res);
+      }
+      throw new HttpError(404, "Unbekannter API-Endpunkt.");
     }
 
     if (route === "GET /api/storage") {
@@ -481,7 +513,13 @@ function main() {
   const store = openDatabase(config.dataDir);
   bootstrapInitialUser(config, store, console);
   const timer = scheduleMaintenance(config, store, console);
-  const server = createServer(config, store);
+  const aiConfig = loadAiConfig();
+  const ai = createAi(aiConfig, { appRoot: config.appRoot, dataDir: config.dataDir, log: console });
+  const server = createServer(config, store, console, ai);
+  ai.warmUp();
+  if (ai.llmEnabled || ai.embedEnabled) {
+    console.log(`KI: Sprachmodell ${ai.llmEnabled ? aiConfig.llmUrl : "aus"}, Suche ${ai.embedEnabled ? aiConfig.embedUrl : "aus"}`);
+  }
 
   server.listen(config.port, config.host, () => {
     console.log(`PaintHelperV2 läuft auf http://${config.host}:${config.port} (Daten: ${store.file}, Benutzer: ${store.countUsers()})`);

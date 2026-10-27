@@ -11,6 +11,10 @@ z. B. auf einer Synology NAS. Siehe [DEPLOY.md](DEPLOY.md).
 - **Ohne Server** (Datei öffnen oder statisches Hosting): Die App verhält sich wie das
   Original und speichert nur im Browser.
 
+- **Assistent** (optional, mit lokalem KI-Rechner): Palette aus einer Beschreibung,
+  Bemalanleitung mit den eigenen Farben und Farbsuche in Worten. Die Palette aus einem
+  Foto funktioniert immer, auch ohne Server.
+
 Neue Versionen des Originals lassen sich mit `git pull upstream main` übernehmen.
 
 ---
@@ -62,7 +66,7 @@ a paint from the catalogue, select a fixed faction scheme, or vary unlocked pale
 It then generates painting-friendly color schemes with role suggestions, paint matches,
 and steps you can turn into a practical miniature painting plan.
 
-Current app version: `v0.14` (`package.json` version `0.14.0`). The static HTML uses the
+Current app version: `v0.15` (`package.json` version `0.15.0`). The static HTML uses the
 major/minor version as a cache-buster on local CSS and JavaScript assets so deployed
 updates on GitHub Pages are less likely to reuse stale browser-cached files.
 

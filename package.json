@@ -1,6 +1,6 @@
 {
   "name": "painthelper-v2",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "private": true,
   "description": "Miniature paint palette helper for Warhammer Age of Sigmar and Warhammer 40,000, with user accounts and SQLite storage.",
   "scripts": {
@@ -8,7 +8,8 @@
     "user": "node --disable-warning=ExperimentalWarning server/manage.js",
     "test": "node --disable-warning=ExperimentalWarning --test tests/*.test.js",
     "test:browser": "node tests/browser-smoke.js",
-    "test:server-browser": "node --disable-warning=ExperimentalWarning tests/server-browser.js"
+    "test:server-browser": "node --disable-warning=ExperimentalWarning tests/server-browser.js",
+    "test:ai-browser": "node --disable-warning=ExperimentalWarning tests/ai-browser.js"
   },
   "devDependencies": {
     "playwright-core": "^1.60.0"

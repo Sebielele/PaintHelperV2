@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.15.0 (PaintHelperV2)
+
+- Added the assistant, backed by a local OpenAI-compatible model server (e.g. OpenVINO
+  Model Server): palette from a description, a streamed painting guide that only names
+  paints from the catalogue and the user's collection, and paint search in words
+  using an embedding index of the catalogue.
+- Added palette from a photo (runs in the browser, also without the server).
+- Added "★ My palettes": assistant and photo palettes are saved with the settings and
+  profiles, stay selected across game systems, and travel with share links.
+- The server queues model requests (one at a time), cancels them when the browser goes
+  away, keeps slow responses alive behind reverse proxies, and limits requests per user.
+
 ## v0.14.0 (PaintHelperV2)
 
 - Added an optional Node.js server (`server/`) with SQLite storage via `node:sqlite`

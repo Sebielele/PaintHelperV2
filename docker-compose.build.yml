@@ -19,6 +19,12 @@ services:
       SESSION_DAYS: "90"
       BACKUP_KEEP: "14"
       COOKIE_SECURE: "auto"
+      # Assistent: OpenVINO Model Server auf dem KI-PC (leer lassen = KI-Funktionen aus)
+      AI_LLM_URL: "http://10.2.1.207:8001/v3"
+      AI_LLM_MODEL: "OpenVINO/Qwen3.5-9B-int4-ov"
+      AI_EMBED_URL: "http://10.2.1.207:8002/v3"
+      AI_EMBED_MODEL: "OpenVINO/Qwen3-Embedding-0.6B-int8-ov"
+      AI_REQUESTS_PER_HOUR: "40"     # pro Person, Paletten + Anleitungen
     volumes:
       - /volume1/docker/painthelper:/data
     read_only: true

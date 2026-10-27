@@ -1,0 +1,32 @@
+# PaintHelperV2 – Portainer-Stack für die Synology DS1520+
+#
+# Das Image baut GitHub Actions bei jedem Push auf main automatisch
+# (ghcr.io/sebielele/painthelperv2). Update in Portainer:
+#   Stack -> Editor -> "Update the stack" mit "Re-pull image" aktiv.
+#
+# Benutzer anlegen (Portainer -> Container "painthelper" -> Console, /bin/sh):
+#   wph-user add sebastian
+
+services:
+  painthelper:
+    image: ghcr.io/sebielele/painthelperv2:latest
+    container_name: painthelper
+    restart: unless-stopped
+    ports:
+      - "8484:8080"                 # Aufruf: http://10.2.1.89:8484
+    environment:
+      TZ: Europe/Zurich
+      SESSION_DAYS: "90"            # so lange bleibt man pro Gerät angemeldet
+      BACKUP_KEEP: "14"             # tägliche DB-Backups unter /data/backups
+      COOKIE_SECURE: "auto"         # Secure-Cookie automatisch hinter HTTPS-Proxy
+      # Optional: ersten Benutzer beim allerersten Start anlegen,
+      # danach beide Zeilen wieder entfernen.
+      # INITIAL_USER: "sebastian"
+      # INITIAL_PASSWORD: "bitte-sofort-aendern"
+    volumes:
+      - /volume1/docker/painthelper:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true

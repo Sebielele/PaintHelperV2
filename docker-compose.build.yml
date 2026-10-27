@@ -1,0 +1,28 @@
+# Alternative ohne GitHub-Registry: Image direkt auf der NAS aus dem Repo bauen.
+# Portainer -> Stacks -> Add stack -> Repository
+#   URL:            https://github.com/Sebielele/PaintHelperV2
+#   Reference:      refs/heads/main
+#   Compose path:   docker-compose.build.yml
+# Hinweis: Bei Updates baut Portainer das Image nicht immer neu. Dann den
+# Container und das Image "painthelperv2:local" löschen und neu deployen.
+
+services:
+  painthelper:
+    build: .
+    image: painthelperv2:local
+    container_name: painthelper
+    restart: unless-stopped
+    ports:
+      - "8484:8080"
+    environment:
+      TZ: Europe/Zurich
+      SESSION_DAYS: "90"
+      BACKUP_KEEP: "14"
+      COOKIE_SECURE: "auto"
+    volumes:
+      - /volume1/docker/painthelper:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true

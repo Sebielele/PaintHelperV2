@@ -5,6 +5,14 @@ Paint Helper mit Datenbank: eine Erweiterung von
 um Benutzerkonten und serverseitige Speicherung (SQLite), lauffähig als Docker-Container
 z. B. auf einer Synology NAS. Siehe [DEPLOY.md](DEPLOY.md).
 
+- **Mit Server** (`npm start` oder Docker): Login-Maske; Einstellungen, Profile,
+  Farbsammlung und Einkaufsliste liegen pro Benutzer in `paint-helper.db` und sind auf
+  allen Geräten gleich.
+- **Ohne Server** (Datei öffnen oder statisches Hosting): Die App verhält sich wie das
+  Original und speichert nur im Browser.
+
+Neue Versionen des Originals lassen sich mit `git pull upstream main` übernehmen.
+
 ---
 
 <!-- Upstream README -->
@@ -54,7 +62,7 @@ a paint from the catalogue, select a fixed faction scheme, or vary unlocked pale
 It then generates painting-friendly color schemes with role suggestions, paint matches,
 and steps you can turn into a practical miniature painting plan.
 
-Current app version: `v0.13` (`package.json` version `0.13.0`). The static HTML uses the
+Current app version: `v0.14` (`package.json` version `0.14.0`). The static HTML uses the
 major/minor version as a cache-buster on local CSS and JavaScript assets so deployed
 updates on GitHub Pages are less likely to reuse stale browser-cached files.
 

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Benutzerverwaltung im Container, z. B.:  wph-user add sebastian
+# Läuft immer als "node", damit die Datenbankdateien dem Server-Benutzer gehören.
+set -e
+DATA_DIR="${DATA_DIR:-/data}"
+if [ "$(id -u)" = "0" ]; then
+  mkdir -p "$DATA_DIR"
+  chown -R node:node "$DATA_DIR"
+  exec su-exec node node --disable-warning=ExperimentalWarning /app/server/manage.js "$@"
+fi
+exec node --disable-warning=ExperimentalWarning /app/server/manage.js "$@"

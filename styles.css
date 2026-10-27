@@ -1436,3 +1436,57 @@ button.secondary:hover { background: var(--panel2); border-color: var(--muted); 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* PaintHelperV2: login and account bar (server mode only) */
+.wph-auth-open body { overflow: hidden; }
+.wph-auth-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: grid; place-items: center; padding: 16px;
+  background: rgba(8, 10, 9, .82); backdrop-filter: blur(6px);
+}
+.wph-auth-card {
+  width: min(400px, 100%);
+  padding: 28px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); color: var(--text);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+}
+.wph-auth-brand {
+  margin: 0 0 6px; color: var(--accent);
+  font-size: .76rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+}
+.wph-auth-card h2 { margin: 0 0 8px; font-size: 1.5rem; }
+.wph-auth-hint { margin: 0 0 18px; color: var(--muted); }
+.wph-auth-form { display: grid; gap: 14px; }
+.wph-auth-form label { display: grid; gap: 6px; color: var(--muted); font-size: .85rem; font-weight: 600; }
+.wph-auth-form input {
+  width: 100%; min-height: 42px; padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel2); color: var(--text); font: inherit;
+}
+.wph-auth-form input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.wph-auth-error { margin: 0; color: #ff9d8f; font-size: .9rem; }
+.wph-auth-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.wph-auth-form > button { width: 100%; }
+
+.wph-account {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-left: auto; color: var(--muted); font-size: .85rem;
+}
+.wph-account-user { color: var(--text); font-weight: 700; }
+.wph-account-status { font-size: .78rem; }
+.wph-account-status[data-state="saving"] { color: var(--muted); }
+.wph-account-status[data-state="offline"],
+.wph-account-status[data-state="rejected"] { color: #ff9d8f; }
+.wph-account button { min-height: 34px; padding: 6px 12px; font-size: .82rem; }
+.wph-account-id { display: inline-flex; align-items: baseline; gap: 10px; min-width: 0; }
+.wph-account-user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 720px) {
+  .header-utility:has(.wph-account) { flex-wrap: wrap; }
+  .wph-account {
+    order: 3; width: 100%; margin-left: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px;
+    padding-top: 10px; border-top: 1px solid var(--line); text-align: left;
+  }
+  .wph-account-id { flex-direction: column; gap: 0; }
+  .wph-account button { padding: 6px 10px; font-size: .78rem; white-space: nowrap; }
+}

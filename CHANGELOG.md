@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.14.0 (PaintHelperV2)
+
+- Added an optional Node.js server (`server/`) with SQLite storage via `node:sqlite`
+  and no npm dependencies.
+- Added user accounts: login screen, account bar with sign-out and password change,
+  sessions stored as hashes, scrypt password hashing, login rate limiting.
+- Settings, profiles, owned paints, and shopping lists are stored per user on the
+  server and sync across devices. Local browser data can be imported on first login.
+- Added the `wph-user` CLI for managing users and backups, plus daily database backups.
+- Added Dockerfile, Portainer stack files, and a GitHub Actions workflow that tests
+  and publishes the container image to GHCR.
+- The app still runs as a static page (file://, GitHub Pages) using browser storage.
+
 ## v0.13.0
 
 - Added per-card colour editing and locks with exact HEX preservation.

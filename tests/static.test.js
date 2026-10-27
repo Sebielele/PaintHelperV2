@@ -17,6 +17,7 @@ test("static HTML references the prepared app assets", () => {
   assert.match(html, assetPattern(`src/factions.js?v=${assetVersion}`));
   assert.match(html, assetPattern(`src/i18n.js?v=${assetVersion}`));
   assert.match(html, assetPattern(`src/citadel.js?v=${assetVersion}`));
+  assert.match(html, assetPattern(`src/storage.js?v=${assetVersion}`));
   assert.match(html, assetPattern(`src/app.js?v=${assetVersion}`));
   assert.match(html, new RegExp(`class="app-version"[^>]*>v${escapeRegExp(assetVersion)}</p>`));
   assert.match(html, /id="languageSelect"/);
@@ -88,6 +89,7 @@ test("asset cache buster matches package major and minor version", () => {
     `src/factions.js?v=${majorMinor}`,
     `src/i18n.js?v=${majorMinor}`,
     `src/citadel.js?v=${majorMinor}`,
+    `src/storage.js?v=${majorMinor}`,
     `src/app.js?v=${majorMinor}`
   ]);
   localAssets.forEach(asset => assert.match(asset, new RegExp(`\\?v=${escapeRegExp(majorMinor)}$`)));
@@ -113,6 +115,7 @@ test("application scripts load dependencies before app bootstrap", () => {
     "src/factions.js",
     "src/i18n.js",
     "src/citadel.js",
+    "src/storage.js",
     "src/app.js"
   ]);
 });

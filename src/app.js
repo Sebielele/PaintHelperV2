@@ -23,7 +23,11 @@
     saveShare: true
   };
 
-  document.addEventListener("DOMContentLoaded", init);
+  // Wait for the storage adapter (server login and data load) before reading settings.
+  document.addEventListener("DOMContentLoaded", () => {
+    const storageReady = window.WPHStorage && window.WPHStorage.ready;
+    Promise.resolve(storageReady).catch(() => "local").then(init);
+  });
 
   function init() {
     const W = window.WPH;
@@ -2323,6 +2327,16 @@
   }
 
   function safeLocalStorage(action, key, value) {
+    const adapter = window.WPHStorage;
+    if (adapter) {
+      if (action === "get") {
+        return adapter.get(key);
+      }
+      if (action === "set") {
+        adapter.set(key, value);
+      }
+      return null;
+    }
     try {
       if (!window.localStorage) {
         return null;

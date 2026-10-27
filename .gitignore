@@ -5,3 +5,7 @@
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Local server data (PaintHelperV2)
+data-local/
+node_modules/

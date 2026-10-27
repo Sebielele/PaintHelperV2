@@ -12,13 +12,13 @@
   const PAINTED = STAGES.indexOf("painted");
   const MAX_UNITS = 200;
   const MAX_MODELS_PER_UNIT = 120;
-  const MANIFESTATION = /\\b(manifestation|endless spell|invocation)\\b/i;
-  const TERRAIN = /\\bterrain\\b/i;
+  const MANIFESTATION = /\b(manifestation|endless spell|invocation)\b/i;
+  const TERRAIN = /\bterrain\b/i;
   // Rule categories that say nothing about what the model looks like.
-  const NOISE_KEYWORDS = /^(ward|champion|standard bearer|musician|warmaster|unique|general|army composition|configuration|reinforced|battleline|faction terrain|manifestation|endless spell|regimental)\\b|\\(\\d/i;
+  const NOISE_KEYWORDS = /^(ward|champion|standard bearer|musician|warmaster|unique|general|army composition|configuration|reinforced|battleline|faction terrain|manifestation|endless spell|regimental)\b|\(\d/i;
 
   function text(value, max = 120) {
-    return String(value == null ? "" : value).replace(/\\s+/g, " ").trim().slice(0, max);
+    return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max);
   }
 
   function list(value) {
@@ -337,14 +337,14 @@
     const sections = [];
     let current = null;
     let index = 0;
-    String(markdown || "").split(/\\r?\\n/).forEach(line => {
-      const heading = line.match(/^\\s*#{1,6}\\s+(.*)$/);
+    String(markdown || "").split(/\r?\n/).forEach(line => {
+      const heading = line.match(/^\s*#{1,6}\s+(.*)$/);
       if (heading) {
         current = { title: heading[1].trim(), steps: [], bullets: [] };
         sections.push(current);
         return;
       }
-      const step = line.match(/^\\s*\\d+[.)]\\s+(.*)$/);
+      const step = line.match(/^\s*\d+[.)]\s+(.*)$/);
       if (step) {
         if (!current) {
           current = { title: "", steps: [], bullets: [] };
@@ -354,7 +354,7 @@
         index += 1;
         return;
       }
-      const bullet = line.match(/^\\s*[-*•]\\s+(.*)$/);
+      const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
       if (bullet && current) {
         current.bullets.push(bullet[1].trim());
       } else if (line.trim() && current && !current.steps.length && !current.bullets.length) {

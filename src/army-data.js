@@ -1,3 +1,6 @@
+// Army lists for PaintHelperV2: reads NewRecruit / BattleScribe rosters (JSON, .ros,
+// .rosz) into a painting project and keeps the painting progress per model.
+// Pure functions, shared by the browser (window.WPHArmyData) and the Node tests.
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
     module.exports = factory();
@@ -364,7 +367,8 @@
     return { sections, total: index };
   }
 
-  // NEW: Suggest next units to paint
+  // Up to `limit` units to paint next: units in progress first (most painted share,
+  // then points), then untouched units by points. Manifestations and terrain are skipped.
   function nextUnits(army, limit = 3) {
     const unitsWithRegiment = army.regiments.flatMap(regiment => regiment.units.map(unit => ({ unit, regiment: regiment.name })));
     const candidates = unitsWithRegiment.filter(({ unit }) => unit.kind === "unit" && !unitProgress(unit).done);

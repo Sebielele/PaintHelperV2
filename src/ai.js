@@ -7,6 +7,8 @@
 
   const API = "api/ai/";
   const ERROR_PATTERN = /\n?\[\[WPH-ERROR:([\w-]+)\]\]/g;
+  const GUIDES_KEY = "wph.guides.v1";
+  const MAX_GUIDES = 40;
   let app = null;
   let status = { llm: false, search: false, searchReady: false };
   let recipeController = null;
@@ -35,7 +37,7 @@
       "aiDeletePaletteBtn", "aiRecipeBtn", "aiRecipeStopBtn", "aiRecipeCopyBtn", "aiRecipeStatus",
       "aiRecipeOutput", "aiSearchForm", "aiSearchInput", "aiSearchStatus", "aiSearchResults",
       "aiPaletteFeedback", "aiRecipeFeedback", "aiRefineForm", "aiRefineInput", "aiRefineBtn", "aiUndoBtn",
-      "aiRefineStatus", "aiRecipeOwnedOnly", "aiRecipeOwnedOnlyLabel"
+      "aiRefineStatus", "aiRecipeOwnedOnly", "aiRecipeOwnedOnlyLabel", "aiPhotoOnlyBtn", "aiRecipeBenchBtn", "aiRecipeProgress"
     ].forEach(id => { el[id] = document.getElementById(id); });
 
     setupFeedback(el.aiPaletteFeedback, () => {
@@ -69,6 +71,8 @@
       }
     });
     el.aiPhotoBtn.addEventListener("click", () => el.aiPhotoInput.click());
+    el.aiPhotoOnlyBtn.addEventListener("click", () => el.aiPhotoInput.click());
+    el.aiRecipeBenchBtn.addEventListener("click", openBench);
     el.aiPhotoInput.addEventListener("change", () => {
       const file = el.aiPhotoInput.files && el.aiPhotoInput.files[0];
       el.aiPhotoInput.value = "";
@@ -96,6 +100,7 @@
         status = result || status;
         document.documentElement.classList.toggle("wph-ai-llm", Boolean(status.llm));
         document.documentElement.classList.toggle("wph-ai-search", Boolean(status.search));
+        document.dispatchEvent(new CustomEvent("wph:ai-status", { detail: status }));
       }, () => {});
     }
   }
@@ -127,8 +132,20 @@
     if (!el.aiPhotoStatus.dataset.message) {
       el.aiPhotoStatus.textContent = t("ai.photoHint");
     }
-    if (recipeText && !recipeController && recipeSignature && recipeSignature !== paletteSignature()) {
-      el.aiRecipeStatus.textContent = t("ai.recipeStale");
+    if (!recipeController) {
+      const signature = paletteSignature();
+      if (signature !== recipeSignature) {
+        // Another palette: show its saved guide, or nothing.
+        recipeSignature = signature;
+        recipeText = "";
+        recipeId = "";
+        el.aiRecipeFeedback.hidden = true;
+        el.aiRecipeStatus.textContent = "";
+        showGuide();
+      } else if (!el.aiRecipeBenchBtn.dataset.lang || el.aiRecipeBenchBtn.dataset.lang !== app.language()) {
+        el.aiRecipeBenchBtn.dataset.lang = app.language();
+        showGuide();
+      }
     }
     if (lastSearch.length) {
       renderSearchResults(lastSearch);
@@ -159,6 +176,9 @@
       });
       stopTimer();
       el.aiPaletteStatus.textContent = id ? t("ai.paletteDone", { name: result.name }) : t("ai.error.invalid");
+      if (id) {
+        document.dispatchEvent(new CustomEvent("wph:palette-created", { detail: { id, source: "ai", prompt: description } }));
+      }
     } catch (error) {
       stopTimer();
       el.aiPaletteStatus.textContent = errorText(error);
@@ -177,7 +197,10 @@
         throw new Error("too few colours");
       }
       const name = cleanName(file.name) || `${t("ai.source.photo")} ${new Date().toLocaleDateString()}`;
-      app.addCustomPalette({ name, source: "photo", notes: t("ai.photoNote"), colors });
+      const id = app.addCustomPalette({ name, source: "photo", notes: t("ai.photoNote"), colors });
+      if (id) {
+        document.dispatchEvent(new CustomEvent("wph:palette-created", { detail: { id, source: "photo" } }));
+      }
       el.aiPhotoStatus.textContent = t("ai.photoDone", { name });
     } catch (error) {
       el.aiPhotoStatus.textContent = t("ai.photoError");
@@ -313,12 +336,48 @@
 
   // ---- painting guide -----------------------------------------------------
 
+  // Streams a guide for a recipe context; resolves with the text. Errors after the
+  // first bytes arrive as a marker at the end of the stream.
+  async function streamRecipe(context, { signal, onText } = {}) {
+    const response = await fetch(`${API}recipe`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-WPH-Request": "1" },
+      body: JSON.stringify({ context }),
+      signal
+    });
+    if (!response.ok) {
+      throw await responseError(response);
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let text = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) {
+        break;
+      }
+      text += decoder.decode(value, { stream: true });
+      if (onText) {
+        onText(text.replace(ERROR_PATTERN, ""));
+      }
+    }
+    const markers = Array.from(text.matchAll(ERROR_PATTERN));
+    text = text.replace(ERROR_PATTERN, "");
+    if (markers.length) {
+      const code = markers[markers.length - 1][1];
+      throw Object.assign(new Error(code), { code, partial: text });
+    }
+    return text;
+  }
+
   async function writeRecipe() {
     if (recipeController) {
       return;
     }
     const context = app.recipeContext({ ownedOnly: el.aiRecipeOwnedOnly.checked });
-    recipeSignature = paletteSignature();
+    const signature = paletteSignature();
+    recipeSignature = signature;
     recipeId = "";
     el.aiRecipeFeedback.hidden = true;
     el.aiRecipeFeedback.dataset.rating = "0";
@@ -327,70 +386,160 @@
     recipeController = new AbortController();
     el.aiRecipeOutput.hidden = false;
     el.aiRecipeOutput.replaceChildren();
+    el.aiRecipeProgress.hidden = true;
     el.aiRecipeStopBtn.hidden = false;
     el.aiRecipeCopyBtn.hidden = true;
+    el.aiRecipeBenchBtn.hidden = true;
     const stopTimer = busy(el.aiRecipeBtn, el.aiRecipeStatus, t("ai.working"));
     let failure = null;
+    let scheduled = false;
     try {
-      const response = await fetch(`${API}recipe`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json", "X-WPH-Request": "1" },
-        body: JSON.stringify({ context }),
-        signal: recipeController.signal
+      recipeText = await streamRecipe(context, {
+        signal: recipeController.signal,
+        onText: text => {
+          recipeText = text;
+          if (!scheduled) {
+            scheduled = true;
+            requestAnimationFrame(() => {
+              scheduled = false;
+              // Once the stream is done, showGuide() renders the final version with tick boxes.
+              if (recipeController) {
+                renderMarkdown(el.aiRecipeOutput, recipeText);
+              }
+            });
+          }
+        }
       });
-      if (!response.ok) {
-        throw await responseError(response);
-      }
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let scheduled = false;
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) {
-          break;
-        }
-        recipeText += decoder.decode(value, { stream: true });
-        if (!scheduled) {
-          scheduled = true;
-          requestAnimationFrame(() => {
-            scheduled = false;
-            renderMarkdown(el.aiRecipeOutput, recipeText.replace(ERROR_PATTERN, ""));
-          });
-        }
-      }
-      const markers = Array.from(recipeText.matchAll(ERROR_PATTERN));
-      if (markers.length) {
-        const code = markers[markers.length - 1][1];
-        failure = Object.assign(new Error(code), { code });
-        recipeText = recipeText.replace(ERROR_PATTERN, "");
-      }
     } catch (error) {
       if (error.name !== "AbortError") {
         failure = error;
+        recipeText = error.partial || recipeText;
       }
     } finally {
       stopTimer();
       recipeController = null;
       el.aiRecipeStopBtn.hidden = true;
     }
-    renderMarkdown(el.aiRecipeOutput, recipeText);
-    el.aiRecipeOutput.hidden = !recipeText.trim();
-    el.aiRecipeCopyBtn.hidden = !recipeText.trim();
     if (recipeText.trim() && !failure) {
       recipeId = `recipe-${Date.now().toString(36)}`;
+      saveGuide(signature, { title: app.paletteTitle(), text: recipeText, createdAt: new Date().toISOString(), done: [] });
       el.aiRecipeFeedback.hidden = false;
       syncFeedbackButtons(el.aiRecipeFeedback, 0);
     }
+    showGuide();
     el.aiRecipeStatus.textContent = failure
       ? errorText(failure)
       : [t("ai.recipeHint", { owned: context.ownedPaintCount }), recipeUnknown ? t("ai.unknownPaints", { count: recipeUnknown }) : ""]
         .filter(Boolean).join(" ");
   }
 
+  // Renders the guide of the current palette with tick boxes when it is saved.
+  function showGuide() {
+    const saved = recipeSignature ? findGuide(recipeSignature) : null;
+    const text = saved ? saved.text : recipeText;
+    renderMarkdown(el.aiRecipeOutput, text, saved ? {
+      done: new Set(saved.done),
+      onToggle: (index, checked) => toggleGuideStep(recipeSignature, index, checked)
+    } : undefined);
+    el.aiRecipeOutput.hidden = !text.trim();
+    el.aiRecipeCopyBtn.hidden = !text.trim();
+    el.aiRecipeBenchBtn.hidden = !saved;
+    el.aiRecipeBtn.textContent = t(saved ? "assist.rewriteGuide" : "ai.recipeButton");
+    renderGuideProgress(saved);
+  }
+
+  function renderGuideProgress(saved) {
+    const total = saved ? window.WPHArmyData.guideSteps(saved.text).total : 0;
+    el.aiRecipeProgress.hidden = !total;
+    if (total) {
+      const done = saved.done.filter(index => index < total).length;
+      el.aiRecipeProgress.querySelector(".guide-progress-bar span").style.width = `${Math.round(done / total * 100)}%`;
+      el.aiRecipeProgress.querySelector(".guide-progress-text").textContent = t("bench.progress", { done, total });
+    }
+    document.dispatchEvent(new CustomEvent("wph:guide", { detail: { saved: Boolean(saved) } }));
+  }
+
+  // ---- saved guides (per palette) -----------------------------------------
+
+  function readGuides() {
+    try {
+      const raw = window.WPHStorage ? window.WPHStorage.get(GUIDES_KEY) : window.localStorage.getItem(GUIDES_KEY);
+      const data = raw ? JSON.parse(raw) : null;
+      return Array.isArray(data && data.items) ? data.items.filter(item => item && typeof item.sig === "string" && typeof item.text === "string") : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writeGuides(items) {
+    const value = JSON.stringify({ version: 1, items: items.slice(0, MAX_GUIDES) });
+    try {
+      if (window.WPHStorage) {
+        window.WPHStorage.set(GUIDES_KEY, value);
+      } else {
+        window.localStorage.setItem(GUIDES_KEY, value);
+      }
+    } catch (error) {
+      // Storage full or blocked: the guide stays visible until the page is reloaded.
+    }
+  }
+
+  function findGuide(signature) {
+    return readGuides().find(item => item.sig === signature) || null;
+  }
+
+  function saveGuide(signature, guide) {
+    const items = readGuides().filter(item => item.sig !== signature);
+    items.unshift({ sig: signature, ...guide, done: (guide.done || []).slice() });
+    writeGuides(items);
+  }
+
+  function toggleGuideStep(signature, index, checked) {
+    const items = readGuides();
+    const item = items.find(entry => entry.sig === signature);
+    if (!item) {
+      return;
+    }
+    const done = new Set(item.done || []);
+    if (checked) {
+      done.add(index);
+    } else {
+      done.delete(index);
+    }
+    item.done = Array.from(done).sort((a, b) => a - b);
+    writeGuides(items);
+    renderGuideProgress(item);
+  }
+
+  // The painting desk shows the saved guide of the current palette, one step at a time.
+  function openBench() {
+    const signature = paletteSignature();
+    const saved = findGuide(signature);
+    if (!saved || !window.WPHBench) {
+      return false;
+    }
+    window.WPHBench.open({
+      title: saved.title || app.paletteTitle(),
+      text: saved.text,
+      done: saved.done,
+      colors: app.palette(),
+      onToggle: (index, checked) => {
+        toggleGuideStep(signature, index, checked);
+        if (recipeSignature === signature) {
+          showGuide();
+        }
+      }
+    });
+    return true;
+  }
+
+  function currentGuide() {
+    return findGuide(paletteSignature());
+  }
+
+  // Identifies a guide: palette colours, recipe mode and finish (cheap: runs on every update).
   function paletteSignature() {
-    const context = app.recipeContext();
-    return JSON.stringify([context.colors.map(color => color.hex), context.recipeMode, context.finish]);
+    return JSON.stringify([app.palette().slice(0, 6).map(color => color.hex), app.recipeKey()]);
   }
 
   async function copyRecipe() {
@@ -408,9 +557,11 @@
   }
 
   // Minimal, safe Markdown: headings, numbered and bullet lists, paragraphs, **bold**.
-  function renderMarkdown(container, text) {
+  // With options.done (a Set of step numbers) every numbered step gets a tick box.
+  function renderMarkdown(container, text, options) {
     recipeUnknown = 0;
     const nodes = [];
+    let stepIndex = 0;
     let list = null;
     let paragraph = null;
     const closeBlocks = () => {
@@ -431,7 +582,27 @@
           list = document.createElement("ol");
           nodes.push(list);
         }
-        list.appendChild(withInline(document.createElement("li"), match[2]));
+        const index = stepIndex;
+        stepIndex += 1;
+        if (options && options.done) {
+          const item = document.createElement("li");
+          const done = options.done.has(index);
+          item.className = `guide-step${done ? " is-done" : ""}`;
+          const box = document.createElement("input");
+          box.type = "checkbox";
+          box.checked = done;
+          box.setAttribute("aria-label", t("bench.stepDone", { number: index + 1 }));
+          box.addEventListener("change", () => {
+            item.classList.toggle("is-done", box.checked);
+            options.onToggle(index, box.checked);
+          });
+          const body = withInline(document.createElement("div"), match[2]);
+          body.className = "guide-step-text";
+          item.append(box, body);
+          list.appendChild(item);
+        } else {
+          list.appendChild(withInline(document.createElement("li"), match[2]));
+        }
       } else if ((match = line.match(/^\s*[-*•]\s+(.*)$/))) {
         paragraph = null;
         if (!list || list.tagName !== "UL") {
@@ -440,7 +611,7 @@
         }
         list.appendChild(withInline(document.createElement("li"), match[1]));
       } else if (list && /^\s{2,}\S/.test(rawLine)) {
-        const last = list.lastElementChild;
+        const last = list.lastElementChild.querySelector(".guide-step-text") || list.lastElementChild;
         last.appendChild(document.createTextNode(" "));
         withInline(last, line.trim());
       } else {
@@ -846,5 +1017,15 @@
   }
 
   // Exposed for tests.
-  window.WPHAssistant = { photoPalette, renderMarkdown, rgbToLab, labToHex };
+  window.WPHAssistant = {
+    photoPalette, renderMarkdown, rgbToLab, labToHex, streamRecipe, writeRecipe, openBench, currentGuide,
+    inline: (node, text) => withInline(node, text),
+    errorText: error => errorText(error),
+    status: () => status,
+    refreshStatus: () => request("GET", "status").then(result => {
+      status = result || status;
+      document.dispatchEvent(new CustomEvent("wph:ai-status", { detail: status }));
+      return status;
+    })
+  };
 }());

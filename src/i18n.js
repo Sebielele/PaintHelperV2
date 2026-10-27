@@ -3055,6 +3055,253 @@
     Object.assign(TRANSLATIONS[language].schemeRoles, GIRLY_POP_TRANSLATIONS[language].roles);
   }
 
+
+  // v0.20: assistant-first layout, painting desk, army projects.
+  const V20_TRANSLATIONS = {
+    en: {
+      ui: { subtitle: "Describe your army – the assistant builds the palette and a step-by-step guide with your paints. Track every model on the army page." },
+      assist: {
+        jump: "Assistant", eyebrow: "Assistant", title: "What do you want to paint?",
+        lead: "Describe your army or scheme – the assistant builds the palette, then a step-by-step guide with your paints.",
+        manualHeading: "Set up manually", writeGuide: "Write painting guide", openGuide: "Open painting guide",
+        rewriteGuide: "Write again", examplesLabel: "Examples", recentLabel: "Recent",
+        examples: {
+          aos: ["Stormcast Hallowed Knights, silver and blue", "Hedonites of Slaanesh, pastel with gold", "Nighthaunt, ghostly turquoise glow", "Skaven Clan Pestilens, rusty and sick"],
+          k40: ["Death Guard, rusty brass and sickly green", "Ultramarines, clean and bright", "Emperor's Children in neon", "Necrons, green glow on dark metal"]
+        },
+        dockPalette: "Palette", dockGuide: "Guide", dockBench: "Desk", nextArmy: "To the army →",
+        status: { ready: "Assistant ready", busy: "Assistant busy", offline: "Assistant offline", unknown: "" },
+        statusBusyWaiting: "Assistant busy ({count} waiting)",
+        statusHint: {
+          ready: "The AI computer is answering.", busy: "Another request is running (e.g. Paperless) – yours will wait in line.",
+          offline: "The AI computer is not reachable. Palettes from photos and saved guides still work.", unknown: ""
+        }
+      },
+      bench: {
+        title: "Painting desk", open: "Painting desk", close: "Close", fullscreen: "Full screen",
+        stepOf: "Step {number} of {total}", stepDone: "Step {number} done", doneBadge: "Done", doneNext: "Done, next",
+        undo: "Mark as not done", back: "Back", skip: "Skip", finish: "Close the desk", progress: "{done} of {total} steps done"
+      },
+      army: {
+        step: "Army", eyebrow: "Army project", title: "Paint your army", import: "Import army list", importAnother: "Import list",
+        select: "Army", importing: "Reading the list…", imported: "“{name}” imported: {units} units, {models} models.",
+        reimported: "“{name}” updated: {added} new units, {removed} removed. Progress was kept.",
+        importError: "The file could not be read. Use a NewRecruit JSON export or a BattleScribe .ros/.rosz file.",
+        saveError: "Progress could not be saved.", armyWide: "Army-wide",
+        emptyTitle: "Bring in your army list", emptyText: "Import a list from NewRecruit or BattleScribe and tick off every model as you paint.",
+        emptyStep1: "In NewRecruit open your list and choose Export → JSON (BattleScribe: the .rosz file).",
+        emptyStep2: "Import it here – units, models and points are read in.",
+        emptyStep3: "Pick a palette for the army and let the assistant write a guide per unit.",
+        points: "{points} pts", paintedShare: "{percent}% painted", painted: "painted",
+        modelsPainted: "models painted", pointsPainted: "points painted", unitsDone: "units finished",
+        stages: { open: "Not started", built: "Built", primed: "Primed", painted: "Painted", based: "Based" },
+        palette: "Army palette", noPalette: "– no palette –", createPalette: "Create with the assistant", paletteSuffix: "army colours",
+        showPalette: "Show palette", paletteHint: "Guides use the army palette. Without one, the palette currently shown is used.",
+        filter: { all: "All", open: "Not started", progress: "In progress", done: "Finished" }, filterLabel: "Show units",
+        showExtras: "Show manifestations and terrain", delete: "Remove army", deleteConfirm: "Really remove?", deleted: "“{name}” removed.",
+        regimentProgress: "{painted} of {models} painted", bulk: "Set all to…", bulkLabel: "Set every model of {unit} to a stage",
+        new: "new", kind: { manifestation: "Manifestation", terrain: "Terrain" }, unitProgress: "{painted} of {total} models painted",
+        modelLabel: "{name} {number}: {stage} – tap for the next stage", writeGuide: "Write guide", rewriteGuide: "Write again",
+        guideDone: "Guide for {unit} written (palette “{palette}”)."
+      }
+    },
+    de: {
+      ui: { subtitle: "Beschreib deine Armee – der Assistent erstellt die Palette und eine Schritt-für-Schritt-Anleitung mit deinen Farben. Den Fortschritt jedes Modells verfolgst du auf der Armee-Seite." },
+      assist: {
+        jump: "Assistent", eyebrow: "Assistent", title: "Was möchtest du malen?",
+        lead: "Beschreib deine Armee oder dein Farbschema – der Assistent erstellt die Palette und danach eine Schritt-für-Schritt-Anleitung mit deinen Farben.",
+        manualHeading: "Manuell einstellen", writeGuide: "Bemalanleitung schreiben", openGuide: "Bemalanleitung öffnen",
+        rewriteGuide: "Neu schreiben", examplesLabel: "Beispiele", recentLabel: "Zuletzt",
+        examples: {
+          aos: ["Stormcast Hallowed Knights, Silber und Blau", "Hedonites of Slaanesh, Pastell mit Gold", "Nighthaunt, geisterhaftes türkises Leuchten", "Skaven Clan Pestilens, rostig und krank"],
+          k40: ["Death Guard, rostiges Messing und krankes Grün", "Ultramarines, sauber und hell", "Emperor's Children in Neon", "Necrons, grünes Leuchten auf dunklem Metall"]
+        },
+        dockPalette: "Palette", dockGuide: "Anleitung", dockBench: "Maltisch", nextArmy: "Zur Armee →",
+        status: { ready: "Assistent bereit", busy: "Assistent beschäftigt", offline: "Assistent offline", unknown: "" },
+        statusBusyWaiting: "Assistent beschäftigt ({count} warten)",
+        statusHint: {
+          ready: "Der KI-Rechner antwortet.", busy: "Eine andere Anfrage läuft (z. B. Paperless) – deine wartet in der Schlange.",
+          offline: "Der KI-Rechner ist nicht erreichbar. Paletten aus Fotos und gespeicherte Anleitungen funktionieren weiter.", unknown: ""
+        }
+      },
+      bench: {
+        title: "Maltisch", open: "Maltisch", close: "Schliessen", fullscreen: "Vollbild",
+        stepOf: "Schritt {number} von {total}", stepDone: "Schritt {number} erledigt", doneBadge: "Erledigt", doneNext: "Erledigt, weiter",
+        undo: "Als offen markieren", back: "Zurück", skip: "Überspringen", finish: "Maltisch schliessen", progress: "{done} von {total} Schritten erledigt"
+      },
+      army: {
+        step: "Armee", eyebrow: "Armee-Projekt", title: "Deine Armee bemalen", import: "Armeeliste importieren", importAnother: "Liste importieren",
+        select: "Armee", importing: "Liste wird gelesen…", imported: "„{name}“ importiert: {units} Einheiten, {models} Modelle.",
+        reimported: "„{name}“ aktualisiert: {added} neue Einheiten, {removed} entfernt. Der Fortschritt bleibt erhalten.",
+        importError: "Die Datei konnte nicht gelesen werden. Nimm einen NewRecruit-JSON-Export oder eine BattleScribe-Datei (.ros/.rosz).",
+        saveError: "Der Fortschritt konnte nicht gespeichert werden.", armyWide: "Ganze Armee",
+        emptyTitle: "Hol deine Armeeliste herein", emptyText: "Importiere eine Liste aus NewRecruit oder BattleScribe und hake beim Malen jedes Modell ab.",
+        emptyStep1: "In NewRecruit die Liste öffnen und Export → JSON wählen (BattleScribe: die .rosz-Datei).",
+        emptyStep2: "Hier importieren – Einheiten, Modelle und Punkte werden übernommen.",
+        emptyStep3: "Eine Palette für die Armee wählen und den Assistenten pro Einheit eine Anleitung schreiben lassen.",
+        points: "{points} Pkt.", paintedShare: "{percent} % bemalt", painted: "bemalt",
+        modelsPainted: "Modelle bemalt", pointsPainted: "Punkte bemalt", unitsDone: "Einheiten fertig",
+        stages: { open: "Offen", built: "Gebaut", primed: "Grundiert", painted: "Bemalt", based: "Base fertig" },
+        palette: "Armee-Palette", noPalette: "– keine Palette –", createPalette: "Mit dem Assistenten erstellen", paletteSuffix: "Armeefarben",
+        showPalette: "Palette anzeigen", paletteHint: "Anleitungen nutzen die Armee-Palette. Ohne Auswahl wird die gerade angezeigte Palette verwendet.",
+        filter: { all: "Alle", open: "Offen", progress: "In Arbeit", done: "Fertig" }, filterLabel: "Einheiten anzeigen",
+        showExtras: "Manifestationen und Gelände zeigen", delete: "Armee entfernen", deleteConfirm: "Wirklich entfernen?", deleted: "„{name}“ entfernt.",
+        regimentProgress: "{painted} von {models} bemalt", bulk: "Alle auf…", bulkLabel: "Alle Modelle von {unit} auf eine Stufe setzen",
+        new: "neu", kind: { manifestation: "Manifestation", terrain: "Gelände" }, unitProgress: "{painted} von {total} Modellen bemalt",
+        modelLabel: "{name} {number}: {stage} – tippen für die nächste Stufe", writeGuide: "Anleitung schreiben", rewriteGuide: "Neu schreiben",
+        guideDone: "Anleitung für {unit} geschrieben (Palette „{palette}“)."
+      }
+    },
+    fr: {
+      ui: { subtitle: "Décrivez votre armée – l'assistant crée la palette et un guide pas à pas avec vos peintures. Suivez chaque figurine sur la page Armée." },
+      assist: {
+        jump: "Assistant", eyebrow: "Assistant", title: "Que voulez-vous peindre ?",
+        lead: "Décrivez votre armée ou votre schéma – l'assistant crée la palette, puis un guide pas à pas avec vos peintures.",
+        manualHeading: "Réglage manuel", writeGuide: "Écrire le guide de peinture", openGuide: "Ouvrir le guide de peinture",
+        rewriteGuide: "Réécrire", examplesLabel: "Exemples", recentLabel: "Récents",
+        examples: {
+          aos: ["Stormcast Hallowed Knights, argent et bleu", "Hedonites of Slaanesh, pastel et or", "Nighthaunt, lueur turquoise spectrale", "Skaven Clan Pestilens, rouillé et malade"],
+          k40: ["Death Guard, laiton rouillé et vert maladif", "Ultramarines, propre et lumineux", "Emperor's Children en néon", "Necrons, lueur verte sur métal sombre"]
+        },
+        dockPalette: "Palette", dockGuide: "Guide", dockBench: "Atelier", nextArmy: "Vers l'armée →",
+        status: { ready: "Assistant prêt", busy: "Assistant occupé", offline: "Assistant hors ligne", unknown: "" },
+        statusBusyWaiting: "Assistant occupé ({count} en attente)",
+        statusHint: {
+          ready: "L'ordinateur IA répond.", busy: "Une autre demande est en cours (p. ex. Paperless) – la vôtre attend son tour.",
+          offline: "L'ordinateur IA est injoignable. Les palettes depuis une photo et les guides enregistrés fonctionnent toujours.", unknown: ""
+        }
+      },
+      bench: {
+        title: "Atelier", open: "Atelier", close: "Fermer", fullscreen: "Plein écran",
+        stepOf: "Étape {number} sur {total}", stepDone: "Étape {number} faite", doneBadge: "Fait", doneNext: "Fait, suivant",
+        undo: "Marquer comme à faire", back: "Retour", skip: "Passer", finish: "Fermer l'atelier", progress: "{done} étapes sur {total} faites"
+      },
+      army: {
+        step: "Armée", eyebrow: "Projet d'armée", title: "Peignez votre armée", import: "Importer une liste d'armée", importAnother: "Importer une liste",
+        select: "Armée", importing: "Lecture de la liste…", imported: "« {name} » importée : {units} unités, {models} figurines.",
+        reimported: "« {name} » mise à jour : {added} nouvelles unités, {removed} retirées. La progression est conservée.",
+        importError: "Le fichier n'a pas pu être lu. Utilisez un export JSON de NewRecruit ou un fichier BattleScribe (.ros/.rosz).",
+        saveError: "La progression n'a pas pu être enregistrée.", armyWide: "Toute l'armée",
+        emptyTitle: "Importez votre liste d'armée", emptyText: "Importez une liste depuis NewRecruit ou BattleScribe et cochez chaque figurine au fil de la peinture.",
+        emptyStep1: "Dans NewRecruit, ouvrez votre liste et choisissez Export → JSON (BattleScribe : le fichier .rosz).",
+        emptyStep2: "Importez-la ici – unités, figurines et points sont repris.",
+        emptyStep3: "Choisissez une palette pour l'armée et laissez l'assistant écrire un guide par unité.",
+        points: "{points} pts", paintedShare: "{percent} % peint", painted: "peint",
+        modelsPainted: "figurines peintes", pointsPainted: "points peints", unitsDone: "unités terminées",
+        stages: { open: "À faire", built: "Montée", primed: "Sous-couchée", painted: "Peinte", based: "Socle fini" },
+        palette: "Palette de l'armée", noPalette: "– aucune palette –", createPalette: "Créer avec l'assistant", paletteSuffix: "couleurs de l'armée",
+        showPalette: "Afficher la palette", paletteHint: "Les guides utilisent la palette de l'armée. Sans choix, la palette affichée est utilisée.",
+        filter: { all: "Toutes", open: "À faire", progress: "En cours", done: "Terminées" }, filterLabel: "Afficher les unités",
+        showExtras: "Afficher manifestations et décors", delete: "Retirer l'armée", deleteConfirm: "Vraiment retirer ?", deleted: "« {name} » retirée.",
+        regimentProgress: "{painted} sur {models} peintes", bulk: "Tout mettre à…", bulkLabel: "Mettre toutes les figurines de {unit} à une étape",
+        new: "nouveau", kind: { manifestation: "Manifestation", terrain: "Décor" }, unitProgress: "{painted} figurines sur {total} peintes",
+        modelLabel: "{name} {number} : {stage} – touchez pour l'étape suivante", writeGuide: "Écrire le guide", rewriteGuide: "Réécrire",
+        guideDone: "Guide pour {unit} écrit (palette « {palette} »)."
+      }
+    },
+    es: {
+      ui: { subtitle: "Describe tu ejército: el asistente crea la paleta y una guía paso a paso con tus pinturas. Sigue cada miniatura en la página Ejército." },
+      assist: {
+        jump: "Asistente", eyebrow: "Asistente", title: "¿Qué quieres pintar?",
+        lead: "Describe tu ejército o esquema: el asistente crea la paleta y luego una guía paso a paso con tus pinturas.",
+        manualHeading: "Ajuste manual", writeGuide: "Escribir guía de pintura", openGuide: "Abrir guía de pintura",
+        rewriteGuide: "Escribir de nuevo", examplesLabel: "Ejemplos", recentLabel: "Recientes",
+        examples: {
+          aos: ["Stormcast Hallowed Knights, plata y azul", "Hedonites of Slaanesh, pastel con oro", "Nighthaunt, brillo turquesa fantasmal", "Skaven Clan Pestilens, oxidado y enfermo"],
+          k40: ["Death Guard, latón oxidado y verde enfermizo", "Ultramarines, limpio y brillante", "Emperor's Children en neón", "Necrons, brillo verde sobre metal oscuro"]
+        },
+        dockPalette: "Paleta", dockGuide: "Guía", dockBench: "Mesa", nextArmy: "Al ejército →",
+        status: { ready: "Asistente listo", busy: "Asistente ocupado", offline: "Asistente sin conexión", unknown: "" },
+        statusBusyWaiting: "Asistente ocupado ({count} en espera)",
+        statusHint: {
+          ready: "El ordenador de IA responde.", busy: "Hay otra petición en curso (p. ej. Paperless): la tuya espera en la cola.",
+          offline: "El ordenador de IA no está disponible. Las paletas desde fotos y las guías guardadas siguen funcionando.", unknown: ""
+        }
+      },
+      bench: {
+        title: "Mesa de pintura", open: "Mesa de pintura", close: "Cerrar", fullscreen: "Pantalla completa",
+        stepOf: "Paso {number} de {total}", stepDone: "Paso {number} hecho", doneBadge: "Hecho", doneNext: "Hecho, siguiente",
+        undo: "Marcar como pendiente", back: "Atrás", skip: "Saltar", finish: "Cerrar la mesa", progress: "{done} de {total} pasos hechos"
+      },
+      army: {
+        step: "Ejército", eyebrow: "Proyecto de ejército", title: "Pinta tu ejército", import: "Importar lista de ejército", importAnother: "Importar lista",
+        select: "Ejército", importing: "Leyendo la lista…", imported: "«{name}» importado: {units} unidades, {models} miniaturas.",
+        reimported: "«{name}» actualizado: {added} unidades nuevas, {removed} eliminadas. El progreso se conserva.",
+        importError: "No se pudo leer el archivo. Usa una exportación JSON de NewRecruit o un archivo de BattleScribe (.ros/.rosz).",
+        saveError: "No se pudo guardar el progreso.", armyWide: "Todo el ejército",
+        emptyTitle: "Trae tu lista de ejército", emptyText: "Importa una lista de NewRecruit o BattleScribe y marca cada miniatura mientras pintas.",
+        emptyStep1: "En NewRecruit abre tu lista y elige Exportar → JSON (BattleScribe: el archivo .rosz).",
+        emptyStep2: "Impórtala aquí: se leen unidades, miniaturas y puntos.",
+        emptyStep3: "Elige una paleta para el ejército y deja que el asistente escriba una guía por unidad.",
+        points: "{points} pts", paintedShare: "{percent} % pintado", painted: "pintado",
+        modelsPainted: "miniaturas pintadas", pointsPainted: "puntos pintados", unitsDone: "unidades terminadas",
+        stages: { open: "Pendiente", built: "Montada", primed: "Imprimada", painted: "Pintada", based: "Peana lista" },
+        palette: "Paleta del ejército", noPalette: "– sin paleta –", createPalette: "Crear con el asistente", paletteSuffix: "colores del ejército",
+        showPalette: "Ver paleta", paletteHint: "Las guías usan la paleta del ejército. Sin elegir una, se usa la paleta mostrada.",
+        filter: { all: "Todas", open: "Pendientes", progress: "En curso", done: "Terminadas" }, filterLabel: "Mostrar unidades",
+        showExtras: "Mostrar manifestaciones y escenografía", delete: "Quitar ejército", deleteConfirm: "¿Seguro?", deleted: "«{name}» quitado.",
+        regimentProgress: "{painted} de {models} pintadas", bulk: "Todas a…", bulkLabel: "Poner todas las miniaturas de {unit} en una etapa",
+        new: "nueva", kind: { manifestation: "Manifestación", terrain: "Escenografía" }, unitProgress: "{painted} de {total} miniaturas pintadas",
+        modelLabel: "{name} {number}: {stage} – toca para la siguiente etapa", writeGuide: "Escribir guía", rewriteGuide: "Escribir de nuevo",
+        guideDone: "Guía para {unit} escrita (paleta «{palette}»)."
+      }
+    },
+    it: {
+      ui: { subtitle: "Descrivi il tuo esercito: l'assistente crea la palette e una guida passo passo con i tuoi colori. Segui ogni miniatura nella pagina Esercito." },
+      assist: {
+        jump: "Assistente", eyebrow: "Assistente", title: "Cosa vuoi dipingere?",
+        lead: "Descrivi il tuo esercito o schema: l'assistente crea la palette e poi una guida passo passo con i tuoi colori.",
+        manualHeading: "Impostazione manuale", writeGuide: "Scrivi la guida di pittura", openGuide: "Apri la guida di pittura",
+        rewriteGuide: "Riscrivi", examplesLabel: "Esempi", recentLabel: "Recenti",
+        examples: {
+          aos: ["Stormcast Hallowed Knights, argento e blu", "Hedonites of Slaanesh, pastello con oro", "Nighthaunt, bagliore turchese spettrale", "Skaven Clan Pestilens, arrugginito e malato"],
+          k40: ["Death Guard, ottone arrugginito e verde malato", "Ultramarines, pulito e luminoso", "Emperor's Children al neon", "Necrons, bagliore verde su metallo scuro"]
+        },
+        dockPalette: "Palette", dockGuide: "Guida", dockBench: "Banco", nextArmy: "All'esercito →",
+        status: { ready: "Assistente pronto", busy: "Assistente occupato", offline: "Assistente offline", unknown: "" },
+        statusBusyWaiting: "Assistente occupato ({count} in attesa)",
+        statusHint: {
+          ready: "Il computer IA risponde.", busy: "È in corso un'altra richiesta (es. Paperless): la tua attende in coda.",
+          offline: "Il computer IA non è raggiungibile. Le palette da foto e le guide salvate funzionano ancora.", unknown: ""
+        }
+      },
+      bench: {
+        title: "Banco di pittura", open: "Banco di pittura", close: "Chiudi", fullscreen: "Schermo intero",
+        stepOf: "Passo {number} di {total}", stepDone: "Passo {number} fatto", doneBadge: "Fatto", doneNext: "Fatto, avanti",
+        undo: "Segna come da fare", back: "Indietro", skip: "Salta", finish: "Chiudi il banco", progress: "{done} passi su {total} fatti"
+      },
+      army: {
+        step: "Esercito", eyebrow: "Progetto esercito", title: "Dipingi il tuo esercito", import: "Importa lista dell'esercito", importAnother: "Importa lista",
+        select: "Esercito", importing: "Lettura della lista…", imported: "«{name}» importato: {units} unità, {models} miniature.",
+        reimported: "«{name}» aggiornato: {added} nuove unità, {removed} rimosse. I progressi restano.",
+        importError: "Impossibile leggere il file. Usa un export JSON di NewRecruit o un file BattleScribe (.ros/.rosz).",
+        saveError: "Impossibile salvare i progressi.", armyWide: "Intero esercito",
+        emptyTitle: "Porta qui la tua lista", emptyText: "Importa una lista da NewRecruit o BattleScribe e spunta ogni miniatura mentre dipingi.",
+        emptyStep1: "In NewRecruit apri la lista e scegli Esporta → JSON (BattleScribe: il file .rosz).",
+        emptyStep2: "Importala qui: unità, miniature e punti vengono letti.",
+        emptyStep3: "Scegli una palette per l'esercito e lascia che l'assistente scriva una guida per unità.",
+        points: "{points} pt", paintedShare: "{percent}% dipinto", painted: "dipinto",
+        modelsPainted: "miniature dipinte", pointsPainted: "punti dipinti", unitsDone: "unità finite",
+        stages: { open: "Da fare", built: "Montata", primed: "Con primer", painted: "Dipinta", based: "Basetta finita" },
+        palette: "Palette dell'esercito", noPalette: "– nessuna palette –", createPalette: "Crea con l'assistente", paletteSuffix: "colori dell'esercito",
+        showPalette: "Mostra palette", paletteHint: "Le guide usano la palette dell'esercito. Senza scelta si usa la palette mostrata.",
+        filter: { all: "Tutte", open: "Da fare", progress: "In corso", done: "Finite" }, filterLabel: "Mostra unità",
+        showExtras: "Mostra manifestazioni e scenari", delete: "Rimuovi esercito", deleteConfirm: "Rimuovere davvero?", deleted: "«{name}» rimosso.",
+        regimentProgress: "{painted} su {models} dipinte", bulk: "Tutte a…", bulkLabel: "Porta tutte le miniature di {unit} a una fase",
+        new: "nuova", kind: { manifestation: "Manifestazione", terrain: "Scenario" }, unitProgress: "{painted} miniature su {total} dipinte",
+        modelLabel: "{name} {number}: {stage} – tocca per la fase successiva", writeGuide: "Scrivi guida", rewriteGuide: "Riscrivi",
+        guideDone: "Guida per {unit} scritta (palette «{palette}»)."
+      }
+    }
+  };
+  for (const language of LANGUAGE_KEYS) {
+    const block = V20_TRANSLATIONS[language];
+    Object.assign(TRANSLATIONS[language].ui, block.ui);
+    TRANSLATIONS[language].assist = block.assist;
+    TRANSLATIONS[language].bench = block.bench;
+    TRANSLATIONS[language].army = block.army;
+  }
+
   return {
     LANGUAGE_KEYS,
     TRANSLATIONS,

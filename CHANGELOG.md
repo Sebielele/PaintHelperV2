@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.20.0 (PaintHelperV2)
+
+- Assistant first: a "What do you want to paint?" box opens the palette page, with example
+  prompts for the game system and the recent assistant palettes; the manual tools sit in a
+  folded "Set up manually" column. Under the palette: "Write painting guide", painting
+  desk, rating and "improve this palette" in one bar.
+- Header: ✨ button to the assistant and a status light (ready / busy with queue / offline),
+  from `GET /api/ai/status` (now with `reachable`, `busy`, `waiting`; cached 30 s probe).
+- Painting plan: the guide comes first; role planner, base ideas and paint ladder start
+  folded. Guides are saved per palette (`wph.guides.v1`); every step has a tick box and a
+  progress bar.
+- Painting desk: full-screen, one step per view with large text and paint swatches, "done,
+  next" / back / skip, swipe and arrow keys, keeps the screen on (Wake Lock, HTTPS only).
+- Army page (04): import NewRecruit JSON or BattleScribe `.ros`/`.rosz` lists; every model
+  goes through not started → built → primed → painted → based; progress per unit, regiment
+  and army, also weighted by points; one palette per army ("create with the assistant"
+  assigns it); a guide per unit (the unit and its models go into the tips prompt) on the
+  painting desk; re-importing the same list keeps progress. Stored in `wph.armies.v1`.
+- Tablets and phones: quick-action dock (assistant, guide, desk, army), 44–64 px touch
+  targets, layouts for 820/1024/1180 px; paint equivalents in the notes skip airbrush
+  lines and military colour codes and prefer owned brands.
+
 ## v0.19.0 (PaintHelperV2)
 
 - Painting guide: the steps now come from the app itself – fixed headings per palette

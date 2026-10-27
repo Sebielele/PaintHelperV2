@@ -229,6 +229,22 @@ ein Zugriffsprofil nur für LAN und VPN. Nach 10 Fehlversuchen pro Benutzer und 
   mit leeren Einstellungen zu starten. Beim Abmelden wartet sie, bis alles gespeichert
   ist.
 
+## Armee und Maltisch (ab v0.20)
+
+- **Armee-Liste importieren:** In NewRecruit die Liste öffnen → Export → JSON. BattleScribe-Dateien
+  (`.ros`, `.rosz`) gehen auch. Auf der Seite **04 Armee** → „Armeeliste importieren“.
+  Einheiten, Modelle (Champion, Musiker, Standarte einzeln) und Punkte werden übernommen.
+- **Fortschritt:** Jedes Modell durchläuft *Offen → Gebaut → Grundiert → Bemalt → Base fertig*
+  (antippen = nächste Stufe, „Alle auf…“ pro Einheit). Gespeichert pro Benutzer unter
+  `wph.armies.v1`, also auf jedem Gerät gleich.
+- **Neuer Import derselben Liste** (gleicher Name und Fraktion) gleicht ab: Stufen, Anleitungen
+  und Palette bleiben, neue Einheiten sind markiert, entfernte werden gemeldet.
+- **Anleitungen** werden pro Palette (`wph.guides.v1`) bzw. pro Einheit gespeichert; erledigte
+  Schritte bleiben abgehakt.
+- **Maltisch:** Vollbild, ein Schritt pro Ansicht, Wischen oder Pfeiltasten. Dass der Bildschirm
+  anbleibt (Wake Lock), erlauben Browser nur über **HTTPS** – also über den DSM-Reverse-Proxy
+  (`https://paint.sebisdms.synology.me`), nicht über `http://10.2.1.89:8484`.
+
 ## Lokal entwickeln
 
 ```sh
@@ -238,6 +254,7 @@ npm test                        # Unit- und Server-Tests
 npm run test:browser            # Browser-Test ohne Server (statischer Modus)
 npm run test:server-browser     # Browser-Test mit Login und Datenbank
 npm run test:ai-browser         # Browser-Test der KI-Funktionen gegen einen Fake-Model-Server
+npm run test:tablet-browser     # Tablet-Ablauf: Assistent, Anleitung, Maltisch, Armee
 ```
 
 Die App läuft weiterhin auch als reine statische Seite, etwa per `file://` oder auf

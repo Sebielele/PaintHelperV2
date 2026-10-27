@@ -13,6 +13,11 @@ main().catch(error => {
   process.exitCode = 1;
 });
 
+// Since v0.20 the manual colour controls start folded away behind the assistant.
+async function openControls(page) {
+  await page.evaluate(() => document.querySelectorAll("[data-control-group]").forEach(group => { group.open = true; }));
+}
+
 async function main() {
   const { chromium } = loadPlaywright();
   const executablePath = findBrowserExecutable();
@@ -63,7 +68,7 @@ async function main() {
       "imported local data is removed from the browser");
     assert.equal(await page.locator('[data-workflow="plan"]').textContent(), "02Bemalplan", "imported language applies");
 
-    await page.fill("#hexInput", "#7a1f3d");
+    await openControls(page); await page.fill("#hexInput", "#7a1f3d");
     await page.dispatchEvent("#hexInput", "change");
     await page.click("#openSaveBtn");
     await page.fill("#profileNameInput", "Annas Armee");
@@ -96,7 +101,7 @@ async function main() {
 
     // Session expires while working: changes are kept and saved after signing in again.
     await device1.clearCookies();
-    await page.fill("#hexInput", "#123456");
+    await openControls(page); await page.fill("#hexInput", "#123456");
     await page.dispatchEvent("#hexInput", "change");
     await page.waitForSelector(".wph-auth-overlay");
     assert.match(await page.locator(".wph-auth-hint").textContent(), /abgelaufen/);
@@ -126,7 +131,7 @@ async function main() {
     };
     const benBefore = color(2);
     await device1.clearCookies();
-    await page.fill("#hexInput", "#aa00aa");
+    await openControls(page); await page.fill("#hexInput", "#aa00aa");
     await page.dispatchEvent("#hexInput", "change");
     await page.waitForSelector(".wph-auth-overlay");
     await page.fill(".wph-auth-form [name=username]", "ben");
@@ -138,7 +143,7 @@ async function main() {
     assert.equal(await page.locator(".wph-account-user").textContent(), "ben");
 
     // A failed data load shows a retry screen instead of starting with defaults.
-    await page.fill("#hexInput", "#c08040");
+    await openControls(page); await page.fill("#hexInput", "#c08040");
     await page.dispatchEvent("#hexInput", "change");
     await page.waitForFunction(() => document.querySelector(".wph-account-status").dataset.state === "saved");
     const benSettings = color(2);
@@ -164,7 +169,7 @@ async function main() {
       await new Promise(resolve => setTimeout(resolve, 1200));
       route.continue().catch(() => {});
     });
-    await page.fill("#hexInput", "#336699");
+    await openControls(page); await page.fill("#hexInput", "#336699");
     await page.dispatchEvent("#hexInput", "change");
     await page.waitForTimeout(700);
     const benLatest = await page.textContent("#currentHex");

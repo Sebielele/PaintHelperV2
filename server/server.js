@@ -165,7 +165,7 @@ function createServer(config, store, log = console, ai = null) {
 
     if (url.pathname.startsWith("/api/ai/")) {
       if (route === "GET /api/ai/status") {
-        return sendJson(res, 200, ai ? ai.status() : { llm: false, search: false, searchReady: false });
+        return sendJson(res, 200, ai ? await ai.status() : { llm: false, search: false, searchReady: false });
       }
       if (!ai) {
         throw new HttpError(404, "KI ist nicht eingerichtet.", "disabled");

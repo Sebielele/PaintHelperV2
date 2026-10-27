@@ -492,3 +492,21 @@ test("the guide is built from the app data with one paint per step", () => {
   const accent = guide.split("## Wunden")[1];
   assert.equal((accent.match(/^\d\./gm) || []).length, 3, "accents get a short ladder");
 });
+
+test("status reports reachability and the queue; guides can name a unit", async t => {
+  const { base, fake } = await setup(t);
+  const call = await login(base, "anna", "anna-pass-1");
+  const status = (await call("GET", "/api/ai/status")).data;
+  assert.equal(status.llm, true);
+  assert.equal(status.reachable, true);
+  assert.equal(status.busy, false);
+  assert.equal(status.waiting, 0);
+  const result = await call("POST", "/api/ai/recipe", { context: { ...recipeContext, unit: { name: "Daemonettes", keywords: ["INFANTRY", "DAEMON"], models: ["Daemonette"], extra: "x" } } });
+  assert.equal(result.status, 200);
+  const prompt = fake.state.requests.filter(request => request.body.stream).pop().body.messages[1].content;
+  assert.match(prompt, /The guide is for this unit: Daemonettes \(INFANTRY, DAEMON\); models: Daemonette\./);
+
+  const { base: offlineBase } = await setup(t, { env: { AI_LLM_URL: "http://127.0.0.1:9/v3" } });
+  const offline = await login(offlineBase, "anna", "anna-pass-1");
+  assert.equal((await offline("GET", "/api/ai/status")).data.reachable, false);
+});

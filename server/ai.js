@@ -91,8 +91,38 @@ function createAi(config, { appRoot, dataDir, store = null, log = console, fetch
   let factionIndex = null;
   let factionIndexBuild = null;
 
-  function status() {
-    return { llm: llmEnabled, search: embedEnabled, searchReady: Boolean(searchIndex) };
+  let reachability = { checkedAt: 0, value: null, pending: null };
+
+  // For the status light in the app: is the model server answering, is it busy?
+  // The reachability probe is cached for 30 s so polling browsers cost nothing.
+  async function status() {
+    const base = { llm: llmEnabled, search: embedEnabled, searchReady: Boolean(searchIndex) };
+    if (!llmEnabled) {
+      return base;
+    }
+    const queue = llmQueue.state();
+    return { ...base, busy: queue.active, waiting: queue.waiting, reachable: await probeModelServer() };
+  }
+
+  function probeModelServer() {
+    if (Date.now() - reachability.checkedAt < 30000) {
+      return Promise.resolve(reachability.value);
+    }
+    if (!reachability.pending) {
+      reachability.pending = (async () => {
+        let value;
+        try {
+          // Any HTTP answer means the server is up; only network errors count as offline.
+          await fetchImpl(`${config.llmUrl}/models`, { method: "GET", signal: AbortSignal.timeout(2500) });
+          value = true;
+        } catch (error) {
+          value = false;
+        }
+        reachability = { checkedAt: Date.now(), value, pending: null };
+        return value;
+      })();
+    }
+    return reachability.pending;
   }
 
   // ---- palette from a description ----------------------------------------
@@ -426,6 +456,7 @@ function createAi(config, { appRoot, dataDir, store = null, log = console, fetch
         role: "user",
         content: [
           `Scheme: ${context.scheme}${context.prompt ? ` ("${context.prompt}")` : ""}; finish: ${context.finish}; method: ${context.recipeMode}.`,
+          ...(context.unit ? [`The guide is for this unit: ${context.unit.name}${context.unit.keywords.length ? ` (${context.unit.keywords.join(", ")})` : ""}${context.unit.models.length ? `; models: ${context.unit.models.join(", ")}` : ""}. Make the tips fit this kind of model.`] : []),
           "",
           guide
         ].join("\n")
@@ -1035,7 +1066,7 @@ function createQueue(maxWaiting) {
       }
     };
   }
-  return { acquire };
+  return { acquire, state: () => ({ active, waiting: waiting.length }) };
 }
 
 // ---- faction references ----------------------------------------------------
@@ -1402,6 +1433,11 @@ function sanitizeContext(input) {
     ownedPaintCount: Math.max(0, Math.min(10000, Number(ctx.ownedPaintCount) || 0)),
     onlyOwnedPaints: Boolean(ctx.onlyOwnedPaints),
     ownedOnly: Boolean(ctx.ownedOnly),
+    unit: ctx.unit && typeof ctx.unit === "object" && str(ctx.unit.name, 80) ? {
+      name: str(ctx.unit.name, 80),
+      keywords: (Array.isArray(ctx.unit.keywords) ? ctx.unit.keywords : []).map(word => str(word, 40)).filter(Boolean).slice(0, 10),
+      models: (Array.isArray(ctx.unit.models) ? ctx.unit.models : []).map(model => str(model, 60)).filter(Boolean).slice(0, 6)
+    } : null,
     primer: primer ? {
       tone: ["dark", "grey", "light", "color"].includes(primer.tone) ? primer.tone : "grey",
       name: str(primer.name, 80),

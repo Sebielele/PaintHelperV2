@@ -11,21 +11,22 @@
     lastSettings: "wph.settings.v1",
     profiles: "wph.profiles.v1"
   };
+  // v0.20: the assistant leads; the manual tools start folded away.
+  const LAYOUT_VERSION = 20;
   const DEFAULT_SECTION_COLLAPSE = {
     paintingNotes: false,
-    rolePlanner: false,
-    baseAdvice: false,
+    rolePlanner: true,
+    baseAdvice: true,
     modelRoles: false,
-    paintLadder: false,
+    paintLadder: true,
     aiRecipe: false,
     aiSearch: false,
     catalogueMatches: false
   };
   const DEFAULT_CONTROL_GROUP_COLLAPSE = {
     start: false,
-    assistant: false,
-    color: false,
-    paletteRules: false,
+    color: true,
+    paletteRules: true,
     paintingPlan: false,
     paintLibrary: true,
     saveShare: true
@@ -93,6 +94,9 @@
 
     let translator = W.createTranslator(state.language);
     let currentPalette = [];
+    // Declared early: the assistant may look up paint names during the first update().
+    let paintNameIndex = null;
+    let paintNameIndexSource = null;
     let cataloguePaints = mergePaintRackCustomPaints(W.DEFAULT_PAINT_CATALOGUE || W.DEFAULT_CITADEL_PAINTS);
     let factionSchemes = W.normalizeFactionSchemes(W.DEFAULT_FACTION_SCHEMES || W.DEFAULT_FACTION_SCHEME_DATA || []);
     let profiles = readProfiles();
@@ -226,9 +230,27 @@
         system: () => state.system,
         t: (path, params) => t(path, params),
         palette: () => currentPalette.map(color => ({ name: colorName(color), hex: color.hex })),
+        recipeKey: () => [state.recipeModeKey, W.styleLabelKey(state.style)],
         recipeContext,
         addCustomPalette,
         deleteCustomPalette,
+        customPalettes: () => state.customSchemes.map(scheme => ({
+          id: scheme.id, name: scheme.name, source: scheme.source, prompt: scheme.prompt, createdAt: scheme.createdAt,
+          colors: scheme.roles.map(role => role.hex)
+        })),
+        selectCustomPalette(id) {
+          if (!state.customSchemes.some(scheme => scheme.id === id)) {
+            return false;
+          }
+          if (state.factionSchemeId !== id) {
+            state.factionSchemeId = id;
+            state.mode = "single";
+            el.mode.value = "single";
+            populateFactionControls();
+            update();
+          }
+          return true;
+        },
         updateCustomPalette,
         setCustomPaletteRating(id, rating) {
           const scheme = state.customSchemes.find(entry => entry.id === id);
@@ -308,7 +330,7 @@
     function customPaintEquivalents(scheme) {
       return scheme.roles
         .map(role => {
-          const { matches, ownedMissing } = closestMatchesFor(role.hex, 1);
+          const { matches, ownedMissing } = state.onlyOwnedMatches ? closestMatchesFor(role.hex, 1) : { matches: equivalentPaints(role.hex), ownedMissing: false };
           if (!matches[0]) {
             return "";
           }
@@ -348,8 +370,6 @@
 
     // Catalogue paint by name (as written in a guide); prefers owned paints, then the
     // selected producers. The name index is rebuilt when the catalogue changes.
-    let paintNameIndex = null;
-    let paintNameIndexSource = null;
     function findPaintByName(name, manufacturer) {
       if (paintNameIndexSource !== cataloguePaints) {
         paintNameIndex = new Map();
@@ -380,12 +400,31 @@
       update();
     }
 
+    // Paint equivalents in the notes: brush paints only, brands the painter owns first.
+    function equivalentPaints(hex) {
+      const pool = filteredCataloguePaints().filter(paint => paint.hex && isBrushPaint(paint));
+      if (!pool.length) {
+        return [];
+      }
+      const owned = pool.filter(paint => ownedPaintKeys.has(paintKey(paint)));
+      const preferred = new Set(owned.length ? owned.map(paint => paint.manufacturer) : GUIDE_DEFAULT_BRANDS);
+      return W.findClosestPaints(hex, pool, 12)
+        .map(match => ({ match, score: match.distance + (preferred.has(match.manufacturer) ? 0 : GUIDE_BRAND_PENALTY) }))
+        .sort((a, b) => a.score - b.score)
+        .slice(0, 1)
+        .map(item => item.match);
+    }
+
+    function isBrushPaint(paint) {
+      return !GUIDE_EXCLUDED_COLLECTIONS.test(paint.collection || "")
+        && !GUIDE_EXCLUDED_TYPES.test(`${paint.range || ""} ${paint.finish || ""}`)
+        && !GUIDE_EXCLUDED_NAMES.test(paint.name || "");
+    }
+
     // Everything the assistant needs to write a recipe grounded in real catalogue paints.
     function recipeContext(options = {}) {
       // Airbrush, lacquer, spray and vehicle-colour lines are left out of brush guides.
-      const brushable = paint => !GUIDE_EXCLUDED_COLLECTIONS.test(paint.collection || "")
-        && !GUIDE_EXCLUDED_TYPES.test(`${paint.range || ""} ${paint.finish || ""}`)
-        && !GUIDE_EXCLUDED_NAMES.test(paint.name || "");
+      const brushable = isBrushPaint;
       const catalogue = filteredCataloguePaints().filter(paint => paint.hex);
       const ownedPaints = catalogue.filter(paint => ownedPaintKeys.has(paintKey(paint)));
       const ownedOnly = Boolean(options.ownedOnly && ownedPaints.length);
@@ -2359,6 +2398,7 @@
     function createSettingsSnapshot() {
       return {
         version: SETTINGS_VERSION,
+        layoutVersion: LAYOUT_VERSION,
         paletteEdits: W.normalizePaletteEdits(state.paletteEdits),
         savedAt: new Date().toISOString(),
         h: state.h,
@@ -2506,6 +2546,11 @@
       state.shoppingSearch = typeof snapshot.shoppingSearch === "string" ? snapshot.shoppingSearch : "";
       state.controlGroupsCollapsed = normalizeControlGroupsCollapsed(snapshot.controlGroupsCollapsed);
       state.collapsedSections = normalizeCollapsedSections(snapshot.collapsedSections);
+      if (!(Number(snapshot.layoutVersion) >= LAYOUT_VERSION)) {
+        // Settings from before the assistant-first layout: fold the manual tools once.
+        ["color", "paletteRules"].forEach(key => { state.controlGroupsCollapsed[key] = true; });
+        ["rolePlanner", "baseAdvice", "paintLadder"].forEach(key => { state.collapsedSections[key] = true; });
+      }
       if (Array.isArray(snapshot.customSchemes)) {
         state.customSchemes = snapshot.customSchemes.map(sanitizeCustomScheme).filter(Boolean).slice(0, MAX_CUSTOM_SCHEMES);
       }
@@ -3073,7 +3118,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const panels = Array.from(document.querySelectorAll("[data-workflow-panel]"));
   const next = document.getElementById("nextStepBtn");
   const save = document.querySelector('[data-control-group="saveShare"]');
-  const nextLabels = ["ui.nextPlan", "ui.nextPaints", "ui.backPalette"];
+  const nextLabels = ["ui.nextPlan", "ui.nextPaints", "assist.nextArmy", "ui.backPalette"];
   let active = 0;
 
   function showStep(index) {
@@ -3092,7 +3137,18 @@ document.addEventListener("DOMContentLoaded", () => {
     next.textContent = window.WPH.createTranslator(document.documentElement.lang)(nextLabels[index]);
     // The wheel needs fresh geometry after its panel becomes visible again.
     window.dispatchEvent(new Event("resize"));
+    document.dispatchEvent(new CustomEvent("wph:workflow", { detail: { view } }));
   }
+  // Used by the assistant, the quick-action dock and the army page.
+  window.WPHWorkflow = {
+    show(view) {
+      const index = steps.findIndex(button => button.dataset.workflow === view);
+      if (index > -1) {
+        showStep(index);
+      }
+    },
+    current: () => steps[active].dataset.workflow
+  };
   steps.forEach((button, index) => button.addEventListener("click", () => showStep(index)));
   next.addEventListener("click", () => {
     showStep((active + 1) % steps.length);

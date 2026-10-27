@@ -221,7 +221,7 @@ async function main() {
     await staticPage.goto(`http://127.0.0.1:${staticServer.address().port}/WarhammerPaintHelper.html`, { waitUntil: "networkidle" });
     await staticPage.waitForSelector("#palette article");
     assert.equal(await staticPage.isVisible("#aiPaletteInput"), false);
-    assert.equal(await staticPage.isVisible("#aiPhotoBtn"), true);
+    assert.equal(await staticPage.isVisible("#aiPhotoOnlyBtn"), true);
     await staticPage.setInputFiles("#aiPhotoInput", { name: "test.png", mimeType: "image/png", buffer: Buffer.from(photo, "base64") });
     await staticPage.waitForFunction(() => /test/.test(document.getElementById("aiPhotoStatus").textContent));
     assert.equal(await staticPage.locator("#factionSelect option:checked").textContent(), "★ My palettes");

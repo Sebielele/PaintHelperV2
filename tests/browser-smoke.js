@@ -16,6 +16,11 @@ main().catch(error => {
   process.exitCode = 1;
 });
 
+// Since v0.20 the manual colour controls start folded away behind the assistant.
+async function openControls(page) {
+  await page.evaluate(() => document.querySelectorAll("[data-control-group]").forEach(group => { group.open = true; }));
+}
+
 async function main() {
   const { chromium } = loadPlaywright();
   const executablePath = findBrowserExecutable();
@@ -77,7 +82,7 @@ async function main() {
     await page.goto(sharedUrl, { waitUntil: "networkidle" });
     assert.deepEqual(await page.locator("#palette .hex").allTextContents(), afterReroll);
     const anotherScheme = await page.locator("#schemeSelect option").evaluateAll(options => options.find(option => !option.selected).value);
-    await page.selectOption("#schemeSelect", anotherScheme);
+    await openControls(page); await page.selectOption("#schemeSelect", anotherScheme);
     assert.equal(await page.locator('#palette .palette-lock[aria-pressed="true"]').count(), 0);
     await page.goto(sharedUrl, { waitUntil: "networkidle" });
     for (let i = 0; i < afterReroll.length; i++) {
@@ -122,16 +127,16 @@ async function main() {
     assert.match(await page.locator("#savedProfilesSelect").textContent(), /Workflow smoke profile/);
     await page.selectOption("#languageSelect", "de");
     assert.equal(await page.locator('[data-workflow="plan"]').textContent(), "02Bemalplan");
-    assert.equal(await page.locator("#nextStepBtn").textContent(), "Zurück zur Palette");
+    assert.equal(await page.locator("#nextStepBtn").textContent(), "Zur Armee →");
     await page.selectOption("#languageSelect", "en");
     await page.click('[data-workflow="palette"]');
     assert.equal(await page.textContent("#currentHex"), paletteHex);
     assert.equal(await page.locator("#shoppingListPanel").isVisible(), false);
 
-    // Check each step at a narrow mobile width and a desktop width.
-    for (const width of [375, 1440]) {
+    // Check each step on a phone, tablets (portrait/landscape) and a desktop.
+    for (const width of [375, 820, 1180, 1440]) {
       await page.setViewportSize({ width, height: 900 });
-      for (const view of ["palette", "plan", "paints"]) {
+      for (const view of ["palette", "plan", "paints", "army"]) {
         await page.click(`[data-workflow="${view}"]`);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true,
           `Horizontal overflow in ${view} at ${width}px`);

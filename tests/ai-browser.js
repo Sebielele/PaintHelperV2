@@ -32,7 +32,7 @@ async function main() {
   store.createUser("anna", "anna-pass-1");
   const ai = createAi(loadAiConfig({
     AI_LLM_URL: fake.url, AI_LLM_MODEL: "test", AI_EMBED_URL: fake.url, AI_EMBED_MODEL: "test"
-  }), { appRoot: root, dataDir, log: { info() {}, warn() {}, error() {} } });
+  }), { appRoot: root, dataDir, store, log: { info() {}, warn() {}, error() {} } });
   const server = createServer(loadConfig({ DATA_DIR: dataDir }), store, { info() {}, warn() {}, error() {} }, ai);
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   const staticServer = await startStaticServer();
@@ -60,6 +60,46 @@ async function main() {
     assert.equal(await page.locator("#factionSelect option:checked").textContent(), "★ Eigene Paletten");
     assert.match(await page.textContent("#paintNotes"), /krankem Grün/);
     assert.equal(await page.isVisible("#aiDeletePaletteBtn"), true);
+
+    // Rating a palette (with an optional comment) is stored for this user.
+    assert.equal(await page.isVisible("#aiPaletteFeedback"), true);
+    await page.locator("#aiPaletteFeedback [data-rating='1']").click();
+    await page.waitForFunction(() => /Danke/.test(document.querySelector("#aiPaletteFeedback .ai-status").textContent));
+    await page.fill("#aiPaletteFeedback .ai-feedback-comment input", "schön rostig");
+    await page.click("#aiPaletteFeedback .ai-feedback-comment button");
+    await page.waitForSelector("#aiPaletteFeedback .ai-feedback-comment", { state: "hidden" });
+    const stored = store.listFeedback(1, "palette");
+    assert.equal(stored.length, 1);
+    assert.equal(stored[0].rating, 1);
+    assert.equal(stored[0].comment, "schön rostig");
+    assert.equal(JSON.parse(stored[0].payload).colors[0].hex, "#6B7A3A");
+    assert.equal(await page.locator("#aiPaletteFeedback [data-rating='1']").getAttribute("aria-pressed"), "true");
+
+    // Improve the palette: locked colours stay, undo restores the previous version.
+    await page.locator("#palette .palette-lock").nth(2).click();
+    fake.state.options.paletteReply = JSON.stringify({
+      name: "Dunkler Nurgle",
+      notes: "Dunkler.",
+      colors: [
+        { role: "D", name: "Rüstung", hex: "#3E4A22" },
+        { role: "S", name: "Messing", hex: "#7A5A2A" },
+        { role: "ND", name: "Leder", hex: "#FF0000" },
+        { role: "NL", name: "Knochen", hex: "#D8CBA0" },
+        { role: "A1", name: "Eiter", hex: "#C9B640" }
+      ]
+    });
+    await page.fill("#aiRefineInput", "dunkler");
+    await page.click("#aiRefineBtn");
+    await page.waitForFunction(() => /angepasst/.test(document.getElementById("aiRefineStatus").textContent));
+    assert.deepEqual((await page.locator("#palette .hex").allTextContents()).slice(0, 3), ["#3E4A22", "#7A5A2A", "#3B2A1E"]);
+    const refineRequest = fake.state.requests.filter(request => request.url === "/v3/chat/completions").pop().body;
+    assert.equal(JSON.parse(refineRequest.messages[1].content).current.colors.find(color => color.role === "ND").locked, true);
+    assert.match((await page.locator("#subfactionSelect option").allTextContents()).join("|"), /Dunkler Nurgle/);
+    assert.equal(await page.locator("#aiPaletteFeedback [data-rating='1']").getAttribute("aria-pressed"), "false", "new version is unrated");
+    await page.click("#aiUndoBtn");
+    assert.deepEqual(await page.locator("#palette .hex").allTextContents(), ["#6B7A3A", "#A07A3C", "#3B2A1E", "#D8CBA0", "#C9B640"]);
+    assert.match(await page.textContent("#aiRefineStatus"), /wiederhergestellt/);
+    delete fake.state.options.paletteReply;
 
     // 2. Photo palette (no AI involved).
     const photo = await page.evaluate(() => {
@@ -127,14 +167,36 @@ async function main() {
     // 3. Painting guide, streamed and rendered as safe HTML.
     await page.click('[data-workflow="plan"]');
     assert.equal(await page.isVisible("#aiRecipeBtn"), true);
+    assert.equal(await page.locator("#aiRecipeOwnedOnly").isDisabled(), true, "no owned paints yet");
+    assert.match(await page.textContent("#aiRecipeOwnedOnlyLabel"), /\(0\)/);
+    fake.state.options.recipeText = "## Vorbereitung\n1. Grundieren mit **Abaddon Black**.\n\n## Rüstung\n- Basis: **Retributor Armour**\n- Akzent: **Erfundenes Gelb**\n";
     await page.click("#aiRecipeBtn");
-    await page.waitForFunction(() => Array.from(document.querySelectorAll("#aiRecipeOutput strong")).some(node => node.textContent === "Retributor Armour"));
+    await page.waitForFunction(() => Array.from(document.querySelectorAll("#aiRecipeOutput strong")).some(node => node.textContent.startsWith("Retributor Armour")));
     await page.waitForSelector("#aiRecipeCopyBtn:not([hidden])");
     assert.equal(await page.locator("#aiRecipeOutput h4").first().textContent(), "Vorbereitung");
     assert.equal(await page.locator("#aiRecipeOutput ol li").count(), 1);
     const sentContext = JSON.parse(fake.state.requests.find(request => request.body.stream).body.messages[1].content);
     assert.equal(sentContext.language, "de");
     assert.ok(sentContext.colors[0].steps[0].paints.length > 0, "catalogue paints are sent with each step");
+
+    // Paint names are checked: known ones get a swatch and a shopping-list button.
+    assert.equal(await page.locator("#aiRecipeOutput .ai-paint").count(), 2);
+    assert.equal(await page.locator("#aiRecipeOutput .ai-paint-unknown").textContent(), "Erfundenes Gelb");
+    assert.match(await page.textContent("#aiRecipeStatus"), /Nicht im Katalog gefundene Farbnamen: 1/);
+    await page.locator("#aiRecipeOutput .ai-paint", { hasText: "Retributor Armour" }).locator("button").click();
+    assert.match(await page.textContent("#shoppingList"), /Retributor Armour/);
+
+    // Feedback on the guide, with a comment, ends up in the next guide's prompt.
+    await page.locator("#aiRecipeFeedback [data-rating='-1']").click();
+    await page.waitForSelector("#aiRecipeFeedback .ai-feedback-comment:not([hidden])");
+    await page.fill("#aiRecipeFeedback .ai-feedback-comment input", "zu lang");
+    await page.click("#aiRecipeFeedback .ai-feedback-comment button");
+    await page.waitForSelector("#aiRecipeFeedback .ai-feedback-comment", { state: "hidden" });
+    assert.equal(store.listFeedback(1, "recipe")[0].comment, "zu lang");
+    await page.click("#aiRecipeBtn");
+    await page.waitForSelector("#aiRecipeCopyBtn:not([hidden])");
+    assert.match(fake.state.requests.filter(request => request.body.stream).pop().body.messages[0].content, /disliked: zu lang/);
+    delete fake.state.options.recipeText;
 
     // 4. Paint search in words, add to shopping list.
     await page.click('[data-workflow="paints"]');

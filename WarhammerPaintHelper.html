@@ -7,8 +7,8 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Warhammer Paint Helper</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png?v=0.16" />
-  <link rel="stylesheet" href="styles.css?v=0.16" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=0.17" />
+  <link rel="stylesheet" href="styles.css?v=0.17" />
 </head>
 <body>
   <a class="skip-link" href="#workspace" data-i18n="ui.skipWorkspace">Skip to workspace</a>
@@ -17,7 +17,7 @@
       <div class="header-utility" aria-label="Application settings">
         <div class="brand-meta">
           <span class="eyebrow" data-i18n="ui.eyebrow">Miniature Palette Tool</span>
-          <p class="app-version" aria-label="Application version">v0.16</p>
+          <p class="app-version" aria-label="Application version">v0.17</p>
         </div>
         <label class="language-control">
           <span data-i18n="ui.language">Language</span>
@@ -89,6 +89,27 @@
             <textarea id="aiPaletteInput" rows="3" maxlength="400"></textarea>
             <button id="aiPaletteBtn" type="button" data-i18n="ai.describeButton">Create palette</button>
             <p id="aiPaletteStatus" class="ai-status" aria-live="polite"></p>
+          </div>
+          <div class="ai-feedback" id="aiPaletteFeedback" data-ai-feature="llm" hidden>
+            <span class="ai-feedback-question" data-i18n="ai.feedbackQuestion">How do you like this palette?</span>
+            <div class="ai-feedback-buttons">
+              <button type="button" class="secondary" data-rating="1" data-i18n-aria="ai.feedbackGood">👍</button>
+              <button type="button" class="secondary" data-rating="-1" data-i18n-aria="ai.feedbackBad">👎</button>
+            </div>
+            <form class="ai-feedback-comment" hidden>
+              <input type="text" maxlength="300" autocomplete="off" />
+              <button type="submit" class="secondary" data-i18n="ai.feedbackSend">Send</button>
+            </form>
+            <p class="ai-status" aria-live="polite"></p>
+          </div>
+          <div class="field" id="aiRefineField" data-ai-feature="llm">
+            <label for="aiRefineInput" data-i18n="ai.refineLabel">Improve this palette</label>
+            <form id="aiRefineForm" class="ai-inline-form">
+              <input id="aiRefineInput" type="text" maxlength="300" autocomplete="off" />
+              <button id="aiRefineBtn" type="submit" class="secondary" data-i18n="ai.refineButton">Apply</button>
+            </form>
+            <button id="aiUndoBtn" type="button" class="secondary" hidden data-i18n="ai.undo">Undo</button>
+            <p id="aiRefineStatus" class="ai-status" aria-live="polite"></p>
           </div>
           <div class="field">
             <div class="field-label" data-i18n="ai.photoLabel">Palette from a photo</div>
@@ -389,6 +410,10 @@
           <button type="button" class="secondary collapse-button section-collapse-button" aria-expanded="true" aria-controls="aiRecipeBody" data-section-collapse="aiRecipe"></button>
         </div>
         <div id="aiRecipeBody" class="section-body">
+          <label class="toggle-option ai-owned-only">
+            <input id="aiRecipeOwnedOnly" type="checkbox" />
+            <span id="aiRecipeOwnedOnlyLabel">Only my paints</span>
+          </label>
           <div class="button-row ai-actions">
             <button id="aiRecipeBtn" type="button" data-i18n="ai.recipeButton">Write guide</button>
             <button id="aiRecipeStopBtn" type="button" class="secondary" hidden data-i18n="ai.recipeStop">Stop</button>
@@ -396,6 +421,18 @@
           </div>
           <p id="aiRecipeStatus" class="ai-status" aria-live="polite"></p>
           <div id="aiRecipeOutput" class="ai-output" hidden></div>
+          <div class="ai-feedback" id="aiRecipeFeedback" hidden>
+            <span class="ai-feedback-question" data-i18n="ai.recipeFeedbackQuestion">How helpful was this guide?</span>
+            <div class="ai-feedback-buttons">
+              <button type="button" class="secondary" data-rating="1" data-i18n-aria="ai.feedbackGood">👍</button>
+              <button type="button" class="secondary" data-rating="-1" data-i18n-aria="ai.feedbackBad">👎</button>
+            </div>
+            <form class="ai-feedback-comment" hidden>
+              <input type="text" maxlength="300" autocomplete="off" />
+              <button type="submit" class="secondary" data-i18n="ai.feedbackSend">Send</button>
+            </form>
+            <p class="ai-status" aria-live="polite"></p>
+          </div>
         </div>
       </div>
 
@@ -464,12 +501,12 @@
 
   </main>
 
-  <script src="src/core.js?v=0.16"></script>
-  <script src="src/factions.js?v=0.16"></script>
-  <script src="src/i18n.js?v=0.16"></script>
-  <script src="src/citadel.js?v=0.16"></script>
-  <script src="src/storage.js?v=0.16"></script>
-  <script src="src/app.js?v=0.16"></script>
-  <script src="src/ai.js?v=0.16"></script>
+  <script src="src/core.js?v=0.17"></script>
+  <script src="src/factions.js?v=0.17"></script>
+  <script src="src/i18n.js?v=0.17"></script>
+  <script src="src/citadel.js?v=0.17"></script>
+  <script src="src/storage.js?v=0.17"></script>
+  <script src="src/app.js?v=0.17"></script>
+  <script src="src/ai.js?v=0.17"></script>
 </body>
 </html>

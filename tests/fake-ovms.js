@@ -10,6 +10,8 @@ function startFakeOvms(options = {}) {
     requests: [],
     active: 0,
     maxActive: 0,
+    activeChat: 0,
+    maxActiveChat: 0,
     embedCalls: 0,
     options
   };
@@ -21,6 +23,11 @@ function startFakeOvms(options = {}) {
       state.requests.push({ url: req.url, body: json });
       state.active += 1;
       state.maxActive = Math.max(state.maxActive, state.active);
+      const isChat = req.url === "/v3/chat/completions";
+      if (isChat) {
+        state.activeChat += 1;
+        state.maxActiveChat = Math.max(state.maxActiveChat, state.activeChat);
+      }
       try {
         if (state.options.delayMs) {
           await new Promise(resolve => setTimeout(resolve, state.options.delayMs));
@@ -75,6 +82,9 @@ function startFakeOvms(options = {}) {
         send(res, 404, { error: "not found" });
       } finally {
         state.active -= 1;
+        if (isChat) {
+          state.activeChat -= 1;
+        }
       }
     });
   });

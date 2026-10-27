@@ -1532,3 +1532,25 @@ html:not(.wph-ai-search) [data-ai-feature="search"] { display: none !important; 
 .ai-search-name { font-weight: 700; overflow-wrap: anywhere; }
 .ai-search-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
 .ai-search-actions button { min-height: 32px; padding: 4px 10px; font-size: .78rem; }
+
+/* PaintHelperV2: feedback, palette refinement, verified paint names */
+.ai-feedback { display: grid; gap: 8px; margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.ai-feedback[hidden] { display: none; }
+.ai-feedback-question { color: var(--muted); font-size: .85rem; }
+.ai-feedback-buttons { display: flex; gap: 8px; }
+.ai-feedback-buttons button { min-height: 36px; min-width: 52px; font-size: 1.05rem; }
+.ai-feedback-buttons button[aria-pressed="true"] { border-color: var(--accent); background: rgba(198, 221, 152, .16); }
+.ai-feedback-comment, .ai-inline-form { display: flex; gap: 8px; }
+.ai-feedback-comment[hidden] { display: none; }
+.ai-feedback-comment input, .ai-inline-form input {
+  flex: 1; min-width: 0; min-height: 38px; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); color: var(--text); font: inherit;
+}
+.ai-group .ai-inline-form button, .ai-feedback-comment button { width: auto; margin-top: 0; min-height: 38px; }
+.ai-group #aiUndoBtn { width: 100%; margin-top: 8px; }
+.ai-owned-only { margin-bottom: 10px; }
+.ai-paint { display: inline-flex; align-items: center; gap: 5px; }
+.ai-paint-swatch { display: inline-block; width: .9em; height: .9em; border-radius: 3px; border: 1px solid rgba(255, 255, 255, .25); }
+.ai-paint .owned-badge { font-size: .7rem; }
+.ai-output .ai-paint-shop { min-height: 22px; min-width: 22px; padding: 0 6px; font-size: .75rem; line-height: 1; }
+.ai-paint-unknown { text-decoration: underline dashed #ff9d8f; text-underline-offset: 3px; cursor: help; }

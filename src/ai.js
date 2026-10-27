@@ -13,6 +13,9 @@
   let recipeText = "";
   let recipeSignature = "";
   let lastSearch = [];
+  let recipeId = "";
+  let recipeUnknown = 0;
+  let undoState = null;
   const el = {};
 
   document.addEventListener("wph:update", () => {
@@ -30,8 +33,34 @@
     [
       "aiPaletteInput", "aiPaletteBtn", "aiPaletteStatus", "aiPhotoBtn", "aiPhotoInput", "aiPhotoStatus",
       "aiDeletePaletteBtn", "aiRecipeBtn", "aiRecipeStopBtn", "aiRecipeCopyBtn", "aiRecipeStatus",
-      "aiRecipeOutput", "aiSearchForm", "aiSearchInput", "aiSearchStatus", "aiSearchResults"
+      "aiRecipeOutput", "aiSearchForm", "aiSearchInput", "aiSearchStatus", "aiSearchResults",
+      "aiPaletteFeedback", "aiRecipeFeedback", "aiRefineForm", "aiRefineInput", "aiRefineBtn", "aiUndoBtn",
+      "aiRefineStatus", "aiRecipeOwnedOnly", "aiRecipeOwnedOnlyLabel"
     ].forEach(id => { el[id] = document.getElementById(id); });
+
+    setupFeedback(el.aiPaletteFeedback, () => {
+      const selected = app.selectedCustomPalette();
+      return selected && selected.source === "ai" ? {
+        kind: "palette",
+        refId: selected.id,
+        prompt: selected.prompt || selected.name,
+        palette: { name: selected.name, colors: app.paletteForAi() },
+        current: selected.rating || 0,
+        remember: rating => app.setCustomPaletteRating(selected.id, rating)
+      } : null;
+    });
+    setupFeedback(el.aiRecipeFeedback, () => (recipeId ? {
+      kind: "recipe",
+      refId: recipeId,
+      prompt: app.paletteTitle(),
+      current: Number(el.aiRecipeFeedback.dataset.rating || 0),
+      remember: rating => { el.aiRecipeFeedback.dataset.rating = String(rating); }
+    } : null));
+    el.aiRefineForm.addEventListener("submit", event => {
+      event.preventDefault();
+      refinePalette();
+    });
+    el.aiUndoBtn.addEventListener("click", undoRefine);
 
     el.aiPaletteBtn.addEventListener("click", createPaletteFromText);
     el.aiPaletteInput.addEventListener("keydown", event => {
@@ -78,7 +107,23 @@
     el.aiPaletteInput.placeholder = t("ai.describePlaceholder");
     el.aiSearchInput.placeholder = t("ai.searchPlaceholder");
     el.aiSearchInput.setAttribute("aria-label", t("ai.searchTitle"));
-    el.aiDeletePaletteBtn.hidden = !app.selectedCustomPalette();
+    const selected = app.selectedCustomPalette();
+    el.aiDeletePaletteBtn.hidden = !selected;
+    el.aiRefineInput.placeholder = t("ai.refinePlaceholder");
+    el.aiPaletteFeedback.hidden = !(selected && selected.source === "ai");
+    const selectedId = selected ? selected.id : "";
+    if (el.aiPaletteFeedback.dataset.paletteId !== selectedId) {
+      el.aiPaletteFeedback.dataset.paletteId = selectedId;
+      resetFeedback(el.aiPaletteFeedback);
+    }
+    syncFeedbackButtons(el.aiPaletteFeedback, selected ? selected.rating || 0 : 0);
+    el.aiUndoBtn.hidden = !(undoState && selected && undoState.id === selected.id);
+    const owned = app.ownedCount();
+    el.aiRecipeOwnedOnlyLabel.textContent = t("ai.recipeOwnedOnly", { count: owned });
+    el.aiRecipeOwnedOnly.disabled = owned === 0;
+    if (!owned) {
+      el.aiRecipeOwnedOnly.checked = false;
+    }
     if (!el.aiPhotoStatus.dataset.message) {
       el.aiPhotoStatus.textContent = t("ai.photoHint");
     }
@@ -272,8 +317,12 @@
     if (recipeController) {
       return;
     }
-    const context = app.recipeContext();
+    const context = app.recipeContext({ ownedOnly: el.aiRecipeOwnedOnly.checked });
     recipeSignature = paletteSignature();
+    recipeId = "";
+    el.aiRecipeFeedback.hidden = true;
+    el.aiRecipeFeedback.dataset.rating = "0";
+    resetFeedback(el.aiRecipeFeedback);
     recipeText = "";
     recipeController = new AbortController();
     el.aiRecipeOutput.hidden = false;
@@ -328,9 +377,15 @@
     renderMarkdown(el.aiRecipeOutput, recipeText);
     el.aiRecipeOutput.hidden = !recipeText.trim();
     el.aiRecipeCopyBtn.hidden = !recipeText.trim();
+    if (recipeText.trim() && !failure) {
+      recipeId = `recipe-${Date.now().toString(36)}`;
+      el.aiRecipeFeedback.hidden = false;
+      syncFeedbackButtons(el.aiRecipeFeedback, 0);
+    }
     el.aiRecipeStatus.textContent = failure
       ? errorText(failure)
-      : t("ai.recipeHint", { owned: context.ownedPaintCount });
+      : [t("ai.recipeHint", { owned: context.ownedPaintCount }), recipeUnknown ? t("ai.unknownPaints", { count: recipeUnknown }) : ""]
+        .filter(Boolean).join(" ");
   }
 
   function paletteSignature() {
@@ -354,6 +409,7 @@
 
   // Minimal, safe Markdown: headings, numbered and bullet lists, paragraphs, **bold**.
   function renderMarkdown(container, text) {
+    recipeUnknown = 0;
     const nodes = [];
     let list = null;
     let paragraph = null;
@@ -404,9 +460,7 @@
   function withInline(node, text) {
     String(text).split(/(\*\*[^*]+\*\*|`[^`]+`)/).forEach(part => {
       if (/^\*\*[^*]+\*\*$/.test(part)) {
-        const strong = document.createElement("strong");
-        strong.textContent = part.slice(2, -2);
-        node.appendChild(strong);
+        node.appendChild(paintChip(part.slice(2, -2).trim()));
       } else if (/^`[^`]+`$/.test(part)) {
         const code = document.createElement("code");
         code.textContent = part.slice(1, -1);
@@ -416,6 +470,181 @@
       }
     });
     return node;
+  }
+
+  // Paint names in the guide are checked against the catalogue: known paints get a
+  // swatch and a shopping-list button, unknown names are marked for checking.
+  function paintChip(name) {
+    const strong = document.createElement("strong");
+    const paint = app ? app.findPaintByName(name) : null;
+    if (!paint) {
+      strong.className = "ai-paint-unknown";
+      strong.title = t("ai.paintUnknown");
+      strong.textContent = name;
+      recipeUnknown += 1;
+      return strong;
+    }
+    strong.className = "ai-paint";
+    const swatch = document.createElement("span");
+    swatch.className = "ai-paint-swatch";
+    swatch.style.background = paint.hex;
+    strong.append(swatch, name);
+    strong.title = [paint.manufacturer, paint.collection || paint.range, paint.hex].filter(Boolean).join(" · ");
+    if (app.isOwned(paint)) {
+      const badge = document.createElement("span");
+      badge.className = "owned-badge";
+      badge.textContent = t("ai.searchOwned");
+      strong.append(" ", badge);
+    } else {
+      const listed = app.isOnShoppingList(paint);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "secondary ai-paint-shop";
+      button.textContent = listed ? "✓" : "+";
+      button.title = listed ? t("ai.onList") : t("ai.addToList");
+      button.setAttribute("aria-label", `${button.title}: ${name}`);
+      button.disabled = listed;
+      button.addEventListener("click", () => {
+        app.addToShoppingList(paint);
+        button.textContent = "✓";
+        button.title = t("ai.onList");
+        button.disabled = true;
+      });
+      strong.append(" ", button);
+    }
+    return strong;
+  }
+
+  // ---- improve a palette -------------------------------------------------
+
+  async function refinePalette() {
+    const instruction = el.aiRefineInput.value.trim();
+    if (instruction.length < 2) {
+      el.aiRefineInput.focus();
+      return;
+    }
+    const selected = app.selectedCustomPalette();
+    const stopTimer = busy(el.aiRefineBtn, el.aiRefineStatus, t("ai.working"));
+    try {
+      const result = await request("POST", "palette/refine", {
+        palette: {
+          name: selected ? selected.name : app.paletteTitle(),
+          notes: selected ? selected.notes : "",
+          colors: app.paletteForAi()
+        },
+        instruction,
+        system: app.system(),
+        language: app.language()
+      });
+      stopTimer();
+      const polished = result.adjusted && result.adjusted.length ? ` ${t("ai.polished")}` : "";
+      if (selected) {
+        const previous = app.updateCustomPalette(selected.id, {
+          name: result.name,
+          notes: result.notes,
+          colors: result.colors,
+          prompt: [selected.prompt, instruction].filter(Boolean).join(" → ").slice(0, 400)
+        });
+        undoState = previous ? { id: selected.id, previous } : null;
+        el.aiRefineStatus.textContent = t("ai.refineDone") + polished;
+      } else {
+        app.addCustomPalette({ name: result.name, source: "ai", prompt: instruction, notes: result.notes, colors: result.colors });
+        undoState = null;
+        el.aiRefineStatus.textContent = t("ai.refineNew", { name: result.name }) + polished;
+      }
+      el.aiRefineInput.value = "";
+      refresh();
+    } catch (error) {
+      stopTimer();
+      el.aiRefineStatus.textContent = errorText(error);
+    }
+  }
+
+  function undoRefine() {
+    if (!undoState) {
+      return;
+    }
+    const { id, previous } = undoState;
+    undoState = null;
+    app.updateCustomPalette(id, {
+      name: previous.name,
+      notes: previous.notes,
+      prompt: previous.prompt,
+      colors: previous.roles.map(role => ({ role: role.code, name: role.name, hex: role.hex }))
+    });
+    app.setCustomPaletteRating(id, previous.rating || 0);
+    el.aiRefineStatus.textContent = t("ai.undone");
+    refresh();
+  }
+
+  // ---- feedback ----------------------------------------------------------
+
+  // Thumbs up/down are sent right away; an optional comment can follow. Pressing the
+  // same thumb again withdraws the rating.
+  function setupFeedback(container, describe) {
+    const form = container.querySelector(".ai-feedback-comment");
+    const input = form.querySelector("input");
+    const statusNode = container.querySelector(".ai-status");
+    let pending = null;
+    container.querySelectorAll("[data-rating]").forEach(button => {
+      button.addEventListener("click", async () => {
+        const target = describe();
+        if (!target) {
+          return;
+        }
+        const chosen = Number(button.dataset.rating);
+        const rating = target.current === chosen ? 0 : chosen;
+        pending = { ...target, rating };
+        if (await sendFeedback(pending, "", statusNode)) {
+          target.remember(rating);
+          syncFeedbackButtons(container, rating);
+          form.hidden = rating === 0;
+          input.value = "";
+          input.placeholder = rating > 0 ? t("ai.feedbackCommentGood") : t("ai.feedbackCommentBad");
+          if (rating) {
+            input.focus();
+          }
+        }
+      });
+    });
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (pending && pending.rating && input.value.trim()) {
+        if (await sendFeedback(pending, input.value.trim(), statusNode)) {
+          form.hidden = true;
+        }
+      }
+    });
+  }
+
+  async function sendFeedback(target, comment, statusNode) {
+    try {
+      await request("POST", "feedback", {
+        kind: target.kind,
+        refId: target.refId,
+        rating: target.rating,
+        prompt: target.prompt,
+        comment,
+        palette: target.palette
+      });
+      statusNode.textContent = target.rating ? t("ai.feedbackThanks") : t("ai.feedbackRemoved");
+      return true;
+    } catch (error) {
+      statusNode.textContent = errorText(error);
+      return false;
+    }
+  }
+
+  function syncFeedbackButtons(container, rating) {
+    container.querySelectorAll("[data-rating]").forEach(button => {
+      button.setAttribute("aria-pressed", String(Number(button.dataset.rating) === rating));
+    });
+  }
+
+  function resetFeedback(container) {
+    syncFeedbackButtons(container, 0);
+    container.querySelector(".ai-feedback-comment").hidden = true;
+    container.querySelector(".ai-status").textContent = "";
   }
 
   // ---- paint search in words ---------------------------------------------

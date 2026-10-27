@@ -100,6 +100,29 @@ So funktioniert es:
   Datenordner. Er wird nur neu gebaut, wenn sich der Farbkatalog oder das
   Embedding-Modell ändert.
 
+**Was der Assistent zusätzlich nutzt (ab v0.17):**
+- **Ähnliche Schemata:** Zur Beschreibung sucht der Server per Embedding die 1–3
+  passendsten Fraktionsschemata der App und gibt sie dem Modell als Inspiration mit.
+  Auch ohne Fraktionsnamen findet z. B. „Seuchenkrieger“ Death Guard. Im Log stehen
+  die Treffer mit ihrem Wert, z. B. `ähnlich: Death Guard 0.63`. Passt die Auswahl nicht,
+  `AI_EXAMPLE_MIN_SCORE` anpassen (Standard 0.55; höher bedeutet strenger).
+- **Feedback:** 👍/👎 mit optionalem Kommentar bei Paletten und Anleitungen. Gelungene
+  und missratene Paletten zu ähnlichen Anfragen fliessen als Beispiele in neue
+  Vorschläge ein, Kommentare zu Anleitungen als Wünsche. Das Feedback gehört der
+  jeweiligen Person und wird mit ihrem Konto gelöscht. Pro Person bleiben die letzten
+  300 Einträge.
+- **Qualitätsprüfung:** Ist das dunkle Neutral nicht dunkel genug, das helle nicht hell
+  genug, liegen Haupt- und Zweitfarbe zu nah beieinander oder verschwinden die Akzente,
+  korrigiert der Server das. Gesperrte Farben bleiben dabei unangetastet.
+- **Nachbessern:** Eine Anweisung wie „dunkler“ ändert die angezeigte Palette.
+  Gesperrte Farben bleiben, mit „Rückgängig“ kommt die vorherige Version zurück.
+- **Anleitung:** Mit „Nur meine Farben verwenden“ bekommt das Modell nur deine Farben.
+  Farbnamen in der Anleitung werden gegen den Katalog geprüft. Bekannte Farben zeigen
+  einen Farbtupfer und einen Knopf für die Einkaufsliste, unbekannte sind gestrichelt
+  markiert.
+- Ist der Embedding-Dienst langsam oder aus, wartet die Palette höchstens 8 s
+  (`AI_EXAMPLE_TIMEOUT_SECONDS`) und kommt dann ohne Beispiele.
+
 KI ausschalten: `AI_LLM_URL` und `AI_EMBED_URL` im Stack leeren. Die Knöpfe
 verschwinden dann, die Foto-Palette bleibt.
 
@@ -113,6 +136,8 @@ verschwinden dann, die Foto-Palette bleibt.
 | `AI_QUEUE_WAIT_SECONDS` | `300` | maximale Wartezeit in der Schlange |
 | `AI_MAX_QUEUE` | `4` | Plätze in der Warteschlange |
 | `AI_LLM_PARAMS` | Qwen-Sampling | JSON, z. B. `{"temperature":0.6}` |
+| `AI_EXAMPLE_MIN_SCORE` | `0.55` | Mindestähnlichkeit für Schema- und Feedback-Beispiele |
+| `AI_EXAMPLE_TIMEOUT_SECONDS` | `8` | maximale Wartezeit auf die Beispiele |
 | `AI_JSON_SCHEMA` | `true` | strukturierte Ausgabe anfragen. Lehnt der Server das ab, schaltet die App automatisch auf reines JSON-Prompting um |
 
 Langsame Antworten halten die Verbindung offen, damit der DSM-Reverse-Proxy (Standard

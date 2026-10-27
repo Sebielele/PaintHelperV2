@@ -24,7 +24,7 @@ async function setup(t, { ovms = {}, env = {} } = {}) {
     AI_EMBED_MODEL: "test-embed",
     ...env
   });
-  const ai = createAi(aiConfig, { appRoot, dataDir, log: silentLog });
+  const ai = createAi(aiConfig, { appRoot, dataDir, store, log: silentLog });
   const server = createServer(config, store, silentLog, ai);
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   t.after(async () => {
@@ -199,7 +199,7 @@ test("one request per user, one at a time on the model server, hourly limit", as
   ]);
   assert.deepEqual(results.map(result => result.status).sort(), [200, 200, 429]);
   assert.equal(results.find(result => result.status === 429).data.code, "busy");
-  assert.equal(fake.state.maxActive, 1, "model server never gets two requests at once");
+  assert.equal(fake.state.maxActiveChat, 1, "language model never gets two requests at once");
 
   await anna("POST", "/api/ai/palette", { description: "Slaanesh" });
   await anna("POST", "/api/ai/palette", { description: "Nurgle again" });
@@ -327,4 +327,123 @@ test("recipe context keeps only bounded, expected fields", () => {
   assert.equal(context.colors.length, 6);
   assert.equal(context.colors[0].name.length, 60);
   assert.equal(context.colors[0].hex, "");
+});
+
+test("palette quality check fixes weak neutrals, contrast and hidden accents", () => {
+  const { polishPalette } = require("../server/ai");
+  const result = polishPalette([
+    { role: "D", name: "Armour", hex: "#3A6EA5" },
+    { role: "S", name: "Trim", hex: "#3C70A8" },
+    { role: "ND", name: "Leather", hex: "#808080" },
+    { role: "NL", name: "Bone", hex: "#9A9480" },
+    { role: "A1", name: "Gems", hex: "#3B6FA6" }
+  ]);
+  const hex = role => result.colors.find(color => color.role === role).hex;
+  assert.deepEqual(result.adjusted.sort(), ["A1 kräftiger", "NL heller", "ND dunkler", "S abgesetzt"].sort());
+  assert.ok(parseInt(hex("ND").slice(1, 3), 16) < 0x50, `ND ${hex("ND")} is dark`);
+  assert.ok(parseInt(hex("NL").slice(1, 3), 16) > 0xB0, `NL ${hex("NL")} is light`);
+  assert.equal(hex("D"), "#3A6EA5");
+  const locked = polishPalette([{ role: "D", hex: "#3A6EA5" }, { role: "ND", hex: "#808080" }], new Set(["ND"]));
+  assert.equal(locked.colors[1].hex, "#808080");
+});
+
+test("similar faction schemes from the embeddings are offered as inspiration", async t => {
+  const { base, fake } = await setup(t, { env: { AI_EXAMPLE_MIN_SCORE: "0.05" } });
+  const call = await login(base, "anna", "anna-pass-1");
+  assert.equal((await call("POST", "/api/ai/palette", { description: "pink purple excess decadent armour", language: "de" })).status, 200);
+  const prompt = fake.state.requests.find(request => request.url === "/v3/chat/completions").body.messages[0].content;
+  assert.match(prompt, /Related schemes from the app that fit the description/);
+  const related = prompt.split("Related schemes from the app")[1].split("\n").filter(line => line.startsWith("- "));
+  assert.ok(related.length >= 1 && related.length <= 3);
+  assert.ok(fake.state.requests.some(request => request.url === "/v3/embeddings" && /retrieve faction colour schemes/.test(JSON.stringify(request.body.input))));
+});
+
+test("refining keeps locked colours and roles the model dropped", async t => {
+  const { base, fake } = await setup(t, { ovms: { paletteReply: JSON.stringify({
+    name: "Dunkler Nurgle",
+    notes: "Dunkler.",
+    colors: [
+      { role: "D", name: "Rüstung", hex: "#3E4A22" },
+      { role: "S", name: "Messing", hex: "#7A5A2A" },
+      { role: "ND", name: "Leder", hex: "#FF0000" }
+    ]
+  }) } });
+  const call = await login(base, "anna", "anna-pass-1");
+  const current = {
+    name: "Rostiger Nurgle",
+    notes: "x",
+    colors: [
+      { role: "D", name: "Rüstung", hex: "#6B7A3A" },
+      { role: "S", name: "Messing", hex: "#A07A3C" },
+      { role: "ND", name: "Leder", hex: "#2B1E16", locked: true },
+      { role: "NL", name: "Knochen", hex: "#D8CBA0" },
+      { role: "A1", name: "Eiter", hex: "#C9B640" }
+    ]
+  };
+  const result = await call("POST", "/api/ai/palette/refine", { palette: current, instruction: "dunkler", language: "de" });
+  assert.equal(result.status, 200);
+  const hex = role => result.data.colors.find(color => color.role === role).hex;
+  assert.equal(hex("D"), "#3E4A22");
+  assert.equal(hex("ND"), "#2B1E16", "locked colour wins over the model");
+  assert.equal(hex("NL"), "#D8CBA0", "dropped role is kept");
+  assert.equal(result.data.name, "Dunkler Nurgle");
+  const sent = fake.state.requests.find(request => request.url === "/v3/chat/completions").body;
+  assert.match(sent.messages[0].content, /must be returned exactly unchanged/);
+  assert.deepEqual(JSON.parse(sent.messages[1].content).instruction, "dunkler");
+  assert.equal((await call("POST", "/api/ai/palette/refine", { palette: current, instruction: "" })).status, 400);
+});
+
+test("feedback is stored per user and shapes later prompts", async t => {
+  const { base, fake, store } = await setup(t);
+  const anna = await login(base, "anna", "anna-pass-1");
+  const ben = await login(base, "ben", "ben-pass-12");
+  const liked = { name: "Sumpf", colors: [{ role: "D", name: "Rüstung", hex: "#4B5E2A" }, { role: "S", name: "Messing", hex: "#A07A3C" }, { role: "ND", hex: "#2B1E16" }] };
+  assert.equal((await anna("POST", "/api/ai/feedback", { kind: "palette", refId: "custom-1", rating: 1, prompt: "Nurgle Sumpf", palette: liked })).status, 200);
+  assert.equal((await anna("POST", "/api/ai/feedback", { kind: "palette", refId: "custom-2", rating: -1, prompt: "Nurgle Sumpf hell", comment: "zu bunt", palette: liked })).status, 200);
+  assert.equal((await anna("POST", "/api/ai/feedback", { kind: "recipe", refId: "r1", rating: -1, comment: "zu lang, mehr Trockenbürsten" })).status, 200);
+  assert.equal((await anna("POST", "/api/ai/feedback", { kind: "bogus", refId: "x", rating: 1 })).status, 400);
+  assert.equal(store.listFeedback(1, "palette").length, 2);
+
+  await anna("POST", "/api/ai/palette", { description: "Nurgle Sumpf mit Rost", language: "de" });
+  const annaPrompt = fake.state.requests.filter(request => request.url === "/v3/chat/completions").pop().body.messages[0].content;
+  assert.match(annaPrompt, /rated well for similar requests[\s\S]*"Nurgle Sumpf": D #4B5E2A/);
+  assert.match(annaPrompt, /disliked this result[\s\S]*reason: zu bunt/);
+
+  await ben("POST", "/api/ai/palette", { description: "Nurgle Sumpf mit Rost", language: "de" });
+  const benPrompt = fake.state.requests.filter(request => request.url === "/v3/chat/completions").pop().body.messages[0].content;
+  assert.doesNotMatch(benPrompt, /rated well/, "feedback stays with its user");
+
+  await anna("POST", "/api/ai/recipe", { context: { ...recipeContext, ownedOnly: true } });
+  const recipePrompt = fake.state.requests.filter(request => request.body.stream).pop().body.messages[0].content;
+  assert.match(recipePrompt, /disliked: zu lang, mehr Trockenbürsten/);
+  assert.match(recipePrompt, /ONLY paints they own/);
+
+  await anna("POST", "/api/ai/feedback", { kind: "palette", refId: "custom-1", rating: 0 });
+  assert.equal(store.listFeedback(1, "palette").length, 1, "rating 0 withdraws the feedback");
+});
+
+test("databases from v0.14/v0.15 gain the feedback table", () => {
+  const { DatabaseSync } = require("node:sqlite");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "wph-migrate-"));
+  const store = openDatabase(dir);
+  store.createUser("anna", "anna-pass-1");
+  store.close();
+  const raw = new DatabaseSync(path.join(dir, "paint-helper.db"));
+  raw.exec("DROP TABLE ai_feedback; PRAGMA user_version = 1;");
+  raw.close();
+  const reopened = openDatabase(dir);
+  reopened.saveFeedback(1, { kind: "palette", refId: "a", rating: 1 });
+  assert.equal(reopened.listFeedback(1, "palette").length, 1);
+  assert.ok(reopened.authenticate("anna", "anna-pass-1"));
+  reopened.close();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("palettes still work when the embedding server is down", async t => {
+  const { base } = await setup(t, { env: { AI_EMBED_URL: "http://127.0.0.1:9/v3", AI_EXAMPLE_TIMEOUT_SECONDS: "1" } });
+  const call = await login(base, "anna", "anna-pass-1");
+  const started = Date.now();
+  const result = await call("POST", "/api/ai/palette", { description: "Nurgle Sumpf", language: "de" });
+  assert.equal(result.status, 200);
+  assert.ok(Date.now() - started < 3000, "no long wait for optional examples");
 });

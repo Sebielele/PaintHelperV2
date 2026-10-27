@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.17.0 (PaintHelperV2)
+
+- Palette from a description: the request is embedded once; the closest faction schemes
+  (semantic match, e.g. "plague warriors" finds Death Guard) and the painter's own rated
+  palettes are added as examples. A quality check then fixes weak dark/light neutrals,
+  too similar main colours and accents that disappear.
+- Improve a palette by instruction ("darker", "neon accents"); locked colours are kept,
+  with one-step undo.
+- Thumbs up/down with an optional comment for palettes and guides; stored per user
+  (new `ai_feedback` table) and used in later prompts.
+- Painting guide: option to use only owned paints; paint names are checked against the
+  catalogue, shown with a swatch and a shopping-list button, unknown names are marked.
+
 ## v0.16.0 (PaintHelperV2)
 
 - Added the GirlyPop scheme: bubblegum pink, lilac, mint, blush and glitter gold as fixed

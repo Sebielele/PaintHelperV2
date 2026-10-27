@@ -13,6 +13,10 @@ const ROLE_CODES = ["D", "S", "ND", "NL", "A1", "A2"];
 const LANGUAGE_NAMES = { en: "English", de: "German", fr: "French", es: "Spanish", it: "Italian" };
 const SEARCH_TEXT_VERSION = 1;
 const SEARCH_INSTRUCTION = "Instruct: Given a description of a miniature paint colour, retrieve matching hobby paints\nQuery: ";
+const SCHEME_INSTRUCTION = "Instruct: Given a description of a miniature army or painting scheme, retrieve faction colour schemes and palettes that fit it\nQuery: ";
+const FACTION_TEXT_VERSION = 1;
+const MAX_INSTRUCTION = 300;
+const MAX_COMMENT = 300;
 const EMBED_BATCH = 32;
 const MAX_DESCRIPTION = 400;
 const MAX_QUERY = 120;
@@ -62,13 +66,18 @@ function loadAiConfig(env = process.env) {
     perHour: positive(env.AI_REQUESTS_PER_HOUR, 40),
     maxQueue: positive(env.AI_MAX_QUEUE, 4),
     keepaliveMs: positive(env.AI_KEEPALIVE_SECONDS, 15) * 1000,
+    // Minimum cosine similarity for "similar scheme" and feedback examples.
+    exampleMinScore: Number.isFinite(Number(env.AI_EXAMPLE_MIN_SCORE)) && env.AI_EXAMPLE_MIN_SCORE !== undefined && env.AI_EXAMPLE_MIN_SCORE !== ""
+      ? Number(env.AI_EXAMPLE_MIN_SCORE)
+      : 0.55,
+    exampleTimeoutMs: positive(env.AI_EXAMPLE_TIMEOUT_SECONDS, 8) * 1000,
     thinking: /^(1|true|yes)$/i.test(String(env.AI_LLM_THINKING || "false")),
     jsonSchema: !/^(0|false|no)$/i.test(String(env.AI_JSON_SCHEMA || "true")),
     sampling
   };
 }
 
-function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalThis.fetch }) {
+function createAi(config, { appRoot, dataDir, store = null, log = console, fetchImpl = globalThis.fetch }) {
   const llmEnabled = Boolean(config.llmUrl && config.llmModel);
   const embedEnabled = Boolean(config.embedUrl && config.embedModel);
   const llmQueue = createQueue(config.maxQueue);
@@ -79,6 +88,8 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
   let indexBuild = null;
   let paints = null;
   let factionSchemes = null;
+  let factionIndex = null;
+  let factionIndexBuild = null;
 
   function status() {
     return { llm: llmEnabled, search: embedEnabled, searchReady: Boolean(searchIndex) };
@@ -94,40 +105,87 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
     }
     const language = languageName(body.language);
     const systemCode = body.system === "k40" ? "k40" : "aos";
-    const system = SYSTEM_NAMES[systemCode];
-    const references = findFactionReferences(description, loadFactionSchemes(), systemCode);
-    const messages = [
-      {
-        role: "system",
-        content: [
-          `You are an expert miniature painter for ${system}. Create a painting palette for the user's description.`,
-          "Answer with JSON only, no other text, in this shape:",
-          '{"name": "...", "notes": "...", "colors": [{"role": "D", "name": "...", "hex": "#RRGGBB"}]}',
-          `- name: short palette name, at most 4 words, in ${language}.`,
-          `- notes: 2-3 sentences in ${language} on where each colour goes on the model and how to finish it.`,
-          "- colors: 5 or 6 entries, each role code once, in this order:",
-          "  D = dominant colour (largest areas such as armour or cloth)",
-          "  S = secondary colour (second largest areas, trim)",
-          "  ND = dark neutral (leather, straps, weapons, deep shadows)",
-          "  NL = light neutral (bone, parchment, skin highlights)",
-          "  A1 = first accent (small details: gems, lenses, magic, runes)",
-          "  A2 = second accent (optional small detail colour)",
-          `- name of each colour: 1-4 words in ${language} saying where it is used, e.g. "Armour", "Cloak", "Gems".`,
-          "- hex: realistic paint colours as #RRGGBB; avoid pure black #000000 and pure white #FFFFFF.",
-          `- Write name, notes and every colour name in ${language}.${language === "German" ? " Address the reader informally (du)." : ""}`,
-          ...referencePrompt(references)
-        ].join("\n")
-      },
-      { role: "user", content: description }
-    ];
+    const named = findFactionReferences(description, loadFactionSchemes(), systemCode);
+    await runPaletteRequest(user, res, "Palette", async signal => {
+      // One embedding of the request serves both the similar schemes and the
+      // painter's own rated palettes; without the embedding model both are skipped.
+      const vector = await embedQuery(SCHEME_INSTRUCTION + description, signal);
+      const similar = vector ? await similarSchemes(vector, systemCode, named) : [];
+      const examples = feedbackExamples(user, vector);
+      return {
+        messages: [
+          {
+            role: "system",
+            content: [
+              ...paletteRules(language, SYSTEM_NAMES[systemCode], "Create a painting palette for the user's description."),
+              ...referencePrompt(named),
+              ...similarPrompt(similar),
+              ...examplesPrompt(examples)
+            ].join("\n")
+          },
+          { role: "user", content: description }
+        ],
+        locked: new Map(),
+        logSuffix: [
+          named.length ? `Bezug: ${named.map(scheme => schemeLabel(scheme)).join(", ")}` : "",
+          similar.length ? `ähnlich: ${similar.map(scheme => `${schemeLabel(scheme)} ${scheme.score.toFixed(2)}`).join(", ")}` : "",
+          examples.liked.length || examples.disliked.length ? `Feedback: +${examples.liked.length}/-${examples.disliked.length}` : ""
+        ].filter(Boolean).join("; ")
+      };
+    });
+  }
+
+  // Revise an existing palette by instruction ("darker", "neon accents"). Locked colours
+  // are copied back from the request, whatever the model returns.
+  async function refine(user, body, req, res) {
+    requireEnabled(llmEnabled);
+    const instruction = cleanText(body.instruction, MAX_INSTRUCTION);
+    const current = sanitizePalette(body.palette);
+    if (instruction.length < 2 || current.colors.length < 2) {
+      throw new AiError(400, "invalid_input", "Anweisung oder Palette fehlt.");
+    }
+    const language = languageName(body.language);
+    const systemCode = body.system === "k40" ? "k40" : "aos";
+    const locked = new Map(current.colors.filter(color => color.locked).map(color => [color.role, color]));
+    await runPaletteRequest(user, res, "Nachbessern", async () => ({
+      messages: [
+        {
+          role: "system",
+          content: [
+            ...paletteRules(language, SYSTEM_NAMES[systemCode], "Revise the CURRENT palette according to the painter's instruction."),
+            "",
+            "Revision rules:",
+            "- Return the complete palette in the same JSON shape, with the same role codes.",
+            "- Change only what the instruction asks for. Keep the other colours close to their current values.",
+            "- Colours marked \"locked\": true must be returned exactly unchanged.",
+            "- Keep the palette name unless the instruction changes the theme; update the notes to match the new colours."
+          ].join("\n")
+        },
+        {
+          role: "user",
+          content: JSON.stringify({ current: { name: current.name, notes: current.notes, colors: current.colors }, instruction })
+        }
+      ],
+      locked,
+      fallback: current,
+      logSuffix: `Anweisung: "${instruction.slice(0, 60)}"`
+    }));
+  }
+
+  async function runPaletteRequest(user, res, label, prepare) {
     const slot = reserveUser(user);
     const client = watchClient(res);
     const out = holdOpen(res, "application/json; charset=utf-8", config.keepaliveMs);
     try {
-      const content = await chat(messages, { max_tokens: 700 }, client.signal);
-      const result = parsePalette(content);
-      const basedOn = references.length ? ` (Bezug: ${references.map(scheme => schemeLabel(scheme)).join(", ")})` : "";
-      log.info(`KI-Palette für ${user.username}: "${result.name}"${basedOn}`);
+      const request = await prepare(client.signal);
+      const content = await chat(request.messages, { max_tokens: 700 }, client.signal);
+      let result = parsePalette(content);
+      if (request.fallback) {
+        result = mergeLocked(result, request.fallback, request.locked);
+      }
+      const polished = polishPalette(result.colors, new Set(request.locked.keys()));
+      result = { ...result, colors: polished.colors, adjusted: polished.adjusted };
+      log.info(`KI-${label} für ${user.username}: "${result.name}"${request.logSuffix ? ` (${request.logSuffix})` : ""}${polished.adjusted.length ? ` – korrigiert: ${polished.adjusted.join(", ")}` : ""}`);
       out.json(200, result);
     } catch (error) {
       const failure = asAiError(error);
@@ -135,7 +193,7 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
         slot.refund();
       }
       if (failure.code !== "aborted") {
-        logFailure("Palette", failure);
+        logFailure(label, failure);
       }
       out.json(failure.status, { error: failure.message, code: failure.code });
     } finally {
@@ -143,6 +201,176 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
       client.dispose();
       slot.release();
     }
+  }
+
+  // ---- feedback ------------------------------------------------------------
+
+  async function feedback(user, body) {
+    if (!store) {
+      throw new AiError(404, "disabled", "Feedback ist nicht verfügbar.");
+    }
+    const kind = body.kind === "recipe" ? "recipe" : body.kind === "palette" ? "palette" : "";
+    const refId = cleanText(body.refId, 80);
+    const rating = Number(body.rating) > 0 ? 1 : Number(body.rating) < 0 ? -1 : 0;
+    if (!kind || !refId) {
+      throw new AiError(400, "invalid_input", "Ungültiges Feedback.");
+    }
+    countUsage(user, "feedback", 200);
+    const prompt = cleanText(body.prompt, MAX_DESCRIPTION);
+    const palettePayload = kind === "palette" ? sanitizePalette(body.palette) : null;
+    let embedding = null;
+    if (rating && kind === "palette" && prompt && embedEnabled) {
+      const vector = await embedQuery(SCHEME_INSTRUCTION + prompt);
+      embedding = vector ? encodeVector(vector) : null;
+    }
+    store.saveFeedback(user.id, {
+      kind,
+      refId,
+      rating,
+      prompt,
+      comment: cleanText(body.comment, MAX_COMMENT),
+      payload: palettePayload && palettePayload.colors.length
+        ? JSON.stringify({ name: palettePayload.name, colors: palettePayload.colors.map(({ role, name, hex }) => ({ role, name, hex })) })
+        : "",
+      embedding
+    });
+    return { ok: true };
+  }
+
+  // Liked palettes for similar requests (or the latest likes), plus one similar dislike.
+  function feedbackExamples(user, vector) {
+    const result = { liked: [], disliked: [] };
+    if (!store) {
+      return result;
+    }
+    const rows = store.listFeedback(user.id, "palette", 100)
+      .map(row => {
+        let payload = null;
+        try {
+          payload = JSON.parse(row.payload || "null");
+        } catch (error) {
+          payload = null;
+        }
+        const score = vector && row.embedding ? dot(vector, decodeVector(row.embedding)) : null;
+        return { ...row, payload, score };
+      })
+      .filter(row => row.payload && Array.isArray(row.payload.colors) && row.payload.colors.length);
+    const byScore = (a, b) => (b.score ?? -1) - (a.score ?? -1);
+    const liked = rows.filter(row => row.rating > 0);
+    result.liked = (vector ? liked.filter(row => row.score === null || row.score >= config.exampleMinScore).sort(byScore) : liked).slice(0, 2);
+    if (!result.liked.length && liked.length) {
+      result.liked = liked.slice(0, 1);
+    }
+    result.disliked = rows
+      .filter(row => row.rating < 0 && (row.score === null ? !vector : row.score >= config.exampleMinScore))
+      .sort(byScore)
+      .slice(0, 1);
+    return result;
+  }
+
+  function recipeWishes(user) {
+    if (!store) {
+      return [];
+    }
+    return store.listFeedback(user.id, "recipe", 30)
+      .filter(row => row.comment)
+      .slice(0, 5)
+      .map(row => `${row.rating > 0 ? "liked" : "disliked"}: ${row.comment}`);
+  }
+
+  // ---- similar faction schemes (embeddings) --------------------------------
+
+  async function embedQuery(text, signal) {
+    if (!embedEnabled) {
+      return null;
+    }
+    try {
+      // Examples are optional: never let a slow embedding server delay the palette.
+      const [vector] = await embed([text], signal, config.exampleTimeoutMs);
+      return vector;
+    } catch (error) {
+      if (!(error instanceof AiError && error.code === "aborted")) {
+        log.warn(`KI: Embedding für Beispiele nicht verfügbar: ${error.message}`);
+      }
+      return null;
+    }
+  }
+
+  async function similarSchemes(vector, systemCode, named) {
+    let index;
+    try {
+      index = await Promise.race([
+        ensureFactionIndex(),
+        new Promise(resolve => setTimeout(() => resolve(null), config.exampleTimeoutMs).unref())
+      ]);
+      if (!index) {
+        return [];
+      }
+    } catch (error) {
+      log.warn(`KI: Fraktionsindex nicht verfügbar: ${error.message}`);
+      return [];
+    }
+    if (!index.items.length || index.items[0].length !== vector.length) {
+      return [];
+    }
+    const namedFactions = new Set(named.map(scheme => scheme.faction));
+    return index.items
+      .map((item, position) => ({
+        scheme: index.schemes[position],
+        score: dot(vector, item) + (index.schemes[position].system === systemCode ? 0.02 : 0)
+      }))
+      .filter(entry => !namedFactions.has(entry.scheme.faction))
+      .sort((a, b) => b.score - a.score)
+      .filter((entry, position, list) => entry.score >= config.exampleMinScore && entry.score >= list[0].score - 0.06)
+      .reduce((picked, entry) => {
+        if (picked.length < Math.max(0, 3 - named.length) && !picked.some(other => other.faction === entry.scheme.faction)) {
+          picked.push({ ...entry.scheme, score: entry.score });
+        }
+        return picked;
+      }, []);
+  }
+
+  function ensureFactionIndex() {
+    if (factionIndex) {
+      return Promise.resolve(factionIndex);
+    }
+    if (!factionIndexBuild) {
+      factionIndexBuild = buildFactionIndex()
+        .then(index => {
+          factionIndex = index;
+          return index;
+        })
+        .finally(() => {
+          factionIndexBuild = null;
+        });
+    }
+    return factionIndexBuild;
+  }
+
+  async function buildFactionIndex() {
+    const schemes = loadFactionSchemes().filter(scheme => scheme && Array.isArray(scheme.roles) && scheme.roles.length);
+    const texts = schemes.map(factionSearchText);
+    const hash = crypto.createHash("sha256")
+      .update(JSON.stringify({ v: FACTION_TEXT_VERSION, model: config.embedModel, texts }))
+      .digest("hex");
+    const file = path.join(dataDir, "ai-faction-index.json");
+    try {
+      const cached = JSON.parse(fs.readFileSync(file, "utf8"));
+      if (cached.hash === hash && Array.isArray(cached.vectors) && cached.vectors.length === schemes.length) {
+        return { schemes, items: cached.vectors.map(decodeVector) };
+      }
+    } catch (error) {
+      // No usable cache yet.
+    }
+    const items = [];
+    for (let offset = 0; offset < texts.length; offset += EMBED_BATCH) {
+      items.push(...await embed(texts.slice(offset, offset + EMBED_BATCH)));
+    }
+    const tmp = `${file}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify({ hash, model: config.embedModel, vectors: items.map(encodeVector) }));
+    fs.renameSync(tmp, file);
+    log.info(`Fraktionsindex fertig (${schemes.length} Schemata).`);
+    return { schemes, items };
   }
 
   // The app's own faction schemes ground the model: a 9B model knows little Warhammer
@@ -181,7 +409,14 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
           "- If no listed paint fits a step, give the HEX value and say it must be mixed. Never invent paint names or products.",
           "- Follow the given steps (shade, base, layer, highlight) for each colour and say which model areas get the colour.",
           `- Structure with Markdown headings (## ) written in ${language}: preparation (primer), one section per palette colour, the base, then 2-3 short tips.`,
-          "- Use numbered steps, - bullets and **bold** paint names. No tables. At most about 400 words."
+          "- Use numbered steps and - bullets. Use **bold** ONLY for paint names, exactly as written in the data. No tables. At most about 400 words.",
+          ...(context.ownedOnly
+            ? ["- The painter wants to use ONLY paints they own (\"owned\": true). Do not suggest buying paints; if no owned paint fits, give the HEX value and say which owned paints to mix."]
+            : []),
+          ...(() => {
+            const wishes = recipeWishes(user);
+            return wishes.length ? ["", "Wishes from this painter's feedback on earlier guides (follow them):", ...wishes.map(wish => `- ${wish}`)] : [];
+          })()
         ].join("\n")
       },
       { role: "user", content: json }
@@ -330,7 +565,9 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
 
   function warmUp() {
     if (embedEnabled) {
-      ensureIndex().catch(error => log.warn(`Suchindex noch nicht verfügbar: ${error.message}`));
+      ensureIndex()
+        .then(() => ensureFactionIndex())
+        .catch(error => log.warn(`Suchindex noch nicht verfügbar: ${error.message}`));
     }
   }
 
@@ -447,8 +684,8 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
     return { chunks, release };
   }
 
-  async function embed(inputs, clientSignal) {
-    const call = startUpstream(`${config.embedUrl}/embeddings`, { model: config.embedModel, input: inputs }, clientSignal);
+  async function embed(inputs, clientSignal, timeoutMs) {
+    const call = startUpstream(`${config.embedUrl}/embeddings`, { model: config.embedModel, input: inputs }, clientSignal, timeoutMs);
     try {
       const response = await call.response;
       if (!response.ok) {
@@ -491,7 +728,7 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
   // One upstream call with its own abort controller: aborted when the browser goes
   // away, when the model server does not start answering in time, or (when armed)
   // after a period of silence while streaming.
-  function startUpstream(url, body, clientSignal) {
+  function startUpstream(url, body, clientSignal, timeoutMs = config.timeoutMs) {
     const controller = new AbortController();
     let timer = null;
     const arm = ms => {
@@ -506,7 +743,7 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
         clientSignal.addEventListener("abort", onClientAbort, { once: true });
       }
     }
-    arm(config.timeoutMs);
+    arm(timeoutMs);
     const response = Promise.resolve().then(() => fetchImpl(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -585,7 +822,7 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
     };
   }
 
-  return { status, palette, recipe, search, warmUp, llmEnabled, embedEnabled };
+  return { status, palette, refine, recipe, search, feedback, warmUp, llmEnabled, embedEnabled };
 }
 
 // Aborts when the browser closes the connection (tab closed, "Stop" pressed).
@@ -868,6 +1105,189 @@ function referencePrompt(references) {
   return lines;
 }
 
+// ---- palette prompts, revision and quality check -------------------------------
+
+function paletteRules(language, system, task) {
+  return [
+    `You are an expert miniature painter for ${system}. ${task}`,
+    "Answer with JSON only, no other text, in this shape:",
+    '{"name": "...", "notes": "...", "colors": [{"role": "D", "name": "...", "hex": "#RRGGBB"}]}',
+    `- name: short palette name, at most 4 words, in ${language}.`,
+    `- notes: 2-3 sentences in ${language} on where each colour goes on the model and how to finish it.`,
+    "- colors: 5 or 6 entries, each role code once, in this order:",
+    "  D = dominant colour (largest areas such as armour or cloth)",
+    "  S = secondary colour (second largest areas, trim)",
+    "  ND = dark neutral (leather, straps, weapons, deep shadows)",
+    "  NL = light neutral (bone, parchment, skin highlights)",
+    "  A1 = first accent (small details: gems, lenses, magic, runes)",
+    "  A2 = second accent (optional small detail colour)",
+    `- name of each colour: 1-4 words in ${language} saying where it is used, e.g. "Armour", "Cloak", "Gems".`,
+    "- hex: realistic paint colours as #RRGGBB; avoid pure black #000000 and pure white #FFFFFF.",
+    "- Contrast: D and S clearly different, ND really dark, NL really light, accents stand out from D and S.",
+    `- Write name, notes and every colour name in ${language}.${language === "German" ? " Address the reader informally (du)." : ""}`
+  ];
+}
+
+function rolesText(colors) {
+  return colors.map(color => `${color.code || color.role} ${color.hex}${color.name && color.name !== (color.code || color.role) ? ` (${cleanText(color.name, 30)})` : ""}`).join(", ");
+}
+
+function similarPrompt(similar) {
+  if (!similar.length) {
+    return [];
+  }
+  return [
+    "",
+    "Related schemes from the app that fit the description (inspiration only, adapt freely):",
+    ...similar.map(scheme => `- ${schemeLabel(scheme)} (${SYSTEM_NAMES[scheme.system] || scheme.system}), "${scheme.schemeName}": ${rolesText(scheme.roles)}.`)
+  ];
+}
+
+function examplesPrompt({ liked, disliked }) {
+  const lines = [];
+  if (liked.length) {
+    lines.push("", "Palettes this painter rated well for similar requests (match their taste, do not copy):");
+    liked.forEach(row => lines.push(`- "${cleanText(row.prompt, 120)}": ${rolesText(row.payload.colors)}${row.comment ? ` – comment: ${cleanText(row.comment, 120)}` : ""}`));
+  }
+  if (disliked.length) {
+    lines.push("", "This painter disliked this result for a similar request, so do it differently:");
+    disliked.forEach(row => lines.push(`- "${cleanText(row.prompt, 120)}": ${rolesText(row.payload.colors)}${row.comment ? ` – reason: ${cleanText(row.comment, 120)}` : ""}`));
+  }
+  return lines;
+}
+
+function factionSearchText(scheme) {
+  return [
+    `${scheme.faction} – ${scheme.subfaction} (${SYSTEM_NAMES[scheme.system] || scheme.system})`,
+    scheme.schemeName ? `Scheme: ${scheme.schemeName}` : "",
+    scheme.notes ? cleanText(scheme.notes, 240) : "",
+    scheme.paintEquivalents ? `Paints: ${cleanText(scheme.paintEquivalents, 160)}` : "",
+    `Colours: ${scheme.roles.map(role => `${role.name || role.code}: ${describeColor(role.hex, "", "en")}`).join("; ")}`
+  ].filter(Boolean).join(". ");
+}
+
+function sanitizePalette(input) {
+  const value = input && typeof input === "object" ? input : {};
+  const seen = new Set();
+  const colors = (Array.isArray(value.colors) ? value.colors : [])
+    .map(color => ({
+      role: String(color && color.role || "").toUpperCase(),
+      name: cleanText(color && color.name, 40),
+      hex: String(color && color.hex || "").trim().toUpperCase(),
+      locked: Boolean(color && color.locked)
+    }))
+    .filter(color => ROLE_CODES.includes(color.role) && /^#[0-9A-F]{6}$/.test(color.hex) && !seen.has(color.role) && seen.add(color.role))
+    .sort((a, b) => ROLE_CODES.indexOf(a.role) - ROLE_CODES.indexOf(b.role));
+  return { name: cleanText(value.name, 60), notes: cleanText(value.notes, 800), colors };
+}
+
+// Locked colours always come from the current palette; roles the model dropped stay.
+function mergeLocked(result, current, locked) {
+  const byRole = new Map(result.colors.map(color => [color.role, color]));
+  current.colors.forEach(color => {
+    if (locked.has(color.role) || !byRole.has(color.role)) {
+      byRole.set(color.role, { role: color.role, name: color.name, hex: color.hex });
+    }
+  });
+  return {
+    name: result.name || current.name || "Palette",
+    notes: result.notes || current.notes,
+    colors: ROLE_CODES.filter(role => byRole.has(role)).map(role => byRole.get(role))
+  };
+}
+
+// Small models often return a "dark" neutral at mid grey or accents that vanish next
+// to the main colours. Fix those cases in Lab space; locked colours stay untouched.
+function polishPalette(colors, locked = new Set()) {
+  const adjusted = [];
+  const entries = colors.map(color => ({ ...color, lab: hexToLab(color.hex) }));
+  const byRole = new Map(entries.map(entry => [entry.role, entry]));
+  const set = (role, lab, reason) => {
+    const entry = byRole.get(role);
+    if (!entry || locked.has(role)) {
+      return;
+    }
+    entry.lab = lab;
+    entry.hex = labToHex(lab);
+    adjusted.push(reason);
+  };
+  const D = byRole.get("D");
+  const S = byRole.get("S");
+  const ND = byRole.get("ND");
+  const NL = byRole.get("NL");
+  if (ND && ND.lab[0] > 32) {
+    set("ND", [24, ND.lab[1] * 0.8, ND.lab[2] * 0.8], "ND dunkler");
+  }
+  if (NL && NL.lab[0] < 72) {
+    set("NL", [82, NL.lab[1] * 0.7, NL.lab[2] * 0.7], "NL heller");
+  }
+  if (D && S && deltaE(D.lab, S.lab) < 14) {
+    const lightness = D.lab[0] > 50 ? D.lab[0] - 18 : D.lab[0] + 18;
+    set("S", [clamp(lightness, 10, 92), S.lab[1], S.lab[2]], "S abgesetzt");
+  }
+  ["A1", "A2"].forEach(role => {
+    const accent = byRole.get(role);
+    if (!accent) {
+      return;
+    }
+    const others = entries.filter(entry => entry !== accent);
+    if (others.some(other => deltaE(other.lab, accent.lab) < 14)) {
+      const lightness = accent.lab[0] < 55 ? accent.lab[0] + 12 : accent.lab[0] - 12;
+      set(role, [clamp(lightness, 20, 88), clamp(accent.lab[1] * 1.6, -110, 110), clamp(accent.lab[2] * 1.6, -110, 110)], `${role} kräftiger`);
+    }
+  });
+  entries.forEach(entry => {
+    if (entry.lab[0] < 5 || entry.lab[0] > 97) {
+      set(entry.role, [clamp(entry.lab[0], 5, 97), entry.lab[1], entry.lab[2]], `${entry.role} nicht ganz schwarz/weiss`);
+    }
+  });
+  return { colors: entries.map(({ role, name, hex }) => ({ role, name, hex })), adjusted };
+}
+
+function hexToLab(hex) {
+  const value = parseInt(String(hex).slice(1), 16);
+  const lin = channel => {
+    const c = channel / 255;
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  const R = lin((value >> 16) & 255);
+  const G = lin((value >> 8) & 255);
+  const B = lin(value & 255);
+  const x = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
+  const y = R * 0.2126 + G * 0.7152 + B * 0.0722;
+  const z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+  const f = t => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+}
+
+function labToHex([L, a, b]) {
+  const fy = (L + 16) / 116;
+  const fx = fy + a / 500;
+  const fz = fy - b / 200;
+  const inv = t => (t ** 3 > 0.008856 ? t ** 3 : (t - 16 / 116) / 7.787);
+  const x = inv(fx) * 0.95047;
+  const y = inv(fy);
+  const z = inv(fz) * 1.08883;
+  const gamma = c => {
+    const v = c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+    return Math.round(Math.min(1, Math.max(0, v)) * 255);
+  };
+  const rgb = [
+    gamma(x * 3.2406 + y * -1.5372 + z * -0.4986),
+    gamma(x * -0.9689 + y * 1.8758 + z * 0.0415),
+    gamma(x * 0.0557 + y * -0.204 + z * 1.057)
+  ];
+  return `#${rgb.map(channel => channel.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+}
+
+function deltaE(a, b) {
+  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 // ---- validation ----------------------------------------------------------
 
 function parsePalette(content) {
@@ -922,6 +1342,7 @@ function sanitizeContext(input) {
     recipeModeDescription: str(ctx.recipeModeDescription, 300),
     ownedPaintCount: Math.max(0, Math.min(10000, Number(ctx.ownedPaintCount) || 0)),
     onlyOwnedPaints: Boolean(ctx.onlyOwnedPaints),
+    ownedOnly: Boolean(ctx.ownedOnly),
     areas: (Array.isArray(ctx.areas) ? ctx.areas : []).slice(0, 12).map(area => ({
       area: str(area && area.area, 60),
       color: str(area && area.color, 60),
@@ -1090,4 +1511,4 @@ function trimSlash(url) {
   return String(url).trim().replace(/\/+$/, "");
 }
 
-module.exports = { createAi, loadAiConfig, AiError, parsePalette, findFactionReferences, sanitizeContext, describeColor, paintSearchText, createThinkingFilter, stripThinking };
+module.exports = { createAi, loadAiConfig, AiError, parsePalette, polishPalette, mergeLocked, sanitizePalette, findFactionReferences, sanitizeContext, describeColor, paintSearchText, createThinkingFilter, stripThinking };

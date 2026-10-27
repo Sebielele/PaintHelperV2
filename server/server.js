@@ -173,6 +173,12 @@ function createServer(config, store, log = console, ai = null) {
       if (route === "POST /api/ai/palette") {
         return ai.palette(user, await readJson(req), req, res);
       }
+      if (route === "POST /api/ai/palette/refine") {
+        return ai.refine(user, await readJson(req), req, res);
+      }
+      if (route === "POST /api/ai/feedback") {
+        return sendJson(res, 200, await ai.feedback(user, await readJson(req)));
+      }
       if (route === "POST /api/ai/recipe") {
         return ai.recipe(user, await readJson(req), req, res);
       }
@@ -514,7 +520,7 @@ function main() {
   bootstrapInitialUser(config, store, console);
   const timer = scheduleMaintenance(config, store, console);
   const aiConfig = loadAiConfig();
-  const ai = createAi(aiConfig, { appRoot: config.appRoot, dataDir: config.dataDir, log: console });
+  const ai = createAi(aiConfig, { appRoot: config.appRoot, dataDir: config.dataDir, store, log: console });
   const server = createServer(config, store, console, ai);
   ai.warmUp();
   if (ai.llmEnabled || ai.embedEnabled) {

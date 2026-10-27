@@ -9,7 +9,8 @@ const crypto = require("node:crypto");
 const { DatabaseSync } = require("node:sqlite");
 const { hashPassword, verifyPassword } = require("./passwords");
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+const MAX_FEEDBACK_PER_USER = 300;
 const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,31}$/;
 const STORAGE_KEY_PATTERN = /^wph\.[A-Za-z0-9._-]{1,64}$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -28,7 +29,8 @@ function migrate(db) {
   if (version >= SCHEMA_VERSION) {
     return;
   }
-  db.exec(`
+  if (version < 1) {
+    db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id            INTEGER PRIMARY KEY,
       username      TEXT NOT NULL UNIQUE,
@@ -50,8 +52,28 @@ function migrate(db) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (user_id, key)
     );
-    PRAGMA user_version = ${SCHEMA_VERSION};
   `);
+  }
+  if (version < 2) {
+    // Ratings and comments on assistant results; used as examples in later prompts.
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_feedback (
+      id         INTEGER PRIMARY KEY,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind       TEXT NOT NULL,
+      ref_id     TEXT NOT NULL,
+      rating     INTEGER NOT NULL,
+      prompt     TEXT NOT NULL DEFAULT '',
+      comment    TEXT NOT NULL DEFAULT '',
+      payload    TEXT NOT NULL DEFAULT '',
+      embedding  TEXT,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (user_id, kind, ref_id)
+    );
+    CREATE INDEX IF NOT EXISTS ai_feedback_user ON ai_feedback(user_id, kind);
+  `);
+  }
+  db.exec(`PRAGMA user_version = ${SCHEMA_VERSION};`);
 }
 
 function createStore(db, file) {
@@ -82,7 +104,20 @@ function createStore(db, file) {
     storagePut: db.prepare(`
       INSERT INTO storage (user_id, key, value) VALUES (?, ?, ?)
       ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`),
-    storageDelete: db.prepare("DELETE FROM storage WHERE user_id = ? AND key = ?")
+    storageDelete: db.prepare("DELETE FROM storage WHERE user_id = ? AND key = ?"),
+    feedbackUpsert: db.prepare(`
+      INSERT INTO ai_feedback (user_id, kind, ref_id, rating, prompt, comment, payload, embedding)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT (user_id, kind, ref_id) DO UPDATE SET rating = excluded.rating, prompt = excluded.prompt,
+        comment = excluded.comment, payload = excluded.payload,
+        embedding = COALESCE(excluded.embedding, ai_feedback.embedding), updated_at = datetime('now')`),
+    feedbackDelete: db.prepare("DELETE FROM ai_feedback WHERE user_id = ? AND kind = ? AND ref_id = ?"),
+    feedbackList: db.prepare(`
+      SELECT ref_id, rating, prompt, comment, payload, embedding, updated_at FROM ai_feedback
+      WHERE user_id = ? AND kind = ? ORDER BY updated_at DESC, id DESC LIMIT ?`),
+    feedbackPrune: db.prepare(`
+      DELETE FROM ai_feedback WHERE user_id = ? AND id NOT IN (
+        SELECT id FROM ai_feedback WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT ?)`)
   };
 
   return {
@@ -201,6 +236,20 @@ function createStore(db, file) {
     deleteStorage(userId, key) {
       assertStorageKey(key);
       q.storageDelete.run(userId, key);
+    },
+
+    // rating 0 removes the entry (feedback withdrawn).
+    saveFeedback(userId, { kind, refId, rating, prompt, comment, payload, embedding }) {
+      if (!rating) {
+        q.feedbackDelete.run(userId, kind, refId);
+        return;
+      }
+      q.feedbackUpsert.run(userId, kind, refId, rating > 0 ? 1 : -1, prompt || "", comment || "", payload || "", embedding || null);
+      q.feedbackPrune.run(userId, userId, MAX_FEEDBACK_PER_USER);
+    },
+
+    listFeedback(userId, kind, limit = 100) {
+      return q.feedbackList.all(userId, kind, limit).map(row => ({ ...row }));
     },
 
     backup(targetFile) {

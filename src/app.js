@@ -210,6 +210,26 @@
         recipeContext,
         addCustomPalette,
         deleteCustomPalette,
+        updateCustomPalette,
+        setCustomPaletteRating(id, rating) {
+          const scheme = state.customSchemes.find(entry => entry.id === id);
+          if (scheme) {
+            scheme.rating = rating > 0 ? 1 : rating < 0 ? -1 : 0;
+            saveLastSettings();
+          }
+        },
+        // The palette as shown, with roles and locks, for "improve this palette".
+        paletteForAi() {
+          return currentPalette.slice(0, CUSTOM_ROLE_CODES.length).map((color, index) => ({
+            role: CUSTOM_ROLE_CODES.includes(color.roleCode) ? color.roleCode : CUSTOM_ROLE_CODES[index],
+            name: colorName(color),
+            hex: color.hex,
+            locked: Boolean(state.paletteEdits && state.paletteEdits.colors[index] && state.paletteEdits.colors[index].locked)
+          }));
+        },
+        paletteTitle: () => el.title.textContent,
+        ownedCount: () => ownedPaintKeys.size,
+        findPaintByName,
         selectedCustomPalette: () => state.customSchemes.find(scheme => scheme.id === state.factionSchemeId) || null,
         setPrimaryHex(hex) {
           if (!setPrimaryFromHex(hex)) {
@@ -230,6 +250,7 @@
         addToShoppingList(paint) {
           addShoppingPaintByKey(paintKey(paint));
         },
+        isOwnedKey: key => ownedPaintKeys.has(key),
         nearestPaints(hex, limit = 3) {
           return W.mapPaletteToCatalogue([{ hex }], closestMatchCataloguePaints(), { limit })[0].matches;
         }
@@ -273,6 +294,58 @@
         .join("; ");
     }
 
+    // Replaces colours, name and notes of an own palette; returns the previous version.
+    function updateCustomPalette(id, { name, notes, colors, prompt }) {
+      const index = state.customSchemes.findIndex(scheme => scheme.id === id);
+      if (index < 0) {
+        return null;
+      }
+      const previous = JSON.parse(JSON.stringify(state.customSchemes[index]));
+      const updated = sanitizeCustomScheme({
+        ...previous,
+        name: name || previous.name,
+        notes: notes === undefined ? previous.notes : notes,
+        prompt: prompt === undefined ? previous.prompt : prompt,
+        rating: 0,
+        roles: (colors || []).slice(0, CUSTOM_ROLE_CODES.length).map((color, position) => ({
+          code: CUSTOM_ROLE_CODES.includes(color.role || color.code) ? color.role || color.code : CUSTOM_ROLE_CODES[position],
+          name: color.name || "",
+          hex: String(color.hex || "").toUpperCase()
+        }))
+      });
+      if (!updated) {
+        return null;
+      }
+      state.customSchemes[index] = updated;
+      populateFactionControls();
+      update();
+      return previous;
+    }
+
+    // Catalogue paint by name (as written in a guide); prefers owned paints, then the
+    // selected producers. The name index is rebuilt when the catalogue changes.
+    let paintNameIndex = null;
+    let paintNameIndexSource = null;
+    function findPaintByName(name, manufacturer) {
+      if (paintNameIndexSource !== cataloguePaints) {
+        paintNameIndex = new Map();
+        cataloguePaints.filter(paint => paint.hex).forEach(paint => {
+          const key = normalizePaintName(paint.name);
+          paintNameIndex.set(key, (paintNameIndex.get(key) || []).concat(paint));
+        });
+        paintNameIndexSource = cataloguePaints;
+      }
+      const candidates = paintNameIndex.get(normalizePaintName(name)) || [];
+      const score = paint => (ownedPaintKeys.has(paintKey(paint)) ? 4 : 0)
+        + (manufacturer && normalizePaintName(paint.manufacturer) === normalizePaintName(manufacturer) ? 2 : 0)
+        + (selectedManufacturers.has(paintProducerKey(paint)) ? 1 : 0);
+      return candidates.slice().sort((a, b) => score(b) - score(a))[0] || null;
+    }
+
+    function normalizePaintName(value) {
+      return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+    }
+
     function deleteCustomPalette(id) {
       state.customSchemes = state.customSchemes.filter(scheme => scheme.id !== id);
       if (state.factionSchemeId === id) {
@@ -284,9 +357,11 @@
     }
 
     // Everything the assistant needs to write a recipe grounded in real catalogue paints.
-    function recipeContext() {
-      const allPaints = filteredCataloguePaints().filter(paint => paint.hex);
-      const ownedPaints = allPaints.filter(paint => ownedPaintKeys.has(paintKey(paint)));
+    function recipeContext(options = {}) {
+      const catalogue = filteredCataloguePaints().filter(paint => paint.hex);
+      const ownedPaints = catalogue.filter(paint => ownedPaintKeys.has(paintKey(paint)));
+      const ownedOnly = Boolean(options.ownedOnly && ownedPaints.length);
+      const allPaints = ownedOnly ? ownedPaints : catalogue;
       const describe = match => ({
         name: match.name,
         manufacturer: match.manufacturer || "",
@@ -328,6 +403,7 @@
         recipeModeDescription: t(`recipeModes.${state.recipeModeKey}.description`),
         ownedPaintCount: ownedPaintKeys.size,
         onlyOwnedPaints: Boolean(state.onlyOwnedMatches),
+        ownedOnly,
         areas: rolePlannerItems().slice(0, 12).map(item => {
           const color = resolveRoleColor(item.colorRef);
           return { area: item.extra ? color.name : t(`roleAreas.${item.areaKey}`), color: color.name, hex: color.hex };
@@ -2114,6 +2190,7 @@
         notes: cleanText(scheme.notes, 1200),
         paintEquivalents: cleanText(scheme.paintEquivalents, 1200),
         createdAt: typeof scheme.createdAt === "string" ? scheme.createdAt.slice(0, 40) : "",
+        rating: scheme.rating > 0 ? 1 : scheme.rating < 0 ? -1 : 0,
         roles
       };
     }

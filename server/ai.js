@@ -78,6 +78,7 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
   let searchIndex = null;
   let indexBuild = null;
   let paints = null;
+  let factionSchemes = null;
 
   function status() {
     return { llm: llmEnabled, search: embedEnabled, searchReady: Boolean(searchIndex) };
@@ -92,7 +93,9 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
       throw new AiError(400, "invalid_input", "Beschreibung fehlt.");
     }
     const language = languageName(body.language);
-    const system = body.system === "k40" ? "Warhammer 40,000" : "Warhammer Age of Sigmar";
+    const systemCode = body.system === "k40" ? "k40" : "aos";
+    const system = SYSTEM_NAMES[systemCode];
+    const references = findFactionReferences(description, loadFactionSchemes(), systemCode);
     const messages = [
       {
         role: "system",
@@ -110,7 +113,9 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
           "  A1 = first accent (small details: gems, lenses, magic, runes)",
           "  A2 = second accent (optional small detail colour)",
           `- name of each colour: 1-4 words in ${language} saying where it is used, e.g. "Armour", "Cloak", "Gems".`,
-          "- hex: realistic paint colours as #RRGGBB; avoid pure black #000000 and pure white #FFFFFF."
+          "- hex: realistic paint colours as #RRGGBB; avoid pure black #000000 and pure white #FFFFFF.",
+          `- Write name, notes and every colour name in ${language}.${language === "German" ? " Address the reader informally (du)." : ""}`,
+          ...referencePrompt(references)
         ].join("\n")
       },
       { role: "user", content: description }
@@ -121,7 +126,8 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
     try {
       const content = await chat(messages, { max_tokens: 700 }, client.signal);
       const result = parsePalette(content);
-      log.info(`KI-Palette für ${user.username}: "${result.name}"`);
+      const basedOn = references.length ? ` (Bezug: ${references.map(scheme => schemeLabel(scheme)).join(", ")})` : "";
+      log.info(`KI-Palette für ${user.username}: "${result.name}"${basedOn}`);
       out.json(200, result);
     } catch (error) {
       const failure = asAiError(error);
@@ -137,6 +143,21 @@ function createAi(config, { appRoot, dataDir, log = console, fetchImpl = globalT
       client.dispose();
       slot.release();
     }
+  }
+
+  // The app's own faction schemes ground the model: a 9B model knows little Warhammer
+  // lore and otherwise reads e.g. "Emperor's Children" as generic imperial colours.
+  function loadFactionSchemes() {
+    if (!factionSchemes) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(path.resolve(appRoot, "data", "faction-schemes.json"), "utf8"));
+        factionSchemes = Array.isArray(raw.schemes) ? raw.schemes : [];
+      } catch (error) {
+        log.warn(`KI: Fraktionsschemata nicht lesbar: ${error.message}`);
+        factionSchemes = [];
+      }
+    }
+    return factionSchemes;
   }
 
   // ---- painting guide (streamed) -----------------------------------------
@@ -770,6 +791,83 @@ function createQueue(maxWaiting) {
   return { acquire };
 }
 
+// ---- faction references ----------------------------------------------------
+
+const SYSTEM_NAMES = { k40: "Warhammer 40,000", aos: "Warhammer Age of Sigmar" };
+const GENERIC_SUBFACTION = /^no specific/i;
+
+function normalizeName(text) {
+  return ` ${String(text || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/['’`´]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()} `;
+}
+
+// Faction schemes named in the description, best match first, at most two factions.
+// Subfaction names count most; "Maggotkin of Nurgle" is also found by "Nurgle";
+// the selected game system breaks ties.
+function findFactionReferences(description, schemes, systemCode) {
+  const text = normalizeName(description);
+  const has = name => {
+    const key = normalizeName(name);
+    return key.trim().length >= 4 && text.includes(key);
+  };
+  const scored = [];
+  (schemes || []).forEach((scheme, order) => {
+    if (!scheme || !Array.isArray(scheme.roles)) {
+      return;
+    }
+    const tail = String(scheme.faction || "").split(/\s+of\s+/i)[1];
+    let score = 0;
+    if (!GENERIC_SUBFACTION.test(scheme.subfaction || "") && has(scheme.subfaction)) {
+      score = 3;
+    } else if (has(scheme.faction) || (tail && has(tail))) {
+      score = 2;
+    }
+    if (score) {
+      scored.push({ scheme, order, score: score + (scheme.system === systemCode ? 1.5 : 0) });
+    }
+  });
+  scored.sort((a, b) => b.score - a.score || a.order - b.order);
+  const picked = [];
+  for (const { scheme } of scored) {
+    if (picked.length < 2 && !picked.some(other => other.faction === scheme.faction)) {
+      picked.push(scheme);
+    }
+  }
+  return picked;
+}
+
+function schemeLabel(scheme) {
+  const sub = GENERIC_SUBFACTION.test(scheme.subfaction || "") ? "" : ` – ${scheme.subfaction}`;
+  return `${scheme.faction}${sub}`;
+}
+
+function referencePrompt(references) {
+  if (!references.length) {
+    return ["- If the description names a Warhammer faction or army you know, start from its established colours."];
+  }
+  const lines = ["", "Reference schemes from the app for the faction(s) named in the description:"];
+  for (const scheme of references) {
+    const roles = scheme.roles.map(role => `${role.code} ${role.hex}`).join(", ");
+    lines.push(`- ${schemeLabel(scheme)} (${SYSTEM_NAMES[scheme.system] || scheme.system}), "${scheme.schemeName}": ${roles}.`);
+    if (scheme.paintEquivalents) {
+      lines.push(`  Typical paints: ${cleanText(scheme.paintEquivalents, 160)}.`);
+    }
+    if (scheme.notes) {
+      lines.push(`  Notes: ${cleanText(scheme.notes, 300)}`);
+    }
+  }
+  lines.push(
+    "Keep the faction's colour identity: D and S stay in the same hue families as the reference.",
+    "Apply the user's style wishes (e.g. neon, grimdark, weathered, pastel) by changing brightness, saturation, contrast and the accents, not by replacing the faction colours with unrelated hues."
+  );
+  return lines;
+}
+
 // ---- validation ----------------------------------------------------------
 
 function parsePalette(content) {
@@ -992,4 +1090,4 @@ function trimSlash(url) {
   return String(url).trim().replace(/\/+$/, "");
 }
 
-module.exports = { createAi, loadAiConfig, AiError, parsePalette, sanitizeContext, describeColor, paintSearchText, createThinkingFilter, stripThinking };
+module.exports = { createAi, loadAiConfig, AiError, parsePalette, findFactionReferences, sanitizeContext, describeColor, paintSearchText, createThinkingFilter, stripThinking };

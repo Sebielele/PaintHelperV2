@@ -6,7 +6,7 @@ const assert = require("node:assert/strict");
 
 const { openDatabase } = require("../server/db");
 const { createServer, loadConfig } = require("../server/server");
-const { createAi, loadAiConfig, parsePalette, sanitizeContext } = require("../server/ai");
+const { createAi, loadAiConfig, parsePalette, sanitizeContext, findFactionReferences } = require("../server/ai");
 const { startFakeOvms } = require("./fake-ovms");
 
 const silentLog = { info() {}, warn() {}, error() {} };
@@ -111,6 +111,28 @@ test("palette from a description is validated and ordered", async t => {
   assert.equal(sent.top_k, 20);
   assert.match(sent.messages[0].content, /in German/);
   assert.equal(sent.messages[1].content, "Nurgle, rostiges Messing");
+});
+
+test("palette prompt is grounded in the app's faction schemes", async t => {
+  const { base, fake } = await setup(t);
+  const call = await login(base, "anna", "anna-pass-1");
+  assert.equal((await call("POST", "/api/ai/palette", { description: "Emperors Children mit neonstyle", system: "aos", language: "de" })).status, 200);
+  const prompt = fake.state.requests.find(request => request.url === "/v3/chat/completions").body.messages[0].content;
+  assert.match(prompt, /Emperor’s Children \(Warhammer 40,000\), "Excess Pink-Purple": D #B53E89, S #6D2D7A/);
+  assert.match(prompt, /same hue families/);
+  assert.match(prompt, /informally \(du\)/);
+});
+
+test("faction references: subfactions, god names, system preference", () => {
+  const schemes = JSON.parse(fs.readFileSync(path.join(appRoot, "data", "faction-schemes.json"), "utf8")).schemes;
+  const ids = (text, system) => findFactionReferences(text, schemes, system).map(scheme => scheme.id);
+  assert.deepEqual(ids("Emperor's Children, neon", "aos"), ["k40-emperors-children-no-specific-constraint"]);
+  assert.deepEqual(ids("emperors children", "k40"), ["k40-emperors-children-no-specific-constraint"]);
+  assert.equal(ids("Ultramarines in Weiss", "aos")[0], "k40-space-marines-ultramarines");
+  assert.match(ids("Nurgle, rostiges Messing", "aos")[0], /^aos-maggotkin-of-nurgle/);
+  assert.equal(ids("Nurgle", "k40")[0], "k40-chaos-daemons-nurgle");
+  assert.deepEqual(ids("grünes Gift und Messing", "aos"), []);
+  assert.deepEqual(ids("Marsianer", "k40"), []);
 });
 
 test("falls back to plain JSON prompting when structured output is rejected", async t => {

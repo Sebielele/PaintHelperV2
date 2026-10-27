@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.15.1 (PaintHelperV2)
+
+- Palette from a description: when the description names a faction or subfaction from
+  `data/faction-schemes.json` (also across game systems, e.g. "Emperor's Children" in
+  Age of Sigmar mode), its reference scheme is passed to the model, which keeps the
+  faction's hue families and applies style wishes such as "neon" on top. Small local
+  models otherwise drift to unrelated colours.
+- The palette prompt asks for all text, including colour names, in the UI language
+  (German: informal "du").
+
 ## v0.15.0 (PaintHelperV2)
 
 - Added the assistant, backed by a local OpenAI-compatible model server (e.g. OpenVINO

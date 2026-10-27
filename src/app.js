@@ -72,6 +72,17 @@
       collapsedSections: { ...DEFAULT_SECTION_COLLAPSE }
     };
 
+    // RGB distance up to which an owned paint still counts as a match (0-441).
+    const OWNED_MATCH_MAX_DISTANCE = 40;
+    const GUIDE_EXCLUDED_COLLECTIONS = /\b(air|airbrush|aircraft|lacquer|spray|real colors|afv|naval|primers?|surface|oilbrusher|effects|weathering|soil works|heavy body|chameleon|colorshift|candy ink|dipping inks?)\b/i;
+    // Vehicle and aircraft colour codes are of little use in a miniature guide.
+    const GUIDE_EXCLUDED_NAMES = /\b(ijn|ija|rlm|ral|fs ?\d|jgsdf?|amt-?\d|usn|usaf|raf|luftwaffe|panzer|washable)\b/i;
+    // Without owned paints, guides prefer the common miniature brands.
+    const GUIDE_DEFAULT_BRANDS = ["Citadel Colours", "Vallejo", "Army Painter", "Scale 75", "P3", "Duncan Rhodes", "AK Interactive", "Green Stuff World"];
+    // Extra RGB distance a paint from another brand needs to beat a preferred one.
+    const GUIDE_BRAND_PENALTY = 30;
+    const GUIDE_EXCLUDED_TYPES = /\b(primer|varnish|medium|air|technical)\b/i;
+    const GUIDE_METAL_NAMES = /metal|gold|brass|bronze|copper|silver|steel|iron|chrome|messing|kupfer|silber|stahl|eisen|\bor\b|\boro\b|argent|plata|acier|acciaio|rame/i;
     let pendingProducerKeys = null;
     let lastPaletteSource = null;
     let ownedPaintKeys = new Set(state.ownedPaintKeys);
@@ -194,6 +205,7 @@
     update();
 
     W.loadPaintCatalogue("data/paint-catalogue.json").then(result => {
+      reconcileSavedPaints(result.paints);
       cataloguePaints = mergePaintRackCustomPaints(result.paints);
       catalogueSource = result.source;
       renderProducerFilters(true);
@@ -259,7 +271,7 @@
         },
         isOwnedKey: key => ownedPaintKeys.has(key),
         nearestPaints(hex, limit = 3) {
-          return W.mapPaletteToCatalogue([{ hex }], closestMatchCataloguePaints(), { limit })[0].matches;
+          return closestMatchesFor(hex, limit).matches;
         }
       };
     }
@@ -294,9 +306,14 @@
     // Closest catalogue paint per role, computed live so it follows the loaded
     // catalogue, the producer filter, owned-only matching and the language.
     function customPaintEquivalents(scheme) {
-      const matches = W.mapPaletteToCatalogue(scheme.roles, closestMatchCataloguePaints(), { limit: 1 });
-      return matches
-        .map((color, index) => color.matches[0] ? `${scheme.roles[index].name}: ${color.matches[0].name}` : "")
+      return scheme.roles
+        .map(role => {
+          const { matches, ownedMissing } = closestMatchesFor(role.hex, 1);
+          if (!matches[0]) {
+            return "";
+          }
+          return `${role.name}: ${ownedMissing ? t("citadel.notOwned", { name: matches[0].name }) : matches[0].name}`;
+        })
         .filter(Boolean)
         .join("; ");
     }
@@ -365,10 +382,23 @@
 
     // Everything the assistant needs to write a recipe grounded in real catalogue paints.
     function recipeContext(options = {}) {
+      // Airbrush, lacquer, spray and vehicle-colour lines are left out of brush guides.
+      const brushable = paint => !GUIDE_EXCLUDED_COLLECTIONS.test(paint.collection || "")
+        && !GUIDE_EXCLUDED_TYPES.test(`${paint.range || ""} ${paint.finish || ""}`)
+        && !GUIDE_EXCLUDED_NAMES.test(paint.name || "");
       const catalogue = filteredCataloguePaints().filter(paint => paint.hex);
       const ownedPaints = catalogue.filter(paint => ownedPaintKeys.has(paintKey(paint)));
       const ownedOnly = Boolean(options.ownedOnly && ownedPaints.length);
-      const allPaints = ownedOnly ? ownedPaints : catalogue;
+      const allPaints = (ownedOnly ? ownedPaints : catalogue).filter(brushable);
+      const ownedBrushPaints = ownedPaints.filter(brushable);
+      const preferredBrands = new Set(ownedPaints.length ? ownedPaints.map(paint => paint.manufacturer) : GUIDE_DEFAULT_BRANDS);
+      // Closest paints, but a paint from a brand the painter uses wins unless another
+      // brand is clearly closer; keeps a guide from mixing six brands.
+      const closest = (hex, pool, limit) => (pool.length ? W.findClosestPaints(hex, pool, 12) : [])
+        .map(match => ({ match, score: match.distance + (preferredBrands.has(match.manufacturer) ? 0 : GUIDE_BRAND_PENALTY) }))
+        .sort((a, b) => a.score - b.score)
+        .slice(0, limit)
+        .map(item => item.match);
       const describe = match => ({
         name: match.name,
         manufacturer: match.manufacturer || "",
@@ -376,10 +406,33 @@
         owned: ownedPaintKeys.has(paintKey(match)),
         distance: Math.round(match.distance)
       });
-      const paintsFor = hex => {
-        const best = W.mapPaletteToCatalogue([{ hex }], allPaints, { limit: 2 })[0].matches.map(describe);
-        const owned = ownedPaints.length
-          ? W.mapPaletteToCatalogue([{ hex }], ownedPaints, { limit: 1 })[0].matches.map(describe)
+      // Washes for shading steps, transparent paints for contrast/glaze steps, opaque
+      // paints otherwise; metallics only for metal areas. Falls back to all paints.
+      const kindOf = paint => {
+        const text = `${paint.range || ""} ${paint.finish || ""}`.toLowerCase();
+        if (/metallic/.test(text)) return "metal";
+        if (/wash|shade|ink|tone/.test(text)) return "wash";
+        if (/contrast|speedpaint|xpress|glaze/.test(text)) return "transparent";
+        return "opaque";
+      };
+      const kindsFor = (stepKey, metal) => {
+        if (stepKey === "shadeWash") return ["wash"];
+        if (stepKey === "transparentCoat" || stepKey === "glazeLayer") return ["transparent", "wash"];
+        return metal ? ["metal"] : ["opaque"];
+      };
+      const poolFor = (list, kinds) => {
+        const pool = list.filter(paint => kinds.includes(kindOf(paint)));
+        return pool.length ? pool : list;
+      };
+      const paintsFor = (hex, stepKey = "basecoat", metal = false) => {
+        const kinds = kindsFor(stepKey, metal);
+        const best = closest(hex, poolFor(allPaints, kinds), 2).map(describe);
+        // An owned paint goes first only when it is close enough; a far-off owned pot
+        // would otherwise be used for every step of the guide.
+        const owned = ownedBrushPaints.length && !ownedOnly
+          ? closest(hex, poolFor(ownedBrushPaints, kinds), 1)
+            .filter(match => match.distance <= OWNED_MATCH_MAX_DISTANCE && kinds.includes(kindOf(match)))
+            .map(describe)
           : [];
         const seen = new Set();
         return owned.concat(best).filter(paint => {
@@ -401,30 +454,65 @@
           paints: paintsFor(base.hex)
         };
       });
+      const custom = state.factionSchemeId ? state.customSchemes.find(scheme => scheme.id === state.factionSchemeId) : null;
+      const transparentMode = currentPalette.length
+        && W.ladderForColor(currentPalette[0], state.style, state.recipeModeKey).some(step => step.key === "transparentCoat");
       return {
         language: state.language,
         system: t(`systems.${state.system}`),
         scheme: el.title.textContent,
+        prompt: custom && custom.prompt ? String(custom.prompt) : "",
         finish: t(`finish.${W.styleLabelKey(state.style)}`),
         recipeMode: t(`recipeModes.${state.recipeModeKey}.title`),
         recipeModeDescription: t(`recipeModes.${state.recipeModeKey}.description`),
         ownedPaintCount: ownedPaintKeys.size,
         onlyOwnedPaints: Boolean(state.onlyOwnedMatches),
         ownedOnly,
+        primer: currentPalette.length ? primerFor(currentPalette[0], catalogue, ownedOnly, transparentMode, preferredBrands) : null,
         areas: rolePlannerItems().slice(0, 12).map(item => {
           const color = resolveRoleColor(item.colorRef);
           return { area: item.extra ? color.name : t(`roleAreas.${item.areaKey}`), color: color.name, hex: color.hex };
         }),
-        colors: currentPalette.slice(0, 6).map(color => ({
-          name: colorName(color),
-          hex: color.hex,
-          steps: W.ladderForColor(color, state.style, state.recipeModeKey).map(step => ({
-            step: t(`ladder.steps.${step.key}`),
-            hex: step.hex,
-            paints: paintsFor(step.hex)
-          }))
-        })),
+        colors: currentPalette.slice(0, 6).map(color => {
+          const name = colorName(color);
+          const metal = GUIDE_METAL_NAMES.test(name);
+          return {
+            name,
+            hex: color.hex,
+            metal,
+            steps: W.ladderForColor(color, state.style, state.recipeModeKey).map(step => ({
+              key: step.key,
+              step: t(`ladder.steps.${step.key}`),
+              hint: t(`ladder.hints.${step.key}`),
+              hex: step.hex,
+              paints: paintsFor(step.hex, step.key, metal)
+            }))
+          };
+        }),
         base: bases[0] || null
+      };
+    }
+
+    // Primer: a coloured spray close to the main colour when there is one (owned first),
+    // otherwise black, grey or a light primer by brightness; light for contrast schemes.
+    function primerFor(main, catalogue, ownedOnly, transparentMode, preferredBrands) {
+      const all = catalogue.filter(paint => /primer/i.test(`${paint.range || ""} ${paint.finish || ""}`));
+      const preferred = all.filter(paint => preferredBrands.has(paint.manufacturer));
+      const primers = preferred.length ? preferred : all;
+      const owned = primers.filter(paint => ownedPaintKeys.has(paintKey(paint)));
+      const pick = (list, hex, max) => {
+        const match = list.length ? W.findClosestPaints(hex, list, 1)[0] : null;
+        return match && match.distance <= max ? match : null;
+      };
+      const lightness = Number(main.l) || 50;
+      const fallbackHex = transparentMode || lightness > 62 ? "#DBD1B2" : lightness < 32 ? "#000000" : "#A2A5A7";
+      const coloured = !transparentMode && (pick(owned, main.hex, 60) || (!ownedOnly && pick(primers, main.hex, 45)));
+      const match = coloured || pick(owned, fallbackHex, 70) || (!ownedOnly && pick(primers, fallbackHex, 70));
+      return {
+        tone: coloured ? "color" : transparentMode || lightness > 62 ? "light" : lightness < 32 ? "dark" : "grey",
+        name: match ? match.name : "",
+        manufacturer: match ? match.manufacturer || "" : "",
+        owned: Boolean(match && ownedPaintKeys.has(paintKey(match)))
       };
     }
 
@@ -613,7 +701,8 @@
       });
       el.ownedOnlyMatches.addEventListener("change", () => {
         state.onlyOwnedMatches = el.ownedOnlyMatches.checked;
-        renderCitadelMatches();
+        // Notes ("paint equivalents") depend on it too, so redraw everything.
+        update();
         saveLastSettings();
       });
       el.ownedPaintsCollapse.addEventListener("click", () => {
@@ -1351,7 +1440,7 @@
 
     function renderCitadelMatches() {
       const paints = closestMatchCataloguePaints();
-      const mapped = W.mapPaletteToCatalogue(currentPalette, paints, { limit: 3 });
+      const mapped = currentPalette.map(color => ({ ...color, ...closestMatchesFor(color.hex, 3) }));
       const statusKey = cataloguePaints.length ? (catalogueSource === "json" ? "loaded" : "sample") : "missing";
       el.citadelStatus.textContent = t(`citadel.${statusKey}`, { count: paints.length }) + " " + t("ui.citadelJsonHint");
       replaceChildren(el.citadelMatches, mapped.map(color => {
@@ -1378,6 +1467,9 @@
             ]);
           })
           : [createElement("p", { className: "notes", text: t("citadel.missing") })];
+        if (color.ownedMissing && color.matches.length) {
+          matches.unshift(createElement("p", { className: "notes owned-missing-note", text: t("citadel.noCloseOwned") }));
+        }
         return createElement("article", { className: "match-card" }, [
           createSwatch("match-swatch", color.hex),
           createElement("div", { className: "match-body" }, [
@@ -1503,6 +1595,23 @@
         return [];
       }
       return cataloguePaints.filter(paint => selectedManufacturers.has(paintProducerKey(paint)));
+    }
+
+    // Closest paints for one colour. With "only owned paints" an owned paint counts only
+    // when it is close enough; otherwise the best catalogue paint is shown instead and
+    // flagged, so a tiny collection does not turn every colour into the same three pots.
+    function closestMatchesFor(hex, limit = 3) {
+      const all = filteredCataloguePaints().filter(paint => paint.hex);
+      if (!state.onlyOwnedMatches) {
+        return { matches: all.length ? W.findClosestPaints(hex, all, limit) : [], ownedMissing: false };
+      }
+      const owned = all.filter(paint => ownedPaintKeys.has(paintKey(paint)));
+      const close = (owned.length ? W.findClosestPaints(hex, owned, limit) : [])
+        .filter(match => match.distance <= OWNED_MATCH_MAX_DISTANCE);
+      if (close.length) {
+        return { matches: close, ownedMissing: false };
+      }
+      return { matches: all.length ? W.findClosestPaints(hex, all, 1) : [], ownedMissing: true };
     }
 
     function closestMatchCataloguePaints() {
@@ -2074,6 +2183,57 @@
       return cataloguePaints.find(paint => paintKey(paint) === key) || null;
     }
 
+    // Keeps owned paints and the shopping list valid when the catalogue changes:
+    // corrected entries (new name or hex) take over keys saved with their old values,
+    // and colourless PaintRack entries are replaced once the catalogue knows the paint.
+    function reconcileSavedPaints(basePaints) {
+      const paints = (Array.isArray(basePaints) ? basePaints : []).filter(paint => paint.hex);
+      const moves = new Map();
+      paints.forEach(paint => {
+        (paint.previous || []).forEach(previous => {
+          const oldKey = paintKey({ ...paint, name: previous.name || paint.name, hex: previous.hex || paint.hex });
+          moves.set(oldKey, paintKey(paint));
+        });
+      });
+      const remaining = [];
+      paintRackCustomPaints.forEach(custom => {
+        const match = W.findPaintRackCatalogueMatch({
+          brand: custom.manufacturer,
+          sku: custom.manufacturerCode,
+          name: custom.name,
+          paintClass: custom.collection
+        }, paints);
+        if (match) {
+          moves.set(paintKey(custom), paintKey(match));
+        } else {
+          remaining.push(custom);
+        }
+      });
+      let changed = remaining.length !== paintRackCustomPaints.length;
+      [ownedPaintKeys, shoppingPaintKeys].forEach(keys => {
+        moves.forEach((newKey, oldKey) => {
+          if (oldKey !== newKey && keys.has(oldKey)) {
+            keys.delete(oldKey);
+            keys.add(newKey);
+            changed = true;
+          }
+        });
+      });
+      shoppingPaintKeys.forEach(key => {
+        if (ownedPaintKeys.has(key)) {
+          shoppingPaintKeys.delete(key);
+        }
+      });
+      if (changed) {
+        paintRackCustomPaints = remaining;
+        state.paintRackCustomPaints = remaining;
+        state.ownedPaintKeys = Array.from(ownedPaintKeys);
+        state.shoppingPaintKeys = Array.from(shoppingPaintKeys);
+        saveLastSettings();
+      }
+      return changed;
+    }
+
     function mergePaintRackCustomPaints(basePaints) {
       const byKey = new Map();
       (Array.isArray(basePaints) ? basePaints : []).forEach(paint => {
@@ -2614,8 +2774,7 @@
       }
       const hex = target.dataset.colorHex;
       const colorName = target.dataset.colorName || hex;
-      const paints = closestMatchCataloguePaints();
-      const matches = paints.length ? W.findClosestPaints(hex, paints, 3) : [];
+      const { matches, ownedMissing } = closestMatchesFor(hex, 3);
       const matchRows = matches.length
         ? matches.map(match => {
           const meta = [paintMatchMeta(match), t("citadel.distance", { distance: match.distance })]
@@ -2651,6 +2810,9 @@
           ]);
         })
         : [createElement("p", { className: "notes", text: t("citadel.missing") })];
+      if (ownedMissing && matches.length) {
+        matchRows.unshift(createElement("p", { className: "notes owned-missing-note", text: t("citadel.noCloseOwned") }));
+      }
 
       replaceChildren(el.paintTooltip, [
         createElement("div", { className: "paint-tooltip-head" }, [

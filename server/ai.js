@@ -390,6 +390,9 @@ function createAi(config, { appRoot, dataDir, store = null, log = console, fetch
 
   // ---- painting guide (streamed) -----------------------------------------
 
+  // The guide itself is built from the app's data (fixed headings, one paint per step,
+  // primer by brightness), so a small model cannot invent structure or paints. The
+  // model only adds a short "tips" section, streamed after the guide.
   async function recipe(user, body, req, res) {
     requireEnabled(llmEnabled);
     const context = sanitizeContext(body.context);
@@ -398,55 +401,62 @@ function createAi(config, { appRoot, dataDir, store = null, log = console, fetch
       throw new AiError(400, "invalid_input", "Ungültige Anfrage.");
     }
     const language = languageName(context.language);
+    const text = guideText(context.language);
+    const guide = buildGuide(context, text);
+    const references = findFactionReferences(`${context.prompt} ${context.scheme}`, loadFactionSchemes(), /40/.test(context.system) ? "k40" : "aos");
+    const wishes = recipeWishes(user);
     const messages = [
       {
         role: "system",
         content: [
           "You are an experienced miniature painting coach.",
-          `Write a practical step-by-step painting guide in ${language} for the scheme described by the JSON data.`,
+          `The painter already has a step-by-step guide (below). Write ONLY a short section with 3 or 4 extra tips in ${language} for this scheme:`,
+          "effects and finishing touches that make it look right (e.g. weathering, rust, gloss on wounds or gems, glow, freehand, basing), and common mistakes to avoid.",
           "Rules:",
-          "- Use ONLY paint names that appear in the data (fields \"paints\"). Prefer paints with \"owned\": true.",
-          "- If no listed paint fits a step, give the HEX value and say it must be mixed. Never invent paint names or products.",
-          "- Follow the given steps (shade, base, layer, highlight) for each colour and say which model areas get the colour.",
-          `- Structure with Markdown headings (## ) written in ${language}: preparation (primer), one section per palette colour, the base, then 2-3 short tips.`,
-          "- Use numbered steps and - bullets. Use **bold** ONLY for paint names, exactly as written in the data. No tables. At most about 400 words.",
-          ...(context.ownedOnly
-            ? ["- The painter wants to use ONLY paints they own (\"owned\": true). Do not suggest buying paints; if no owned paint fits, give the HEX value and say which owned paints to mix."]
+          `- Start with the line "## ${text.tips}", then one "- " bullet per tip, each 1-2 sentences.${language === "German" ? " Address the reader informally (du)." : ""}`,
+          "- Mention paints only if they appear in the guide, in **bold** exactly as written there. Never invent paint names or products; describe colours in words instead.",
+          "- Do not repeat the steps of the guide. No other headings, no introduction, at most 110 words.",
+          ...(references.length
+            ? ["", `The scheme is for ${references.map(scheme => schemeLabel(scheme)).join(" / ")}. Typical look: ${references.map(scheme => cleanText(scheme.notes || scheme.schemeName, 200)).join(" ")}`]
             : []),
-          ...(() => {
-            const wishes = recipeWishes(user);
-            return wishes.length ? ["", "Wishes from this painter's feedback on earlier guides (follow them):", ...wishes.map(wish => `- ${wish}`)] : [];
-          })()
+          ...(wishes.length ? ["", "Wishes from this painter's feedback on earlier guides (follow them):", ...wishes.map(wish => `- ${wish}`)] : [])
         ].join("\n")
       },
-      { role: "user", content: json }
+      {
+        role: "user",
+        content: [
+          `Scheme: ${context.scheme}${context.prompt ? ` ("${context.prompt}")` : ""}; finish: ${context.finish}; method: ${context.recipeMode}.`,
+          "",
+          guide
+        ].join("\n")
+      }
     ];
     const slot = reserveUser(user);
     const client = watchClient(res);
     const out = holdOpen(res, "text/plain; charset=utf-8", config.keepaliveMs);
     let release = () => {};
     let written = 0;
+    out.write(`${guide}\n\n`);
     try {
-      const upstream = await openStream(messages, { max_tokens: 1400 }, client.signal);
+      const upstream = await openStream(messages, { max_tokens: 400 }, client.signal);
       release = upstream.release;
       for await (const delta of upstream.chunks) {
         written += delta.length;
         out.write(delta);
       }
-      if (!written) {
-        throw new AiError(502, "invalid", "Leere Antwort des Model-Servers.");
-      }
       out.end();
-      log.info(`KI-Anleitung für ${user.username}: ${written} Zeichen`);
+      log.info(`KI-Anleitung für ${user.username}: Plan + ${written} Zeichen Tipps${references.length ? ` (Bezug: ${references.map(scheme => schemeLabel(scheme)).join(", ")})` : ""}`);
     } catch (error) {
+      // The guide is already out; missing tips are only noted, not treated as failure.
       const failure = asAiError(error);
       if (failure.code === "busy" && !written) {
         slot.refund();
       }
       if (failure.code !== "aborted") {
-        logFailure("Anleitung", failure);
+        logFailure("Anleitung (Tipps)", failure);
+        out.write(`${written ? "\n" : ""}\n(${text.tipsUnavailable})\n`);
       }
-      out.fail(failure);
+      out.end();
     } finally {
       release();
       out.stop();
@@ -1043,23 +1053,69 @@ function normalizeName(text) {
     .trim()} `;
 }
 
+// Other names painters use, mostly German and older English ones. Keys are faction or
+// subfaction names from data/faction-schemes.json; an alias counts like a subfaction.
+const FACTION_ALIASES = {
+  "Death Guard": ["seuchenmarines", "seuchenmarine", "todesgarde", "plague marines", "plague marine"],
+  "Thousand Sons": ["tausend sohne", "rubric marines"],
+  "World Eaters": ["weltenfresser", "khorne berserker"],
+  "Emperor’s Children": ["kinder des imperators", "noise marines"],
+  "Blood Angels": ["blutengel", "blut engel"],
+  "Dark Angels": ["dunkle engel"],
+  "Space Wolves": ["weltraumwolfe", "space wolf"],
+  "Black Templars": ["schwarze templer", "black templar"],
+  "Grey Knights": ["graue ritter", "grey knight"],
+  "Adepta Sororitas": ["sororitas", "sisters of battle", "schwestern des kampfes", "kampfschwestern"],
+  "Adeptus Mechanicus": ["admech", "mechanicus", "skitarii"],
+  "Astra Militarum": ["imperiale armee", "imperial guard", "imperiale garde", "guardsmen"],
+  "Adeptus Custodes": ["custodes", "custodian guard"],
+  "Imperial Knights": ["imperiale ritter"],
+  "Chaos Space Marines": ["chaos marines", "chaos space marine"],
+  "Chaos Daemons": ["chaos damonen", "damonen", "daemons"],
+  "Aeldari": ["eldar", "craftworld", "weltenschiff"],
+  "Drukhari": ["dark eldar"],
+  "Necrons": ["nekrons", "necron"],
+  "Tyranids": ["tyraniden", "tyranid"],
+  "T’au Empire": ["tau"],
+  "Genestealer Cults": ["symbionten", "genestealer"],
+  "Leagues of Votann": ["votann"],
+  "Stormcast Eternals": ["stormcast", "sturmgeschmiedete"],
+  "Soulblight Gravelords": ["soulblight", "vampire", "vampires"],
+  "Orruk Warclans": ["orruks", "orruk", "ironjawz", "kruleboyz"],
+  "Ogor Mawtribes": ["ogor", "oger"],
+  "Gloomspite Gitz": ["gloomspite", "grots"],
+  "Flesh-eater Courts": ["ghoule", "ghouls"],
+  "Kharadron Overlords": ["kharadron"],
+  "Lumineth Realm-lords": ["lumineth"],
+  "Idoneth Deepkin": ["idoneth"],
+  "Ossiarch Bonereapers": ["ossiarch"],
+  "Daughters of Khaine": ["tochter khaines"]
+};
+
 // Faction schemes named in the description, best match first, at most two factions.
-// Subfaction names count most; "Maggotkin of Nurgle" is also found by "Nurgle";
-// the selected game system breaks ties.
+// Subfaction names and aliases count most; "Maggotkin of Nurgle" is also found by
+// "Nurgle", and German genitives ("Nurgles") are understood; the selected game system
+// breaks ties.
 function findFactionReferences(description, schemes, systemCode) {
   const text = normalizeName(description);
-  const has = name => {
+  // "nurgles seuchenmarines" -> also "nurgle seuchenmarine"
+  const stem = text.replace(/([a-z]{4,})s(?= )/g, "$1");
+  const has = (name, minLength = 4) => {
     const key = normalizeName(name);
-    return key.trim().length >= 4 && text.includes(key);
+    return key.trim().length >= minLength && (text.includes(key) || stem.includes(key));
   };
+  const hasAlias = name => (FACTION_ALIASES[name] || []).some(alias => has(alias, 3));
   const scored = [];
   (schemes || []).forEach((scheme, order) => {
     if (!scheme || !Array.isArray(scheme.roles)) {
       return;
     }
     const tail = String(scheme.faction || "").split(/\s+of\s+/i)[1];
+    const specific = !GENERIC_SUBFACTION.test(scheme.subfaction || "");
     let score = 0;
-    if (!GENERIC_SUBFACTION.test(scheme.subfaction || "") && has(scheme.subfaction)) {
+    if (specific && (has(scheme.subfaction) || hasAlias(scheme.subfaction))) {
+      score = 3;
+    } else if (hasAlias(scheme.faction)) {
       score = 3;
     } else if (has(scheme.faction) || (tail && has(tail))) {
       score = 2;
@@ -1330,19 +1386,28 @@ function sanitizeContext(input) {
     name: str(paint && paint.name, 80),
     manufacturer: str(paint && paint.manufacturer, 40),
     range: str(paint && paint.range, 40),
-    owned: Boolean(paint && paint.owned)
+    owned: Boolean(paint && paint.owned),
+    ...(Number.isFinite(paint && paint.distance) ? { distance: Math.max(0, Math.min(500, Math.round(paint.distance))) } : {})
   })).filter(paint => paint.name);
   const hex = value => (/^#[0-9A-F]{6}$/i.test(String(value || "")) ? String(value).toUpperCase() : "");
+  const primer = ctx.primer && typeof ctx.primer === "object" ? ctx.primer : null;
   return {
     language: str(ctx.language, 5),
     system: str(ctx.system, 40),
     scheme: str(ctx.scheme, 80),
+    prompt: str(ctx.prompt, MAX_DESCRIPTION),
     finish: str(ctx.finish, 40),
     recipeMode: str(ctx.recipeMode, 60),
     recipeModeDescription: str(ctx.recipeModeDescription, 300),
     ownedPaintCount: Math.max(0, Math.min(10000, Number(ctx.ownedPaintCount) || 0)),
     onlyOwnedPaints: Boolean(ctx.onlyOwnedPaints),
     ownedOnly: Boolean(ctx.ownedOnly),
+    primer: primer ? {
+      tone: ["dark", "grey", "light", "color"].includes(primer.tone) ? primer.tone : "grey",
+      name: str(primer.name, 80),
+      manufacturer: str(primer.manufacturer, 40),
+      owned: Boolean(primer.owned)
+    } : null,
     areas: (Array.isArray(ctx.areas) ? ctx.areas : []).slice(0, 12).map(area => ({
       area: str(area && area.area, 60),
       color: str(area && area.color, 60),
@@ -1351,8 +1416,11 @@ function sanitizeContext(input) {
     colors: (Array.isArray(ctx.colors) ? ctx.colors : []).slice(0, 6).map(color => ({
       name: str(color && color.name, 60),
       hex: hex(color && color.hex),
+      metal: Boolean(color && color.metal),
       steps: (Array.isArray(color && color.steps) ? color.steps : []).slice(0, 6).map(step => ({
+        key: /^[a-zA-Z]{2,30}$/.test(String(step && step.key || "")) ? String(step.key) : "",
         step: str(step && step.step, 40),
+        hint: str(step && step.hint, 120),
         hex: hex(step && step.hex),
         paints: paintList(step && step.paints)
       }))
@@ -1363,6 +1431,91 @@ function sanitizeContext(input) {
       paints: paintList(ctx.base.paints)
     } : null
   };
+}
+
+// ---- painting guide ------------------------------------------------------
+
+const GUIDE_TEXT = {
+  en: {
+    prep: "Preparation", primer: { dark: "Prime black", grey: "Prime grey", light: "Prime light (white or bone)", color: "Prime in the main colour" },
+    primerWith: "e.g.", where: "Where", mix: "no close paint – mix towards", closest: "closest", base: "Base", tips: "Tips",
+    tipsUnavailable: "Tips are not available right now; the assistant did not answer.",
+    prepTip: "Clean mould lines, prime in thin coats and thin every paint with a little water."
+  },
+  de: {
+    prep: "Vorbereitung", primer: { dark: "Schwarz grundieren", grey: "Grau grundieren", light: "Hell grundieren (weiss oder knochenfarben)", color: "In der Hauptfarbe grundieren" },
+    primerWith: "z. B.", where: "Wo", mix: "keine passende Farbe – Richtung", closest: "am nächsten", base: "Base", tips: "Tipps",
+    tipsUnavailable: "Tipps gerade nicht verfügbar – der Assistent hat nicht geantwortet.",
+    prepTip: "Gussgrate entfernen, dünn grundieren und jede Farbe mit etwas Wasser verdünnen."
+  },
+  fr: {
+    prep: "Préparation", primer: { dark: "Sous-couche noire", grey: "Sous-couche grise", light: "Sous-couche claire (blanc ou os)", color: "Sous-couche dans la couleur principale" },
+    primerWith: "p. ex.", where: "Où", mix: "aucune peinture proche – mélanger vers", closest: "la plus proche", base: "Socle", tips: "Conseils",
+    tipsUnavailable: "Conseils indisponibles pour le moment – l'assistant n'a pas répondu.",
+    prepTip: "Ébavurer, sous-coucher en couches fines et diluer chaque peinture avec un peu d'eau."
+  },
+  es: {
+    prep: "Preparación", primer: { dark: "Imprimación negra", grey: "Imprimación gris", light: "Imprimación clara (blanco o hueso)", color: "Imprimación del color principal" },
+    primerWith: "p. ej.", where: "Dónde", mix: "ninguna pintura cercana – mezclar hacia", closest: "la más cercana", base: "Peana", tips: "Consejos",
+    tipsUnavailable: "Consejos no disponibles ahora – el asistente no respondió.",
+    prepTip: "Limpia las rebabas, imprima en capas finas y diluye cada pintura con un poco de agua."
+  },
+  it: {
+    prep: "Preparazione", primer: { dark: "Primer nero", grey: "Primer grigio", light: "Primer chiaro (bianco o osso)", color: "Primer nel colore principale" },
+    primerWith: "ad es.", where: "Dove", mix: "nessun colore vicino – mescolare verso", closest: "il più vicino", base: "Basetta", tips: "Consigli",
+    tipsUnavailable: "Consigli non disponibili ora – l'assistente non ha risposto.",
+    prepTip: "Togli le linee di stampo, dai il primer a mani sottili e diluisci ogni colore con un po' d'acqua."
+  }
+};
+// Accents and neutrals get fewer steps than the large areas.
+const SHORT_LADDER = ["transparentCoat", "shadeWash", "basecoat", "edgeHighlight", "quickHighlight", "fineHighlight"];
+// RGB distance above which a paint is only an approximation of the step colour.
+const GUIDE_MIX_DISTANCE = 60;
+
+function guideText(language) {
+  return GUIDE_TEXT[String(language || "").slice(0, 2)] || GUIDE_TEXT.en;
+}
+
+function buildGuide(context, text) {
+  const lines = [`## ${text.prep}`];
+  const primer = context.primer;
+  if (primer) {
+    lines.push(`1. ${text.primer[primer.tone] || text.primer.grey}${primer.name ? ` (${text.primerWith} **${primer.name}**)` : ""}.`);
+  }
+  lines.push(`${primer ? 2 : 1}. ${text.prepTip}`);
+  context.colors.forEach((color, index) => {
+    lines.push("", `## ${color.name || color.hex}`);
+    const areas = context.areas.filter(area => area.color === color.name && area.area && area.area !== color.name).map(area => area.area);
+    if (areas.length) {
+      lines.push(`${text.where}: ${Array.from(new Set(areas)).join(", ")}`);
+    }
+    let steps = color.steps.filter(step => step.paints.length || step.hex);
+    if (index >= 2 && steps.length > 3) {
+      const short = steps.filter(step => SHORT_LADDER.includes(step.key));
+      steps = (short.length >= 2 ? short : steps).slice(0, 3);
+    }
+    steps.forEach((step, number) => {
+      const paint = step.paints[0];
+      let what;
+      if (!paint || (Number.isFinite(paint.distance) && paint.distance > GUIDE_MIX_DISTANCE * 2)) {
+        what = `${text.mix} \`${step.hex}\``;
+      } else if (Number.isFinite(paint.distance) && paint.distance > GUIDE_MIX_DISTANCE) {
+        what = `**${paint.name}** (${text.closest}; ${text.mix} \`${step.hex}\`)`;
+      } else {
+        what = `**${paint.name}**`;
+      }
+      lines.push(`${number + 1}. ${step.step}: ${what}${step.hint ? ` – ${step.hint}` : ""}`);
+    });
+  });
+  if (context.base) {
+    lines.push("", `## ${text.base}: ${context.base.title}`);
+    context.base.steps.forEach((step, number) => lines.push(`${number + 1}. ${step}`));
+    const paint = context.base.paints[0];
+    if (paint) {
+      lines.push(`- **${paint.name}**`);
+    }
+  }
+  return lines.join("\n");
 }
 
 function upstreamError(status, text = "") {
@@ -1511,4 +1664,4 @@ function trimSlash(url) {
   return String(url).trim().replace(/\/+$/, "");
 }
 
-module.exports = { createAi, loadAiConfig, AiError, parsePalette, polishPalette, mergeLocked, sanitizePalette, findFactionReferences, sanitizeContext, describeColor, paintSearchText, createThinkingFilter, stripThinking };
+module.exports = { createAi, loadAiConfig, AiError, parsePalette, buildGuide, guideText, polishPalette, mergeLocked, sanitizePalette, findFactionReferences, sanitizeContext, describeColor, paintSearchText, createThinkingFilter, stripThinking };

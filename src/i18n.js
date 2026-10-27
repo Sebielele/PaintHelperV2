@@ -601,7 +601,9 @@
         sample: "Using {count} sample catalogue paints until the JSON loads.",
         missing: "No catalogue paint data available yet.",
         closest: "Closest matches",
-        distance: "distance {distance}"
+        distance: "distance {distance}",
+        noCloseOwned: "None of your paints is close to this colour. Closest catalogue paint:",
+        notOwned: "{name} (not owned)"
       },
       copy: {
         palette: "Palette",
@@ -1465,7 +1467,9 @@
       sample: "{count} Beispielfarben werden genutzt, bis das Katalog-JSON geladen ist.",
       missing: "Noch keine Farbkatalogdaten verfügbar.",
       closest: "Nächste Treffer",
-      distance: "Abstand {distance}"
+      distance: "Abstand {distance}",
+      noCloseOwned: "Keine deiner Farben liegt nah genug. Nächste Katalogfarbe:",
+      notOwned: "{name} (nicht vorhanden)"
     },
     copy: {
       palette: "Palette",
@@ -1654,7 +1658,9 @@
       sample: "{count} peintures d'exemple utilisées jusqu'au chargement du JSON.",
       missing: "Aucune donnée de catalogue de peintures disponible pour le moment.",
       closest: "Correspondances les plus proches",
-      distance: "distance {distance}"
+      distance: "distance {distance}",
+      noCloseOwned: "Aucune de vos peintures n'est assez proche. Peinture du catalogue la plus proche :",
+      notOwned: "{name} (non possédée)"
     },
     copy: {
       palette: "Palette",
@@ -1843,7 +1849,9 @@
       sample: "Usando {count} pinturas de muestra hasta que se cargue el JSON.",
       missing: "Aún no hay datos del catálogo de pinturas.",
       closest: "Coincidencias más cercanas",
-      distance: "distancia {distance}"
+      distance: "distancia {distance}",
+      noCloseOwned: "Ninguna de tus pinturas se acerca lo suficiente. Pintura del catálogo más cercana:",
+      notOwned: "{name} (no la tienes)"
     },
     copy: {
       palette: "Paleta",
@@ -2141,7 +2149,9 @@
       sample: "Uso {count} colori di esempio finché il JSON non viene caricato.",
       missing: "Nessun dato del catalogo colori disponibile.",
       closest: "Corrispondenze più vicine",
-      distance: "distanza {distance}"
+      distance: "distanza {distance}",
+      noCloseOwned: "Nessuno dei tuoi colori è abbastanza vicino. Colore del catalogo più vicino:",
+      notOwned: "{name} (non posseduto)"
     },
     copy: {
       palette: "Palette",

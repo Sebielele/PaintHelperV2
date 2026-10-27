@@ -322,3 +322,24 @@ test("PaintRack brand names match catalogue aliases", () => {
   assert.equal(citadel.findPaintRackCatalogueMatch({ brand: "AK Interactive", sku: "AK11002", name: "Off White" }, paints).hex, "#F0EDE0");
   assert.equal(citadel.findPaintRackCatalogueMatch({ brand: "Vallejo", name: "Castellan Green" }, paints), null);
 });
+
+test("Citadel Contrast and Shade paints match PaintRack rows by product code", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "paint-catalogue.json"), "utf8"));
+  const paints = citadel.normalizeCitadelPaints(raw);
+  const match = (sku, name, paintClass = "Contrast") => {
+    const paint = citadel.findPaintRackCatalogueMatch({ brand: "Citadel", sku, name, paintClass }, paints);
+    return paint && paint.name;
+  };
+  assert.equal(match("29-44", "Garaghak's Sewer"), "Garaghak's Sewer");
+  assert.equal(match("29-57", "Frostheart"), "Frostheart");
+  assert.equal(match("29-54", "Imperial Fist"), "Imperial Fist");
+  assert.equal(match("24-18", "Casandora Yellow", "Shade"), "Casandora Yellow");
+  assert.equal(match("29-59", "Asurmen Blue"), "Asurmen Blue");
+
+  const casandora = paints.find(paint => paint.name === "Casandora Yellow" && paint.previous);
+  assert.deepEqual(casandora.previous, [{ name: "Cassandora Yellow", hex: "#F5CC92" }]);
+  const codes = paints.filter(paint => paint.manufacturer === "Citadel Colours" && /^2[49]-\d\d$/.test(paint.manufacturerCode));
+  assert.ok(codes.length >= 75, `only ${codes.length} coded Contrast/Shade paints`);
+});

@@ -169,18 +169,21 @@ async function main() {
     assert.equal(await page.isVisible("#aiRecipeBtn"), true);
     assert.equal(await page.locator("#aiRecipeOwnedOnly").isDisabled(), true, "no owned paints yet");
     assert.match(await page.textContent("#aiRecipeOwnedOnlyLabel"), /\(0\)/);
-    fake.state.options.recipeText = "## Vorbereitung\n1. Grundieren mit **Abaddon Black**.\n\n## Rüstung\n- Basis: **Retributor Armour**\n- Akzent: **Erfundenes Gelb**\n";
+    fake.state.options.recipeText = "## Tipps\n- Kanten mit **Retributor Armour** betonen.\n- Augen in **Erfundenes Gelb**.\n";
     await page.click("#aiRecipeBtn");
     await page.waitForFunction(() => Array.from(document.querySelectorAll("#aiRecipeOutput strong")).some(node => node.textContent.startsWith("Retributor Armour")));
     await page.waitForSelector("#aiRecipeCopyBtn:not([hidden])");
     assert.equal(await page.locator("#aiRecipeOutput h4").first().textContent(), "Vorbereitung");
-    assert.equal(await page.locator("#aiRecipeOutput ol li").count(), 1);
-    const sentContext = JSON.parse(fake.state.requests.find(request => request.body.stream).body.messages[1].content);
-    assert.equal(sentContext.language, "de");
-    assert.ok(sentContext.colors[0].steps[0].paints.length > 0, "catalogue paints are sent with each step");
+    // The guide is built from the app data (one catalogue paint per step); the model
+    // only adds the tips section at the end.
+    assert.ok(await page.locator("#aiRecipeOutput ol li").count() >= 10, "steps for every colour");
+    assert.equal(await page.locator("#aiRecipeOutput h4").last().textContent(), "Tipps");
+    const sentTips = fake.state.requests.find(request => request.body.stream).body.messages;
+    assert.match(sentTips[0].content, /in German/);
+    assert.match(sentTips[1].content, /## Vorbereitung[\s\S]*\*\*[^*]+\*\*/);
 
     // Paint names are checked: known ones get a swatch and a shopping-list button.
-    assert.equal(await page.locator("#aiRecipeOutput .ai-paint").count(), 2);
+    assert.ok(await page.locator("#aiRecipeOutput .ai-paint").count() >= 10);
     assert.equal(await page.locator("#aiRecipeOutput .ai-paint-unknown").textContent(), "Erfundenes Gelb");
     assert.match(await page.textContent("#aiRecipeStatus"), /Nicht im Katalog gefundene Farbnamen: 1/);
     await page.locator("#aiRecipeOutput .ai-paint", { hasText: "Retributor Armour" }).locator("button").click();

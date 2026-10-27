@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.19.0 (PaintHelperV2)
+
+- Painting guide: the steps now come from the app itself – fixed headings per palette
+  colour with the areas it covers, one catalogue paint per step, a primer chosen by the
+  main colour (coloured spray when one is close, otherwise black/grey/light), shorter
+  ladders for accents. Paints far from the step colour are marked "closest" with the
+  target HEX, or left out. The model only adds a short tips section (informal "du" in
+  German), so it can no longer invent structure or paints; if the model server is
+  unreachable the guide still arrives, just without tips.
+- Guide paints follow the step: washes for shading, contrast/glaze paints for
+  transparent steps, metallics only for metal areas; airbrush, lacquer, spray, vehicle
+  colour lines and military colour codes are left out, and brands the painter owns are
+  preferred.
+- Owned paints count as a match only when they are close (RGB distance 40). With
+  "only owned paints" on, a colour without a close owned paint shows the best catalogue
+  paint with a note, and paint equivalents read "(not owned)". The toggle now updates
+  the notes right away.
+- Faction recognition in palette requests and guides understands German and older names
+  ("Seuchenmarines" → Death Guard, "Tausend Söhne", "Blutengel" …) and genitives
+  ("Nurgles").
+- Catalogue: 24 Citadel Contrast paints from the 2022 range (Garaghak's Sewer, Ratling
+  Grime, Aeldari Emerald, Frostheart, Imperial Fist …) added; GW product codes (29-xx,
+  24-xx, 27-xx) on all Contrast and Shade paints so PaintRack imports match by code;
+  "Cassandora Yellow" renamed to Casandora Yellow; 31 Contrast/Shade colours corrected to
+  their applied look (e.g. Drakenhof Nightshade was pale grey). Owned paints and shopping
+  lists follow corrected entries automatically, and colourless PaintRack entries are
+  replaced as soon as the catalogue knows the paint – no re-import needed.
+
 ## v0.18.0 (PaintHelperV2)
 
 - Light mode: the theme button in the header cycles automatic (follows the device),

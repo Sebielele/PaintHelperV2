@@ -160,21 +160,29 @@ test("painting guide is streamed and the context is sanitised", async t => {
   const result = await call("POST", "/api/ai/recipe", { context: recipeContext });
   assert.equal(result.status, 200);
   assert.match(result.headers.get("content-type"), /text\/plain/);
-  assert.match(result.data, /\*\*Retributor Armour\*\*/);
+  // The guide comes from the app data, the model only adds tips after it.
+  assert.match(result.data, /^## Vorbereitung\n/);
+  assert.match(result.data, /## Rüstung\n1\. Basis: \*\*Death Guard Green\*\*/);
+  assert.ok(result.data.indexOf("**Retributor Armour**") > result.data.indexOf("## Rüstung"), "tips follow the guide");
   const sent = fake.state.requests.find(request => request.body.stream).body;
-  const context = JSON.parse(sent.messages[1].content);
+  assert.match(sent.messages[0].content, /Never invent paint names/);
+  assert.match(sent.messages[0].content, /Address the reader informally \(du\)/);
+  assert.match(sent.messages[1].content, /\*\*Death Guard Green\*\*/);
+  assert.doesNotMatch(sent.messages[1].content, /secret|injected/);
+  const context = sanitizeContext(recipeContext);
   assert.equal(context.injected, undefined);
   assert.equal(context.colors[0].hex, "#6B7A3A");
   assert.deepEqual(context.colors[0].steps[0].paints[0], { name: "Death Guard Green", manufacturer: "Citadel", range: "", owned: true });
-  assert.match(sent.messages[0].content, /Never invent paint names/);
   assert.equal((await call("POST", "/api/ai/recipe", { context: { colors: [] } })).status, 400);
 });
 
-test("a broken stream ends with an error marker", async t => {
+test("a broken tips stream keeps the guide and adds a note", async t => {
   const { base } = await setup(t, { ovms: { breakStream: true } });
   const call = await login(base, "anna", "anna-pass-1");
   const result = await call("POST", "/api/ai/recipe", { context: recipeContext });
-  assert.match(result.data, /\[\[WPH-ERROR:offline\]\]$/);
+  assert.match(result.data, /\*\*Death Guard Green\*\*/);
+  assert.match(result.data, /\(Tipps gerade nicht verfügbar/);
+  assert.doesNotMatch(result.data, /WPH-ERROR/);
 });
 
 test("an unreachable model server is reported as offline", async t => {
@@ -183,9 +191,10 @@ test("an unreachable model server is reported as offline", async t => {
   const palette = await call("POST", "/api/ai/palette", { description: "Nurgle" });
   assert.equal(palette.status, 502);
   assert.equal(palette.data.code, "offline");
+  // The guide does not need the model; only the tips are missing.
   const recipe = await call("POST", "/api/ai/recipe", { context: recipeContext });
-  assert.equal(recipe.status, 502);
-  assert.equal(recipe.data.code, "offline");
+  assert.equal(recipe.status, 200);
+  assert.match(recipe.data, /\*\*Death Guard Green\*\*[\s\S]*\(Tipps gerade nicht verfügbar/);
 });
 
 test("one request per user, one at a time on the model server, hourly limit", async t => {
@@ -296,13 +305,13 @@ test("timeouts are reported as such, in JSON and in the stream", async t => {
   assert.equal(palette.data.code, "timeout");
 });
 
-test("a stalled stream ends with a single timeout marker", async t => {
+test("a stalled tips stream ends with a single note", async t => {
   const { base } = await setup(t, { ovms: { stallAfterFirstChunk: true }, env: { AI_IDLE_SECONDS: "0.3" } });
   const call = await login(base, "anna", "anna-pass-1");
   const result = await call("POST", "/api/ai/recipe", { context: recipeContext });
   assert.equal(result.status, 200);
-  assert.equal((result.data.match(/\[\[WPH-ERROR/g) || []).length, 1);
-  assert.match(result.data, /\[\[WPH-ERROR:timeout\]\]$/);
+  assert.equal((result.data.match(/Tipps gerade nicht verfügbar/g) || []).length, 1);
+  assert.doesNotMatch(result.data, /WPH-ERROR/);
 });
 
 test("thinking blocks are removed from answers", async t => {
@@ -416,7 +425,6 @@ test("feedback is stored per user and shapes later prompts", async t => {
   await anna("POST", "/api/ai/recipe", { context: { ...recipeContext, ownedOnly: true } });
   const recipePrompt = fake.state.requests.filter(request => request.body.stream).pop().body.messages[0].content;
   assert.match(recipePrompt, /disliked: zu lang, mehr Trockenbürsten/);
-  assert.match(recipePrompt, /ONLY paints they own/);
 
   await anna("POST", "/api/ai/feedback", { kind: "palette", refId: "custom-1", rating: 0 });
   assert.equal(store.listFeedback(1, "palette").length, 1, "rating 0 withdraws the feedback");
@@ -446,4 +454,41 @@ test("palettes still work when the embedding server is down", async t => {
   const result = await call("POST", "/api/ai/palette", { description: "Nurgle Sumpf", language: "de" });
   assert.equal(result.status, 200);
   assert.ok(Date.now() - started < 3000, "no long wait for optional examples");
+});
+
+test("faction references understand German names and genitives", () => {
+  const schemes = JSON.parse(fs.readFileSync(path.join(appRoot, "data", "faction-schemes.json"), "utf8")).schemes;
+  const ids = (text, system) => findFactionReferences(text, schemes, system).map(scheme => scheme.id);
+  assert.equal(ids("Nurgles Seuchenmarines", "k40")[0], "k40-death-guard-no-specific-constraint");
+  assert.equal(ids("Tausend Söhne in Türkis", "k40")[0], "k40-thousand-sons-no-specific-constraint");
+  assert.equal(ids("Blutengel", "aos")[0], "k40-space-marines-blood-angels");
+  assert.deepEqual(ids("Rostiges Gold mit Grünspan", "aos"), []);
+});
+
+test("the guide is built from the app data with one paint per step", () => {
+  const { buildGuide, guideText } = require("../server/ai");
+  const step = (key, label, paint, distance) => ({ key, step: label, hint: "", hex: "#556229", paints: paint ? [{ name: paint, distance, owned: false }] : [] });
+  const full = [
+    step("shadeWash", "Shade", "Athonian Camoshade", 20),
+    step("basecoat", "Basis", "Death Guard Green", 5),
+    step("layer", "Layer", "Ogryn Camo", 30),
+    step("edgeHighlight", "Kante", "Krieg Khaki", 90),
+    step("focusLight", "Fokus", "", 0)
+  ];
+  const guide = buildGuide(sanitizeContext({
+    language: "de",
+    primer: { tone: "grey", name: "Death Guard Green", owned: true },
+    areas: [{ area: "Rüstung", color: "Seuchengrün" }, { area: "Umhang", color: "Seuchengrün" }],
+    colors: [
+      { name: "Seuchengrün", hex: "#556229", steps: full },
+      { name: "Messing", hex: "#A07A3C", steps: full },
+      { name: "Wunden", hex: "#C45B32", steps: full }
+    ]
+  }), guideText("de"));
+  assert.match(guide, /^## Vorbereitung\n1\. Grau grundieren \(z\. B\. \*\*Death Guard Green\*\*\)\./);
+  assert.match(guide, /## Seuchengrün\nWo: Rüstung, Umhang\n1\. Shade: \*\*Athonian Camoshade\*\*/);
+  assert.match(guide, /\*\*Krieg Khaki\*\* \(am nächsten; keine passende Farbe – Richtung `#556229`\)/);
+  assert.match(guide, /5\. Fokus: keine passende Farbe – Richtung `#556229`/);
+  const accent = guide.split("## Wunden")[1];
+  assert.equal((accent.match(/^\d\./gm) || []).length, 3, "accents get a short ladder");
 });

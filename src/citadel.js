@@ -81,6 +81,12 @@
     const manufacturerCode = paint.manufacturer_code || paint.manufacturerCode || paint.code || "";
     const id = paint.id || paint.slug || manufacturerCode || (manufacturerName ? `${manufacturerName}:${name}` : String(index));
 
+    // Earlier name/hex of a corrected entry; the app moves saved keys over.
+    const previous = (Array.isArray(paint.previous) ? paint.previous : [])
+      .filter(item => item && typeof item === "object")
+      .map(item => ({ name: item.name ? String(item.name) : "", hex: normalizeHex(item.hex) || "" }))
+      .filter(item => item.name || item.hex);
+
     return {
       id: String(id),
       name,
@@ -92,7 +98,8 @@
       status: paint.status || "",
       sourceUrl: paint.source_url || paint.sourceUrl || "",
       notes: paint.notes || "",
-      manufacturerCode
+      manufacturerCode,
+      ...(previous.length ? { previous } : {})
     };
   }
 

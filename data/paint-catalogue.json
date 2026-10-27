@@ -21655,26 +21655,49 @@
           "source_url": "https://github.com/s10-steve/paintdex"
         },
         {
+          "name": "Aeldari Emerald",
+          "hex": "#007467",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-48"
+        },
+        {
           "name": "Aethermatic Blue",
-          "hex": "#1C7E92",
+          "hex": "#5E9BAA",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://www.paintatlas.com/brands/citadel",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
           "source_urls": [
             "https://painthoarder.com/brands/citadel-colour/lines/contrast"
           ],
-          "type": "contrast"
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#1C7E92"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-41"
         },
         {
           "name": "Aggaros Dunes",
-          "hex": "#706542",
+          "hex": "#A29457",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://www.paintatlas.com/brands/citadel",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
           "source_urls": [
             "https://painthoarder.com/brands/citadel-colour/lines/contrast"
           ],
-          "type": "contrast"
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#706542"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-25"
         },
         {
           "name": "Agrax Earthshade",
@@ -21692,7 +21715,8 @@
               "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade"
             }
           ],
-          "type": "wash"
+          "type": "wash",
+          "manufacturer_code": "24-15"
         },
         {
           "name": "Agrax Earthshade Gloss",
@@ -21776,7 +21800,8 @@
           "source_urls": [
             "https://painthoarder.com/brands/citadel-colour/lines/contrast"
           ],
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-19"
         },
         {
           "name": "Alaitoc Blue",
@@ -21830,7 +21855,8 @@
           "source_urls": [
             "https://painthoarder.com/brands/citadel-colour/lines/contrast"
           ],
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-34"
         },
         {
           "name": "Armageddon Dunes",
@@ -21922,6 +21948,15 @@
           "discontinued": true
         },
         {
+          "name": "Asurmen Blue",
+          "hex": "#0065A0",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-59"
+        },
+        {
           "name": "Asurmen Blue Wash",
           "hex": "#273E51",
           "finish": "shade",
@@ -21940,10 +21975,10 @@
         },
         {
           "name": "Athonian Camoshade",
-          "hex": "#B6B788",
+          "hex": "#6D8E44",
           "status": "confirmed",
           "finish": "shade",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade",
+          "source_url": "https://handwiki.org/wiki/List_of_Citadel_paints",
           "source_urls": [
             "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
           ],
@@ -21953,7 +21988,14 @@
               "source_url": "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
             }
           ],
-          "type": "wash"
+          "type": "wash",
+          "previous": [
+            {
+              "hex": "#B6B788"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "24-21"
         },
         {
           "name": "Auric Armour Gold",
@@ -22000,6 +22042,15 @@
           "source_url": "https://github.com/s10-steve/paintdex"
         },
         {
+          "name": "Baal Red",
+          "hex": "#CB1A26",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-67"
+        },
+        {
           "name": "Baal Red Wash",
           "hex": "#630808",
           "collection": "Foundation Wash",
@@ -22018,6 +22069,15 @@
           "status": "discontinued",
           "source_url": "https://github.com/s10-steve/paintdex",
           "discontinued": true
+        },
+        {
+          "name": "Bad Moon Yellow",
+          "hex": "#FDC90E",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-53"
         },
         {
           "name": "Badab Black Wash",
@@ -22138,11 +22198,18 @@
         },
         {
           "name": "Basilicanum Grey",
-          "hex": "#212121",
+          "hex": "#6E6E6E",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#212121"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-37"
         },
         {
           "name": "Beaten Copper",
@@ -22161,7 +22228,8 @@
           "finish": "wash",
           "type": "wash",
           "status": "community",
-          "source_url": "https://github.com/s10-steve/paintdex"
+          "source_url": "https://github.com/s10-steve/paintdex",
+          "manufacturer_code": "24-34"
         },
         {
           "name": "Bestial Brown",
@@ -22192,10 +22260,10 @@
         },
         {
           "name": "Biel-Tan Green",
-          "hex": "#7DA57A",
+          "hex": "#1BA169",
           "status": "confirmed",
           "finish": "shade",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade",
+          "source_url": "https://handwiki.org/wiki/List_of_Citadel_paints",
           "source_urls": [
             "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
           ],
@@ -22205,7 +22273,14 @@
               "source_url": "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
             }
           ],
-          "type": "wash"
+          "type": "wash",
+          "previous": [
+            {
+              "hex": "#7DA57A"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "24-19"
         },
         {
           "name": "Bilious Green",
@@ -22233,15 +22308,23 @@
           "finish": "contrast",
           "status": "confirmed",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-45"
         },
         {
           "name": "Black Templar",
-          "hex": "#171717",
+          "hex": "#4C4C4B",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#171717"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-38"
         },
         {
           "name": "Blackfire Earth",
@@ -22320,7 +22403,8 @@
           "finish": "contrast",
           "status": "confirmed",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-12"
         },
         {
           "name": "Blood For The Blood God",
@@ -22504,6 +22588,15 @@
           "status": "discontinued",
           "source_url": "https://github.com/s10-steve/paintdex",
           "discontinued": true
+        },
+        {
+          "name": "Briar Queen Chill",
+          "hex": "#72AABA",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-56"
         },
         {
           "name": "Bronzed Flesh",
@@ -22722,11 +22815,18 @@
         },
         {
           "name": "Carroburg Crimson",
-          "hex": "#BE80A4",
+          "hex": "#A82A70",
           "status": "confirmed",
           "finish": "shade",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade",
-          "type": "wash"
+          "source_url": "https://handwiki.org/wiki/List_of_Citadel_paints",
+          "type": "wash",
+          "previous": [
+            {
+              "hex": "#BE80A4"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "24-13"
         },
         {
           "name": "Carthalos Skin 1",
@@ -22774,12 +22874,20 @@
           "source_url": "https://github.com/s10-steve/paintdex"
         },
         {
-          "name": "Cassandora Yellow",
-          "hex": "#F5CC92",
+          "name": "Casandora Yellow",
+          "hex": "#FECE5A",
           "status": "confirmed",
           "finish": "shade",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade",
-          "type": "wash"
+          "source_url": "https://handwiki.org/wiki/List_of_Citadel_paints",
+          "type": "wash",
+          "previous": [
+            {
+              "name": "Cassandora Yellow",
+              "hex": "#F5CC92"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "24-18"
         },
         {
           "name": "Castellan Green",
@@ -22886,6 +22994,15 @@
           "type": "opaque",
           "status": "community",
           "source_url": "https://github.com/s10-steve/paintdex"
+        },
+        {
+          "name": "Celestium Blue",
+          "hex": "#1A4C88",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-60"
         },
         {
           "name": "Celestra Grey",
@@ -23045,7 +23162,8 @@
               "source_url": "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
             }
           ],
-          "type": "wash"
+          "type": "wash",
+          "manufacturer_code": "24-22"
         },
         {
           "name": "Commando Khaki",
@@ -23150,11 +23268,18 @@
         },
         {
           "name": "Creed Camo",
-          "hex": "#145D2E",
+          "hex": "#427654",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#145D2E"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-23"
         },
         {
           "name": "Cryptek Armourshade Gloss",
@@ -23167,11 +23292,18 @@
         },
         {
           "name": "Cygor Brown",
-          "hex": "#3E1A17",
+          "hex": "#5A3633",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#3E1A17"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-29"
         },
         {
           "name": "Daemonette Hide",
@@ -23192,11 +23324,18 @@
         },
         {
           "name": "Dark Angels Green",
-          "hex": "#00110F",
+          "hex": "#003730",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#00110F"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-20"
         },
         {
           "name": "Dark Angels Green",
@@ -23242,7 +23381,8 @@
           "finish": "contrast",
           "status": "confirmed",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-33"
         },
         {
           "name": "Dataslate Grey 1",
@@ -23510,6 +23650,15 @@
           "type": "opaque"
         },
         {
+          "name": "Doomfire Magenta",
+          "hex": "#CD007A",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-66"
+        },
+        {
           "name": "Dorn Yellow",
           "hex": "#FFF55A",
           "finish": "layer",
@@ -23528,18 +23677,34 @@
         },
         {
           "name": "Drakenhof Nightshade",
-          "hex": "#A1A5AF",
+          "hex": "#125899",
           "status": "confirmed",
           "finish": "shade",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade",
-          "type": "wash"
+          "source_url": "https://handwiki.org/wiki/List_of_Citadel_paints",
+          "type": "wash",
+          "previous": [
+            {
+              "hex": "#A1A5AF"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "24-17"
+        },
+        {
+          "name": "Dreadful Visage",
+          "hex": "#BEABBC",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-65"
         },
         {
           "name": "Druchii Violet",
-          "hex": "#8F6592",
+          "hex": "#7A468C",
           "status": "confirmed",
           "finish": "shade",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade",
+          "source_url": "https://handwiki.org/wiki/List_of_Citadel_paints",
           "source_urls": [
             "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
           ],
@@ -23549,7 +23714,14 @@
               "source_url": "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
             }
           ],
-          "type": "wash"
+          "type": "wash",
+          "previous": [
+            {
+              "hex": "#8F6592"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "24-16"
         },
         {
           "name": "Dryad Bark",
@@ -23925,11 +24097,18 @@
         },
         {
           "name": "Flesh Tearers Red",
-          "hex": "#4B0402",
+          "hex": "#6A0806",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#4B0402"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-13"
         },
         {
           "name": "Flesh Wash",
@@ -23952,6 +24131,15 @@
           "discontinued": true
         },
         {
+          "name": "Frostheart",
+          "hex": "#005981",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-57"
+        },
+        {
           "name": "Fuegan Orange",
           "hex": "#BB7648",
           "status": "confirmed",
@@ -23966,7 +24154,8 @@
               "source_url": "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
             }
           ],
-          "type": "wash"
+          "type": "wash",
+          "manufacturer_code": "24-20"
         },
         {
           "name": "Fulgrim Pink",
@@ -24004,11 +24193,18 @@
         },
         {
           "name": "Fyreslayer Flesh",
-          "hex": "#724E3C",
+          "hex": "#976251",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#724E3C"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-31"
         },
         {
           "name": "Gal Vorbak Red",
@@ -24026,6 +24222,15 @@
           "type": "opaque",
           "status": "community",
           "source_url": "https://github.com/s10-steve/paintdex"
+        },
+        {
+          "name": "Garaghak's Sewer",
+          "hex": "#73522A",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-44"
         },
         {
           "name": "Gauss Blaster Green",
@@ -24179,7 +24384,8 @@
           "finish": "contrast",
           "status": "confirmed",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-28"
         },
         {
           "name": "Gorthor Brown",
@@ -24299,19 +24505,33 @@
         },
         {
           "name": "Gryph-Charger Grey",
-          "hex": "#25698A",
+          "hex": "#7C9CB1",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#25698A"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-35"
         },
         {
           "name": "Gryph-Hound Orange",
-          "hex": "#94300E",
+          "hex": "#BD4A24",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#94300E"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-11"
         },
         {
           "name": "Gryphonne Sepia Wash",
@@ -24334,11 +24554,28 @@
         },
         {
           "name": "Guilliman Flesh",
-          "hex": "#9F4639",
+          "hex": "#B5796E",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#9F4639"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-32"
+        },
+        {
+          "name": "Gutrippa Flesh",
+          "hex": "#6D9069",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-49",
+          "notes": "Product code derived from the GW barcode sequence."
         },
         {
           "name": "Hashut Copper",
@@ -24441,7 +24678,8 @@
               "source_url": "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
             }
           ],
-          "type": "technical"
+          "type": "technical",
+          "manufacturer_code": "27-20"
         },
         {
           "name": "Hierotek Green 1",
@@ -24579,6 +24817,15 @@
           "discontinued": true
         },
         {
+          "name": "Imperial Fist",
+          "hex": "#FBAE17",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-54"
+        },
+        {
           "name": "Imperial Purple",
           "hex": "#562F7E",
           "collection": "Foundation",
@@ -24665,6 +24912,15 @@
           "source_url": "https://github.com/s10-steve/paintdex"
         },
         {
+          "name": "Ironjawz Yellow",
+          "hex": "#DAAA47",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-52"
+        },
+        {
           "name": "Iyanden Darksun",
           "hex": "#AD852E",
           "collection": "Foundation",
@@ -24676,11 +24932,18 @@
         },
         {
           "name": "Iyanden Yellow",
-          "hex": "#DB7F0C",
+          "hex": "#E8A21B",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#DB7F0C"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-10"
         },
         {
           "name": "Jade Green",
@@ -24794,6 +25057,15 @@
           "type": "opaque",
           "status": "community",
           "source_url": "https://github.com/s10-steve/paintdex"
+        },
+        {
+          "name": "Karandras Green",
+          "hex": "#00843D",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-50"
         },
         {
           "name": "Kasrkin Green 1",
@@ -25016,7 +25288,17 @@
           "finish": "wash",
           "type": "wash",
           "status": "community",
-          "source_url": "https://github.com/s10-steve/paintdex"
+          "source_url": "https://github.com/s10-steve/paintdex",
+          "manufacturer_code": "24-29"
+        },
+        {
+          "name": "Kroxigor Scales",
+          "hex": "#007E91",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-55"
         },
         {
           "name": "Kruleboyz Green 1",
@@ -25131,11 +25413,27 @@
         },
         {
           "name": "Leviadon Blue",
-          "hex": "#000A13",
+          "hex": "#001E3F",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#000A13"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-17"
+        },
+        {
+          "name": "Leviathan Purple",
+          "hex": "#1B044D",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-62"
         },
         {
           "name": "Leviathan Purple Wash",
@@ -25318,6 +25616,16 @@
           "source_url": "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
         },
         {
+          "name": "Luxion Purple",
+          "hex": "#371363",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-63",
+          "notes": "Product code derived from the GW barcode sequence."
+        },
+        {
           "name": "Macharius Solar Orange",
           "hex": "#B94023",
           "collection": "Foundation",
@@ -25373,6 +25681,15 @@
           "discontinued": true
         },
         {
+          "name": "Magmadroth Flame",
+          "hex": "#E55926",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-68"
+        },
+        {
           "name": "Magnus the Red 1",
           "hex": "#3A202D",
           "collection": "Tone Pro",
@@ -25419,11 +25736,27 @@
         },
         {
           "name": "Magos Purple",
-          "hex": "#7A3F6E",
+          "hex": "#9D7C99",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#7A3F6E"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-16"
+        },
+        {
+          "name": "Mantis Warriors Green",
+          "hex": "#6C9046",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-47"
         },
         {
           "name": "Martian Ironcrust",
@@ -25583,7 +25916,8 @@
           "finish": "contrast",
           "status": "confirmed",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-24"
         },
         {
           "name": "Mithril Silver",
@@ -25664,7 +25998,8 @@
           "finish": "wash",
           "type": "wash",
           "status": "community",
-          "source_url": "https://github.com/s10-steve/paintdex"
+          "source_url": "https://github.com/s10-steve/paintdex",
+          "manufacturer_code": "24-32"
         },
         {
           "name": "Mournfang Brown",
@@ -25721,11 +26056,18 @@
         },
         {
           "name": "Nazdreg Yellow",
-          "hex": "#6C4C00",
+          "hex": "#A77600",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#6C4C00"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-21"
         },
         {
           "name": "Necrolith Bone 1",
@@ -25821,7 +26163,8 @@
           "status": "confirmed",
           "finish": "technical",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/technical",
-          "type": "technical"
+          "type": "technical",
+          "manufacturer_code": "27-19"
         },
         {
           "name": "Nihilakh Oxide",
@@ -25873,7 +26216,8 @@
               "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade"
             }
           ],
-          "type": "wash"
+          "type": "wash",
+          "manufacturer_code": "24-14"
         },
         {
           "name": "Nuln Oil Gloss",
@@ -25969,7 +26313,8 @@
           "finish": "contrast",
           "status": "confirmed",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-22"
         },
         {
           "name": "Orkhide Shade",
@@ -26114,11 +26459,18 @@
         },
         {
           "name": "Plaguebearer Flesh",
-          "hex": "#718025",
+          "hex": "#9DA677",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#718025"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-42"
         },
         {
           "name": "Poxwalker",
@@ -26127,7 +26479,8 @@
           "finish": "wash",
           "type": "wash",
           "status": "community",
-          "source_url": "https://github.com/s10-steve/paintdex"
+          "source_url": "https://github.com/s10-steve/paintdex",
+          "manufacturer_code": "24-30"
         },
         {
           "name": "Praxeti White",
@@ -26145,6 +26498,15 @@
           "status": "discontinued",
           "source_url": "https://github.com/s10-steve/paintdex",
           "discontinued": true
+        },
+        {
+          "name": "Pylar Glacier",
+          "hex": "#53B0E5",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-58"
         },
         {
           "name": "Pyroclast Orange Clear",
@@ -26172,6 +26534,15 @@
           ],
           "finish": "base",
           "type": "opaque"
+        },
+        {
+          "name": "Ratling Grime",
+          "hex": "#6F6967",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-46"
         },
         {
           "name": "Ratskin Flesh",
@@ -26212,10 +26583,10 @@
         },
         {
           "name": "Reikland Fleshshade",
-          "hex": "#BE9A80",
+          "hex": "#CA6C4D",
           "status": "confirmed",
           "finish": "shade",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade",
+          "source_url": "https://handwiki.org/wiki/List_of_Citadel_paints",
           "source_urls": [
             "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
           ],
@@ -26225,7 +26596,14 @@
               "source_url": "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
             }
           ],
-          "type": "wash"
+          "type": "wash",
+          "previous": [
+            {
+              "hex": "#BE9A80"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "24-24"
         },
         {
           "name": "Reikland Fleshshade Gloss",
@@ -26502,10 +26880,10 @@
         },
         {
           "name": "Seraphim Sepia",
-          "hex": "#AE8158",
+          "hex": "#D7824B",
           "status": "confirmed",
           "finish": "shade",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade",
+          "source_url": "https://handwiki.org/wiki/List_of_Citadel_paints",
           "source_urls": [
             "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
           ],
@@ -26515,7 +26893,14 @@
               "source_url": "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147"
             }
           ],
-          "type": "wash"
+          "type": "wash",
+          "previous": [
+            {
+              "hex": "#AE8158"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "24-23"
         },
         {
           "name": "Seraphon Blue 1",
@@ -26629,11 +27014,18 @@
         },
         {
           "name": "Shyish Purple",
-          "hex": "#2B0E42",
+          "hex": "#422C55",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#2B0E42"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-15"
         },
         {
           "name": "Sigismund Yellow Clear",
@@ -26650,6 +27042,16 @@
           "status": "confirmed",
           "source_url": "https://bolterandchainsword.com/topic/352780-paint-color-hexadecimal-codes/#comment-5226147",
           "type": "opaque"
+        },
+        {
+          "name": "Sigvald Burgundy",
+          "hex": "#6F004E",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-64",
+          "notes": "Product code derived from the GW barcode sequence."
         },
         {
           "name": "Skarsnik Green",
@@ -26678,11 +27080,18 @@
         },
         {
           "name": "Skeleton Horde",
-          "hex": "#A4966F",
+          "hex": "#C5BA99",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#A4966F"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-26"
         },
         {
           "name": "Skink Blue",
@@ -26773,11 +27182,18 @@
         },
         {
           "name": "Snakebite Leather",
-          "hex": "#694C29",
+          "hex": "#8D5A23",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#694C29"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-27"
         },
         {
           "name": "Snakebite Leather",
@@ -26840,7 +27256,8 @@
           "finish": "wash",
           "type": "wash",
           "status": "community",
-          "source_url": "https://github.com/s10-steve/paintdex"
+          "source_url": "https://github.com/s10-steve/paintdex",
+          "manufacturer_code": "24-35"
         },
         {
           "name": "Soulstone Blue",
@@ -26852,11 +27269,18 @@
         },
         {
           "name": "Space Wolves Grey",
-          "hex": "#1F486B",
+          "hex": "#68829B",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#1F486B"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-36"
         },
         {
           "name": "Space Wolves Grey",
@@ -26999,6 +27423,15 @@
           "source_url": "https://github.com/s10-steve/paintdex"
         },
         {
+          "name": "Stormfiend",
+          "hex": "#00537F",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-61"
+        },
+        {
           "name": "Stormhost Silver",
           "hex": "#DADDDF",
           "status": "confirmed",
@@ -27101,6 +27534,15 @@
           "type": "opaque",
           "status": "community",
           "source_url": "https://github.com/s10-steve/paintdex"
+        },
+        {
+          "name": "Striking Scorpion Green",
+          "hex": "#0A8C43",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-51"
         },
         {
           "name": "Sunburst Yellow",
@@ -27209,11 +27651,18 @@
         },
         {
           "name": "Talassar Blue",
-          "hex": "#003B70",
+          "hex": "#005899",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#003B70"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-39"
         },
         {
           "name": "Tallarn Flesh",
@@ -27268,7 +27717,8 @@
           "finish": "wash",
           "type": "wash",
           "status": "community",
-          "source_url": "https://github.com/s10-steve/paintdex"
+          "source_url": "https://github.com/s10-steve/paintdex",
+          "manufacturer_code": "24-31"
         },
         {
           "name": "Tau Light Ochre",
@@ -27382,7 +27832,8 @@
           "finish": "contrast",
           "status": "confirmed",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-43"
         },
         {
           "name": "Tesseract Glow",
@@ -27573,7 +28024,8 @@
           "finish": "wash",
           "type": "wash",
           "status": "community",
-          "source_url": "https://github.com/s10-steve/paintdex"
+          "source_url": "https://github.com/s10-steve/paintdex",
+          "manufacturer_code": "24-33"
         },
         {
           "name": "Tyrant Skull",
@@ -27665,11 +28117,18 @@
         },
         {
           "name": "Ultramarines Blue",
-          "hex": "#091948",
+          "hex": "#1B3968",
           "finish": "contrast",
           "status": "confirmed",
-          "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "type": "contrast",
+          "previous": [
+            {
+              "hex": "#091948"
+            }
+          ],
+          "notes": "Applied colour over a light primer (official swatch).",
+          "manufacturer_code": "29-18"
         },
         {
           "name": "Underhive Ash",
@@ -27790,7 +28249,8 @@
           "finish": "contrast",
           "status": "confirmed",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-14"
         },
         {
           "name": "Vomit Brown",
@@ -27878,7 +28338,8 @@
           "finish": "contrast",
           "status": "confirmed",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-40"
         },
         {
           "name": "Warpfiend Grey",
@@ -28063,7 +28524,8 @@
           "finish": "contrast",
           "status": "confirmed",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/contrast?page=2",
-          "type": "contrast"
+          "type": "contrast",
+          "manufacturer_code": "29-30"
         },
         {
           "name": "Xereus Purple",

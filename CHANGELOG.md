@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.24.0 (PaintHelperV2)
+
+- One producer selection: the brand chips above the collection now choose the paint
+  brands for the whole app (matches, guides, search and the collection); the duplicate
+  checkbox list in the side column is gone. "All brands" selects every producer again.
+- GitHub Actions on Node 24: actions/checkout v7, actions/setup-node v7,
+  docker/setup-buildx-action v4, docker/login-action v4, docker/metadata-action v6,
+  docker/build-push-action v7, peter-evans/create-pull-request v8.
+
 ## v0.23.0 (PaintHelperV2)
 
 - Painting guide: "Missing paints" lists every catalogue paint of the guide you do not

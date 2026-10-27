@@ -109,7 +109,7 @@
     let hoverTimer = null;
     // Collection view (not saved): search, filter, brand chips, open groups.
     // With a collection, the paints page opens on the owned paints instead of 5,400 entries.
-    const collection = { search: "", filter: ownedPaintKeys.size ? "owned" : "all", brands: new Set(), open: new Set(), limits: new Map() };
+    const collection = { search: "", filter: ownedPaintKeys.size ? "owned" : "all", open: new Set(), limits: new Map() };
     let collectionSearchTimer = null;
     let activeHoverTarget = null;
 
@@ -735,12 +735,7 @@
         } else {
           selectedManufacturers.delete(producer);
         }
-        pendingProducerKeys = null;
-        state.producerKeys = Array.from(selectedManufacturers);
-        renderPaintSelectorOptions();
-        renderOwnedPaintList();
-        renderShoppingList();
-        update();
+        producersChanged();
       });
       el.paintSearch.addEventListener("input", () => {
         state.paintSearch = el.paintSearch.value;
@@ -814,15 +809,20 @@
         if (!chip) {
           return;
         }
+        // The brand chips are the one producer selection of the app (matches, guides,
+        // search and the collection); "All brands" selects every producer again.
         const brand = chip.dataset.brand;
         if (!brand) {
-          collection.brands.clear();
-        } else if (collection.brands.has(brand)) {
-          collection.brands.delete(brand);
+          catalogueManufacturers().forEach(producer => selectedManufacturers.add(producer.key));
+        } else if (selectedManufacturers.has(brand)) {
+          selectedManufacturers.delete(brand);
         } else {
-          collection.brands.add(brand);
+          selectedManufacturers.add(brand);
         }
-        renderOwnedPaintList();
+        el.producerFilters.querySelectorAll("input[type='checkbox']").forEach(box => {
+          box.checked = selectedManufacturers.has(box.value);
+        });
+        producersChanged();
       });
       el.paintRackImport.addEventListener("click", () => {
         el.paintRackImportInput.click();
@@ -1701,13 +1701,22 @@
       setCollapseButtonLabel(el.ownedPaintsCollapse, t(collapsed ? "ui.expandOwnedPaints" : "ui.collapseOwnedPaints"));
     }
 
+    function producersChanged() {
+      pendingProducerKeys = null;
+      state.producerKeys = Array.from(selectedManufacturers);
+      renderPaintSelectorOptions();
+      renderOwnedPaintList();
+      renderShoppingList();
+      update();
+    }
+
     // The collection: every catalogue paint (plus PaintRack entries without colour),
     // grouped by brand and range. Groups render their items only when opened.
     function collectionPaints() {
       const query = normalizePaintName(collection.search);
       return cataloguePaints.filter(paint => {
         const key = paintKey(paint);
-        if (collection.brands.size && !collection.brands.has(paintProducerKey(paint))) {
+        if (!selectedManufacturers.has(paintProducerKey(paint))) {
           return false;
         }
         if (collection.filter === "owned" && !ownedPaintKeys.has(key)) {
@@ -1746,8 +1755,10 @@
         dataset: { brand },
         attributes: { "aria-pressed": String(active) }
       }, [label, count ? createElement("span", { className: "collection-chip-count", text: count }) : null]);
-      replaceChildren(el.collectionBrands, [chip("", t("collection.allBrands"), ownedPaintKeys.size, !collection.brands.size)]
-        .concat(catalogueManufacturers().map(producer => chip(producer.key, producer.label, owned.get(producer.key) || 0, collection.brands.has(producer.key)))));
+      const producers = catalogueManufacturers();
+      const all = producers.every(producer => selectedManufacturers.has(producer.key));
+      replaceChildren(el.collectionBrands, [chip("", t("collection.allBrands"), ownedPaintKeys.size, all)]
+        .concat(producers.map(producer => chip(producer.key, producer.label, owned.get(producer.key) || 0, !all && selectedManufacturers.has(producer.key)))));
     }
 
     function renderOwnedPaintList() {

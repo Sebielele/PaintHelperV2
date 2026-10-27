@@ -7,9 +7,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Warhammer Paint Helper</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png?v=0.23" />
-  <link rel="stylesheet" href="styles.css?v=0.23" />
-  <script src="src/theme.js?v=0.23"></script>
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=0.24" />
+  <link rel="stylesheet" href="styles.css?v=0.24" />
+  <script src="src/theme.js?v=0.24"></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace" data-i18n="ui.skipWorkspace">Skip to workspace</a>
@@ -18,7 +18,7 @@
       <div class="header-utility" aria-label="Application settings">
         <div class="brand-meta">
           <span class="eyebrow" data-i18n="ui.eyebrow">Miniature Palette Tool</span>
-          <p class="app-version" aria-label="Application version">v0.23</p>
+          <p class="app-version" aria-label="Application version">v0.24</p>
         </div>
         <div class="assist-header" data-ai-feature="llm">
           <button id="assistJumpBtn" type="button" class="assist-jump"><span aria-hidden="true">✨</span> <span data-i18n="assist.jump">Assistant</span></button>
@@ -256,7 +256,8 @@
       <details class="control-group" data-control-group="paintLibrary" data-workflow-panel="paints">
         <summary data-i18n="ui.controlPaintLibrary">Paint library</summary>
         <div class="control-group-body">
-          <div class="field">
+          <!-- Producer selection lives in the brand chips of the collection (v0.24). -->
+          <div class="field" hidden>
             <div class="field-label" data-i18n="ui.paintProducers">Paint producers</div>
             <div id="producerFilters" class="producer-filters"></div>
           </div>
@@ -555,17 +556,17 @@
     <button type="button" data-dock="army" class="secondary"><span aria-hidden="true">🛡</span><span data-i18n="army.step">Army</span></button>
   </nav>
 
-  <script src="src/core.js?v=0.23"></script>
-  <script src="src/factions.js?v=0.23"></script>
-  <script src="src/i18n.js?v=0.23"></script>
-  <script src="src/citadel.js?v=0.23"></script>
-  <script src="src/storage.js?v=0.23"></script>
-  <script src="src/app.js?v=0.23"></script>
-  <script src="src/army-data.js?v=0.23"></script>
-  <script src="src/ai.js?v=0.23"></script>
-  <script src="src/bench.js?v=0.23"></script>
-  <script src="src/assist.js?v=0.23"></script>
-  <script src="src/army.js?v=0.23"></script>
-  <script src="src/ui.js?v=0.23"></script>
+  <script src="src/core.js?v=0.24"></script>
+  <script src="src/factions.js?v=0.24"></script>
+  <script src="src/i18n.js?v=0.24"></script>
+  <script src="src/citadel.js?v=0.24"></script>
+  <script src="src/storage.js?v=0.24"></script>
+  <script src="src/app.js?v=0.24"></script>
+  <script src="src/army-data.js?v=0.24"></script>
+  <script src="src/ai.js?v=0.24"></script>
+  <script src="src/bench.js?v=0.24"></script>
+  <script src="src/assist.js?v=0.24"></script>
+  <script src="src/army.js?v=0.24"></script>
+  <script src="src/ui.js?v=0.24"></script>
 </body>
 </html>

@@ -114,7 +114,7 @@ async function main() {
     assert.equal(await page.locator("#palette").isVisible(), true);
     await page.click("#nextStepBtn");
     assert.equal(await page.locator('[data-workflow="paints"]').getAttribute("aria-current"), "step");
-    assert.equal(await page.locator("#producerFilters").isVisible(), true);
+    assert.equal(await page.locator("#collectionBrands .collection-chip").first().isVisible(), true, "producer selection as brand chips");
     assert.equal(await page.locator("#shoppingListPanel").isVisible(), true);
     assert.equal(await page.textContent("#currentHex"), paletteHex);
 

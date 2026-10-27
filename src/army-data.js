@@ -1,6 +1,3 @@
-// Army lists for PaintHelperV2: reads NewRecruit / BattleScribe rosters (JSON, .ros,
-// .rosz) into a painting project and keeps the painting progress per model.
-// Pure functions, shared by the browser (window.WPHArmyData) and the Node tests.
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
     module.exports = factory();
@@ -15,13 +12,13 @@
   const PAINTED = STAGES.indexOf("painted");
   const MAX_UNITS = 200;
   const MAX_MODELS_PER_UNIT = 120;
-  const MANIFESTATION = /\b(manifestation|endless spell|invocation)\b/i;
-  const TERRAIN = /\bterrain\b/i;
+  const MANIFESTATION = /\\b(manifestation|endless spell|invocation)\\b/i;
+  const TERRAIN = /\\bterrain\\b/i;
   // Rule categories that say nothing about what the model looks like.
-  const NOISE_KEYWORDS = /^(ward|champion|standard bearer|musician|warmaster|unique|general|army composition|configuration|reinforced|battleline|faction terrain|manifestation|endless spell|regimental)\b|\(\d/i;
+  const NOISE_KEYWORDS = /^(ward|champion|standard bearer|musician|warmaster|unique|general|army composition|configuration|reinforced|battleline|faction terrain|manifestation|endless spell|regimental)\\b|\\(\\d/i;
 
   function text(value, max = 120) {
-    return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max);
+    return String(value == null ? "" : value).replace(/\\s+/g, " ").trim().slice(0, max);
   }
 
   function list(value) {
@@ -340,14 +337,14 @@
     const sections = [];
     let current = null;
     let index = 0;
-    String(markdown || "").split(/\r?\n/).forEach(line => {
-      const heading = line.match(/^\s*#{1,6}\s+(.*)$/);
+    String(markdown || "").split(/\\r?\\n/).forEach(line => {
+      const heading = line.match(/^\\s*#{1,6}\\s+(.*)$/);
       if (heading) {
         current = { title: heading[1].trim(), steps: [], bullets: [] };
         sections.push(current);
         return;
       }
-      const step = line.match(/^\s*\d+[.)]\s+(.*)$/);
+      const step = line.match(/^\\s*\\d+[.)]\\s+(.*)$/);
       if (step) {
         if (!current) {
           current = { title: "", steps: [], bullets: [] };
@@ -357,7 +354,7 @@
         index += 1;
         return;
       }
-      const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
+      const bullet = line.match(/^\\s*[-*•]\\s+(.*)$/);
       if (bullet && current) {
         current.bullets.push(bullet[1].trim());
       } else if (line.trim() && current && !current.steps.length && !current.bullets.length) {
@@ -367,5 +364,28 @@
     return { sections, total: index };
   }
 
-  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps };
+  // NEW: Suggest next units to paint
+  function nextUnits(army, limit = 3) {
+    const unitsWithRegiment = army.regiments.flatMap(regiment => regiment.units.map(unit => ({ unit, regiment: regiment.name })));
+    const candidates = unitsWithRegiment.filter(({ unit }) => unit.kind === "unit" && !unitProgress(unit).done);
+    const inWork = candidates.filter(({ unit }) => unit.models.some(model => model.stage > 0));
+    const notStarted = candidates.filter(({ unit }) => unit.models.every(model => model.stage === 0));
+    inWork.sort((a, b) => {
+      const shareA = unitProgress(a.unit).share;
+      const shareB = unitProgress(b.unit).share;
+      if (shareB !== shareA) {
+        return shareB - shareA;
+      }
+      return b.unit.points - a.unit.points;
+    });
+    notStarted.sort((a, b) => b.unit.points - a.unit.points);
+    const result = inWork.concat(notStarted).slice(0, limit).map(({ unit, regiment }) => ({
+      unit,
+      regiment,
+      progress: unitProgress(unit)
+    }));
+    return result;
+  }
+
+  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps, nextUnits };
 }));

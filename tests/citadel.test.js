@@ -343,3 +343,16 @@ test("Citadel Contrast and Shade paints match PaintRack rows by product code", (
   const codes = paints.filter(paint => paint.manufacturer === "Citadel Colours" && /^2[49]-\d\d$/.test(paint.manufacturerCode));
   assert.ok(codes.length >= 75, `only ${codes.length} coded Contrast/Shade paints`);
 });
+
+test("colour distance is CIEDE2000 (reference pairs from Sharma et al.)", () => {
+  const pairs = [
+    [[50, 2.6772, -79.7751], [50, 0, -82.7485], 2.0425],
+    [[50, 0, 0], [50, -1, 2], 2.3669],
+    [[50, 2.5, 0], [73, 25, -18], 27.1492],
+    [[60.2574, -34.0099, 36.2677], [60.4626, -34.1751, 39.4387], 1.2644]
+  ];
+  pairs.forEach(([a, b, expected]) => assert.ok(Math.abs(citadel.deltaE2000(a, b) - expected) < 1e-4));
+  assert.equal(citadel.colorDistance("#556229", "#556229"), 0);
+  assert.ok(citadel.colorDistance("#69A05A", "#6EAC56") < 5, "two greens are close");
+  assert.ok(citadel.colorDistance("#69A05A", "#B94278") > 50, "green and pink are far apart");
+});

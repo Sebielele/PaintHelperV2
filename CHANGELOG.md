@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.22.0 (PaintHelperV2)
+
+- Colour matching uses CIEDE2000 (CIE Lab, D65) instead of the RGB distance, so
+  "closest paint" means what the eye sees as closest – in tooltips, catalogue matches,
+  paint equivalents, guides, primers and owned-paint checks. Thresholds retuned to the
+  new scale: owned paint counts up to ΔE 10, guide marks paints above ΔE 12 as
+  "closest" and leaves out those above 24, brand preference worth ΔE 6.
+- "Distance" in the app now shows ΔE (1 decimal); faster closest-paint search.
+
 ## v0.21.0 (PaintHelperV2)
 
 - Paints page: one search box for names, codes and descriptions. Names filter the list

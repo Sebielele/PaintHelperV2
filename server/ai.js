@@ -1505,8 +1505,8 @@ const GUIDE_TEXT = {
 };
 // Accents and neutrals get fewer steps than the large areas.
 const SHORT_LADDER = ["transparentCoat", "shadeWash", "basecoat", "edgeHighlight", "quickHighlight", "fineHighlight"];
-// RGB distance above which a paint is only an approximation of the step colour.
-const GUIDE_MIX_DISTANCE = 60;
+// Colour difference (CIEDE2000) above which a paint only approximates the step colour.
+const GUIDE_MIX_DISTANCE = 12;
 
 function guideText(language) {
   return GUIDE_TEXT[String(language || "").slice(0, 2)] || GUIDE_TEXT.en;

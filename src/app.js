@@ -73,15 +73,15 @@
       collapsedSections: { ...DEFAULT_SECTION_COLLAPSE }
     };
 
-    // RGB distance up to which an owned paint still counts as a match (0-441).
-    const OWNED_MATCH_MAX_DISTANCE = 40;
+    // Colour difference (CIEDE2000) up to which an owned paint still counts as a match.
+    const OWNED_MATCH_MAX_DISTANCE = 10;
     const GUIDE_EXCLUDED_COLLECTIONS = /\b(air|airbrush|aircraft|lacquer|spray|real colors|afv|naval|primers?|surface|oilbrusher|effects|weathering|soil works|heavy body|chameleon|colorshift|candy ink|dipping inks?)\b/i;
     // Vehicle and aircraft colour codes are of little use in a miniature guide.
     const GUIDE_EXCLUDED_NAMES = /\b(ijn|ija|rlm|ral|fs ?\d|jgsdf?|amt-?\d|usn|usaf|raf|luftwaffe|panzer|washable)\b/i;
     // Without owned paints, guides prefer the common miniature brands.
     const GUIDE_DEFAULT_BRANDS = ["Citadel Colours", "Vallejo", "Army Painter", "Scale 75", "P3", "Duncan Rhodes", "AK Interactive", "Green Stuff World"];
-    // Extra RGB distance a paint from another brand needs to beat a preferred one.
-    const GUIDE_BRAND_PENALTY = 30;
+    // Extra colour difference a paint from another brand needs to beat a preferred one.
+    const GUIDE_BRAND_PENALTY = 6;
     const GUIDE_EXCLUDED_TYPES = /\b(primer|varnish|medium|air|technical)\b/i;
     const GUIDE_METAL_NAMES = /metal|gold|brass|bronze|copper|silver|steel|iron|chrome|messing|kupfer|silber|stahl|eisen|\bor\b|\boro\b|argent|plata|acier|acciaio|rame/i;
     let pendingProducerKeys = null;
@@ -546,8 +546,8 @@
       };
       const lightness = Number(main.l) || 50;
       const fallbackHex = transparentMode || lightness > 62 ? "#DBD1B2" : lightness < 32 ? "#000000" : "#A2A5A7";
-      const coloured = !transparentMode && (pick(owned, main.hex, 60) || (!ownedOnly && pick(primers, main.hex, 45)));
-      const match = coloured || pick(owned, fallbackHex, 70) || (!ownedOnly && pick(primers, fallbackHex, 70));
+      const coloured = !transparentMode && (pick(owned, main.hex, 12) || (!ownedOnly && pick(primers, main.hex, 9)));
+      const match = coloured || pick(owned, fallbackHex, 15) || (!ownedOnly && pick(primers, fallbackHex, 15));
       return {
         tone: coloured ? "color" : transparentMode || lightness > 62 ? "light" : lightness < 32 ? "dark" : "grey",
         name: match ? match.name : "",

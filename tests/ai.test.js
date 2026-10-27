@@ -469,10 +469,10 @@ test("the guide is built from the app data with one paint per step", () => {
   const { buildGuide, guideText } = require("../server/ai");
   const step = (key, label, paint, distance) => ({ key, step: label, hint: "", hex: "#556229", paints: paint ? [{ name: paint, distance, owned: false }] : [] });
   const full = [
-    step("shadeWash", "Shade", "Athonian Camoshade", 20),
-    step("basecoat", "Basis", "Death Guard Green", 5),
-    step("layer", "Layer", "Ogryn Camo", 30),
-    step("edgeHighlight", "Kante", "Krieg Khaki", 90),
+    step("shadeWash", "Shade", "Athonian Camoshade", 6),
+    step("basecoat", "Basis", "Death Guard Green", 2),
+    step("layer", "Layer", "Ogryn Camo", 9),
+    step("edgeHighlight", "Kante", "Krieg Khaki", 18),
     step("focusLight", "Fokus", "", 0)
   ];
   const guide = buildGuide(sanitizeContext({

@@ -3059,6 +3059,7 @@
   // v0.20: assistant-first layout, painting desk, army projects.
   const V20_TRANSLATIONS = {
     en: {
+      collection: { searchSemantic: "Name, code or description – e.g. “warm bone white”", searchMeaning: "By description", meaningTitle: "Matching the description" },
       ui: { subtitle: "Describe your army – the assistant builds the palette and a step-by-step guide with your paints. Track every model on the army page." },
       assist: {
         jump: "Assistant", eyebrow: "Assistant", title: "What do you want to paint?",
@@ -3106,6 +3107,7 @@
       }
     },
     de: {
+      collection: { searchSemantic: "Name, Code oder Beschreibung – z. B. „warmes Knochenweiss“", searchMeaning: "Nach Beschreibung", meaningTitle: "Passend zur Beschreibung" },
       ui: { subtitle: "Beschreib deine Armee – der Assistent erstellt die Palette und eine Schritt-für-Schritt-Anleitung mit deinen Farben. Den Fortschritt jedes Modells verfolgst du auf der Armee-Seite." },
       assist: {
         jump: "Assistent", eyebrow: "Assistent", title: "Was möchtest du malen?",
@@ -3153,6 +3155,7 @@
       }
     },
     fr: {
+      collection: { searchSemantic: "Nom, code ou description – p. ex. « blanc os chaud »", searchMeaning: "Par description", meaningTitle: "Correspondant à la description" },
       ui: { subtitle: "Décrivez votre armée – l'assistant crée la palette et un guide pas à pas avec vos peintures. Suivez chaque figurine sur la page Armée." },
       assist: {
         jump: "Assistant", eyebrow: "Assistant", title: "Que voulez-vous peindre ?",
@@ -3200,6 +3203,7 @@
       }
     },
     es: {
+      collection: { searchSemantic: "Nombre, código o descripción – p. ej. «blanco hueso cálido»", searchMeaning: "Por descripción", meaningTitle: "Según la descripción" },
       ui: { subtitle: "Describe tu ejército: el asistente crea la paleta y una guía paso a paso con tus pinturas. Sigue cada miniatura en la página Ejército." },
       assist: {
         jump: "Asistente", eyebrow: "Asistente", title: "¿Qué quieres pintar?",
@@ -3247,6 +3251,7 @@
       }
     },
     it: {
+      collection: { searchSemantic: "Nome, codice o descrizione – es. «bianco osso caldo»", searchMeaning: "Per descrizione", meaningTitle: "In base alla descrizione" },
       ui: { subtitle: "Descrivi il tuo esercito: l'assistente crea la palette e una guida passo passo con i tuoi colori. Segui ogni miniatura nella pagina Esercito." },
       assist: {
         jump: "Assistente", eyebrow: "Assistente", title: "Cosa vuoi dipingere?",
@@ -3300,6 +3305,7 @@
     TRANSLATIONS[language].assist = block.assist;
     TRANSLATIONS[language].bench = block.bench;
     TRANSLATIONS[language].army = block.army;
+    Object.assign(TRANSLATIONS[language].collection, block.collection);
   }
 
   return {

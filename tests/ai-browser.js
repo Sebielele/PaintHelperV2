@@ -203,9 +203,15 @@ async function main() {
 
     // 4. Paint search in words, add to shopping list.
     await page.click('[data-workflow="paints"]');
-    await page.fill("#aiSearchInput", "bone parchment");
-    await page.click("#aiSearchBtn");
+    // One box: a paint name filters the list, a description finds paints by meaning
+    // by itself once no name matches.
+    await page.fill("#collectionSearchInput", "Abaddon");
+    await page.waitForSelector("#ownedPaintList .collection-item");
+    await page.waitForTimeout(900);
+    assert.equal(await page.isVisible("#aiSearchBlock"), false, "a name search stays a name search");
+    await page.fill("#collectionSearchInput", "bone parchment");
     await page.waitForSelector(".ai-search-card");
+    assert.equal(await page.isVisible("#aiSearchBlock"), true);
     const firstName = await page.locator(".ai-search-card .ai-search-name").first().textContent();
     await page.locator(".ai-search-card").first().locator("button", { hasText: "Auf die Einkaufsliste" }).click();
     assert.equal(await page.locator(".ai-search-card").first().locator("button", { hasText: "Auf der Einkaufsliste" }).isDisabled(), true);

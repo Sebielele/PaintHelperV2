@@ -1902,3 +1902,17 @@ main[data-workflow-view="army"] > .controls, main[data-workflow-view="army"] > .
 @media (prefers-reduced-motion: reduce) {
   .guide-progress-bar span, .bench-progress span { transition: none; }
 }
+
+/* v0.21: one search box on the paints page (names + descriptions) */
+.collection-search { display: flex; flex: 1 1 360px; gap: 8px; min-width: 0; }
+.collection-search input[type="search"] { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--field-bg); color: var(--text); font: inherit; }
+.collection-search button { white-space: nowrap; }
+.ai-search-block { margin: 0 0 14px; padding: 14px; border: 1px solid rgba(var(--accent-rgb), .4); border-radius: 12px; background: rgba(var(--accent-rgb), .06); }
+.ai-search-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.ai-search-head h4 { margin: 0; font-size: .95rem; }
+.ai-search-head .ai-status { margin: 0; }
+.ai-search-block .ai-search-results { margin-top: 10px; }
+@media (max-width: 760px) {
+  .collection-search { flex-basis: 100%; }
+  .collection-search button span:last-child { display: none; }
+}

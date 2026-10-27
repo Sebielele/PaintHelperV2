@@ -15,6 +15,7 @@
   let recipeText = "";
   let recipeSignature = "";
   let lastSearch = [];
+  let lastQuery = "";
   let recipeId = "";
   let recipeUnknown = 0;
   let undoState = null;
@@ -35,10 +36,13 @@
     [
       "aiPaletteInput", "aiPaletteBtn", "aiPaletteStatus", "aiPhotoBtn", "aiPhotoInput", "aiPhotoStatus",
       "aiDeletePaletteBtn", "aiRecipeBtn", "aiRecipeStopBtn", "aiRecipeCopyBtn", "aiRecipeStatus",
-      "aiRecipeOutput", "aiSearchForm", "aiSearchInput", "aiSearchStatus", "aiSearchResults",
+      "aiRecipeOutput", "aiSearchForm", "aiSearchStatus", "aiSearchResults", "aiSearchBlock",
       "aiPaletteFeedback", "aiRecipeFeedback", "aiRefineForm", "aiRefineInput", "aiRefineBtn", "aiUndoBtn",
       "aiRefineStatus", "aiRecipeOwnedOnly", "aiRecipeOwnedOnlyLabel", "aiPhotoOnlyBtn", "aiRecipeBenchBtn", "aiRecipeProgress"
     ].forEach(id => { el[id] = document.getElementById(id); });
+    // One search box on the paints page: names filter right away, descriptions go to the
+    // embedding search (Enter, the ✨ button, or by itself when no paint name matches).
+    el.aiSearchInput = document.getElementById("collectionSearchInput");
 
     setupFeedback(el.aiPaletteFeedback, () => {
       const selected = app.selectedCustomPalette();
@@ -91,7 +95,27 @@
     el.aiRecipeCopyBtn.addEventListener("click", copyRecipe);
     el.aiSearchForm.addEventListener("submit", event => {
       event.preventDefault();
-      searchPaints();
+      if (document.documentElement.classList.contains("wph-ai-search")) {
+        searchPaints();
+      }
+    });
+    let autoTimer = null;
+    el.aiSearchInput.addEventListener("input", () => {
+      clearTimeout(autoTimer);
+      const typed = el.aiSearchInput.value.trim();
+      if (!typed) {
+        clearSearch();
+        return;
+      }
+      autoTimer = setTimeout(() => {
+        // Only when the name filter finds nothing, so typing "Nuln" stays a name search.
+        const nameHits = document.querySelectorAll("#ownedPaintList .collection-item, #ownedPaintList .collection-group").length;
+        if (nameHits) {
+          clearSearch();
+        } else if (document.documentElement.classList.contains("wph-ai-search") && typed.length >= 4 && typed !== lastQuery) {
+          searchPaints();
+        }
+      }, 700);
     });
 
     const storage = window.WPHStorage;
@@ -100,6 +124,9 @@
         status = result || status;
         document.documentElement.classList.toggle("wph-ai-llm", Boolean(status.llm));
         document.documentElement.classList.toggle("wph-ai-search", Boolean(status.search));
+        if (status.search) {
+          el.aiSearchInput.placeholder = t("collection.searchSemantic");
+        }
         document.dispatchEvent(new CustomEvent("wph:ai-status", { detail: status }));
       }, () => {});
     }
@@ -110,8 +137,6 @@
       return;
     }
     el.aiPaletteInput.placeholder = t("ai.describePlaceholder");
-    el.aiSearchInput.placeholder = t("ai.searchPlaceholder");
-    el.aiSearchInput.setAttribute("aria-label", t("ai.searchTitle"));
     const selected = app.selectedCustomPalette();
     el.aiDeletePaletteBtn.hidden = !selected;
     el.aiRefineInput.placeholder = t("ai.refinePlaceholder");
@@ -822,6 +847,8 @@
 
   async function searchPaints() {
     const query = el.aiSearchInput.value.trim();
+    lastQuery = query;
+    el.aiSearchBlock.hidden = query.length < 2;
     if (query.length < 2) {
       el.aiSearchInput.focus();
       return;
@@ -850,6 +877,14 @@
       stopTimer();
       el.aiSearchStatus.textContent = errorText(error);
     }
+  }
+
+  function clearSearch() {
+    lastSearch = [];
+    lastQuery = "";
+    el.aiSearchStatus.textContent = "";
+    el.aiSearchResults.replaceChildren();
+    el.aiSearchBlock.hidden = true;
   }
 
   function renderSearchResults(results) {

@@ -106,7 +106,8 @@
     let paintSelectorOptions = [];
     let hoverTimer = null;
     // Collection view (not saved): search, filter, brand chips, open groups.
-    const collection = { search: "", filter: "all", brands: new Set(), open: new Set(), limits: new Map() };
+    // With a collection, the paints page opens on the owned paints instead of 5,400 entries.
+    const collection = { search: "", filter: ownedPaintKeys.size ? "owned" : "all", brands: new Set(), open: new Set(), limits: new Map() };
     let collectionSearchTimer = null;
     let activeHoverTarget = null;
 
@@ -1721,7 +1722,7 @@
     }
 
     function renderOwnedPaintList() {
-      el.collectionSearch.placeholder = t("collection.search");
+      el.collectionSearch.placeholder = t(document.documentElement.classList.contains("wph-ai-search") ? "collection.searchSemantic" : "collection.search");
       el.collectionFilters.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.collectionFilter === collection.filter)));
       renderCollectionBrands();
       const paints = collectionPaints();

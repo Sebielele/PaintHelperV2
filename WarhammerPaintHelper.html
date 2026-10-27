@@ -7,9 +7,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Warhammer Paint Helper</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png?v=0.20" />
-  <link rel="stylesheet" href="styles.css?v=0.20" />
-  <script src="src/theme.js?v=0.20"></script>
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=0.21" />
+  <link rel="stylesheet" href="styles.css?v=0.21" />
+  <script src="src/theme.js?v=0.21"></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace" data-i18n="ui.skipWorkspace">Skip to workspace</a>
@@ -18,7 +18,7 @@
       <div class="header-utility" aria-label="Application settings">
         <div class="brand-meta">
           <span class="eyebrow" data-i18n="ui.eyebrow">Miniature Palette Tool</span>
-          <p class="app-version" aria-label="Application version">v0.20</p>
+          <p class="app-version" aria-label="Application version">v0.21</p>
         </div>
         <div class="assist-header" data-ai-feature="llm">
           <button id="assistJumpBtn" type="button" class="assist-jump"><span aria-hidden="true">✨</span> <span data-i18n="assist.jump">Assistant</span></button>
@@ -450,24 +450,6 @@
         </div>
       </div>
 
-      <div class="section-box" data-collapsible-section="aiSearch" data-workflow-panel="paints" data-ai-feature="search">
-        <div class="section-head collapsible-section-head">
-          <div>
-            <h3 data-i18n="ai.searchTitle">Search paints in words</h3>
-            <p data-i18n="ai.searchDescription">Describe a colour.</p>
-          </div>
-          <button type="button" class="secondary collapse-button section-collapse-button" aria-expanded="true" aria-controls="aiSearchBody" data-section-collapse="aiSearch"></button>
-        </div>
-        <div id="aiSearchBody" class="section-body">
-          <form id="aiSearchForm" class="ai-search-form" role="search">
-            <input id="aiSearchInput" type="search" maxlength="120" autocomplete="off" />
-            <button id="aiSearchBtn" type="submit" data-i18n="ai.searchButton">Search</button>
-          </form>
-          <p id="aiSearchStatus" class="ai-status" aria-live="polite"></p>
-          <div id="aiSearchResults" class="ai-search-results"></div>
-        </div>
-      </div>
-
       <div class="section-box" data-collapsible-section="catalogueMatches" data-workflow-panel="paints">
         <div class="section-head collapsible-section-head">
           <div>
@@ -498,13 +480,23 @@
       </div>
       <div id="ownedPaintsBody" class="owned-paints-body">
         <div class="collection-toolbar">
-          <input id="collectionSearchInput" type="search" autocomplete="off" data-i18n-aria="collection.search" />
+          <form id="aiSearchForm" class="collection-search" role="search">
+            <input id="collectionSearchInput" type="search" autocomplete="off" data-i18n-aria="collection.search" />
+            <button id="aiSearchBtn" type="submit" class="secondary" data-ai-feature="search"><span aria-hidden="true">✨</span> <span data-i18n="collection.searchMeaning">By description</span></button>
+          </form>
           <div class="collection-filter" role="group" data-i18n-aria="collection.filter">
             <button type="button" class="secondary" data-collection-filter="all" data-i18n="collection.filterAll">All</button>
             <button type="button" class="secondary" data-collection-filter="owned" data-i18n="collection.filterOwned">Owned</button>
             <button type="button" class="secondary" data-collection-filter="missing" data-i18n="collection.filterMissing">Not owned</button>
             <button type="button" class="secondary" data-collection-filter="shopping" data-i18n="collection.filterShopping">Shopping list</button>
           </div>
+        </div>
+        <div id="aiSearchBlock" class="ai-search-block" data-ai-feature="search" hidden>
+          <div class="ai-search-head">
+            <h4 data-i18n="collection.meaningTitle">Matching the description</h4>
+            <p id="aiSearchStatus" class="ai-status" aria-live="polite"></p>
+          </div>
+          <div id="aiSearchResults" class="ai-search-results"></div>
         </div>
         <div id="collectionBrands" class="collection-brands" role="group" data-i18n-aria="collection.brands"></div>
         <div id="ownedPaintStatus" class="owned-paint-status" aria-live="polite"></div>
@@ -561,17 +553,17 @@
     <button type="button" data-dock="army" class="secondary"><span aria-hidden="true">🛡</span><span data-i18n="army.step">Army</span></button>
   </nav>
 
-  <script src="src/core.js?v=0.20"></script>
-  <script src="src/factions.js?v=0.20"></script>
-  <script src="src/i18n.js?v=0.20"></script>
-  <script src="src/citadel.js?v=0.20"></script>
-  <script src="src/storage.js?v=0.20"></script>
-  <script src="src/app.js?v=0.20"></script>
-  <script src="src/army-data.js?v=0.20"></script>
-  <script src="src/ai.js?v=0.20"></script>
-  <script src="src/bench.js?v=0.20"></script>
-  <script src="src/assist.js?v=0.20"></script>
-  <script src="src/army.js?v=0.20"></script>
-  <script src="src/ui.js?v=0.20"></script>
+  <script src="src/core.js?v=0.21"></script>
+  <script src="src/factions.js?v=0.21"></script>
+  <script src="src/i18n.js?v=0.21"></script>
+  <script src="src/citadel.js?v=0.21"></script>
+  <script src="src/storage.js?v=0.21"></script>
+  <script src="src/app.js?v=0.21"></script>
+  <script src="src/army-data.js?v=0.21"></script>
+  <script src="src/ai.js?v=0.21"></script>
+  <script src="src/bench.js?v=0.21"></script>
+  <script src="src/assist.js?v=0.21"></script>
+  <script src="src/army.js?v=0.21"></script>
+  <script src="src/ui.js?v=0.21"></script>
 </body>
 </html>

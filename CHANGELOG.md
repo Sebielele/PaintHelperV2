@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.21.0 (PaintHelperV2)
+
+- Paints page: one search box for names, codes and descriptions. Names filter the list
+  right away; a description ("warm bone white") goes to the embedding search with Enter,
+  the ✨ button, or by itself when no paint name matches. Results appear above the
+  collection with "use as main colour" and "add to shopping list".
+- With owned paints, the collection opens on "Owned" instead of all 5,400 paints.
+
 ## v0.20.0 (PaintHelperV2)
 
 - Assistant first: a "What do you want to paint?" box opens the palette page, with example

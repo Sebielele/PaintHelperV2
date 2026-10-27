@@ -1,0 +1,98 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const i18n = require("../src/i18n.js");
+const core = require("../src/core.js");
+
+test("supports the configured language set", () => {
+  assert.deepEqual(i18n.LANGUAGE_KEYS, ["en", "fr", "de", "es", "it"]);
+  assert.equal(i18n.hasLanguage("en"), true);
+  assert.equal(i18n.hasLanguage("fr"), true);
+  assert.equal(i18n.hasLanguage("de"), true);
+  assert.equal(i18n.hasLanguage("es"), true);
+  assert.equal(i18n.hasLanguage("it"), true);
+  assert.equal(i18n.hasLanguage("pt"), false);
+});
+
+test("palette editor labels use the selected locale", () => {
+  const labels = { en: "Locked", de: "Gesperrt", fr: "Verrouillée", es: "Bloqueado", it: "Bloccato" };
+  for (const [language, expected] of Object.entries(labels)) {
+    assert.equal(i18n.createTranslator(language)("ui.paletteLocked"), expected);
+    for (const key of ["editPaletteColor", "lockPaletteColor", "paletteUnlocked", "rerollPalette", "paletteLockHint"]) {
+      assert.notEqual(i18n.createTranslator(language)(`ui.${key}`), `ui.${key}`);
+    }
+  }
+});
+
+test("translates core UI labels and interpolates values", () => {
+  const en = i18n.createTranslator("en");
+  const fr = i18n.createTranslator("fr");
+  const de = i18n.createTranslator("de");
+  const es = i18n.createTranslator("es");
+  const it = i18n.createTranslator("it");
+
+  assert.equal(en("ui.system"), "Game system");
+  assert.equal(fr("ui.system"), "Système de jeu");
+  assert.equal(de("ui.system"), "Spielsystem");
+  assert.equal(es("ui.system"), "Sistema de juego");
+  assert.equal(it("ui.system"), "Sistema di gioco");
+  assert.equal(it("ui.paintSelectPlaceholder", { count: 12 }), "Seleziona un colore (12)");
+  assert.equal(en("citadel.distance", { distance: 12 }), "distance 12");
+});
+
+test("has complete locale key coverage", () => {
+  const englishPaths = new Set(leafPaths(i18n.TRANSLATIONS.en));
+
+  for (const language of i18n.LANGUAGE_KEYS) {
+    assert.deepEqual(new Set(leafPaths(i18n.TRANSLATIONS[language])), englishPaths);
+  }
+});
+
+test("has scheme titles for every configured system scheme in each language", () => {
+  for (const language of i18n.LANGUAGE_KEYS) {
+    const t = i18n.createTranslator(language);
+    for (const systemKey of Object.keys(core.SYSTEMS)) {
+      for (const schemeKey of core.getSchemeKeysForSystem(systemKey)) {
+        assert.notEqual(t(`schemes.${schemeKey}.title`), `schemes.${schemeKey}.title`);
+      }
+    }
+  }
+});
+
+test("translates expanded dictionary sections", () => {
+  const de = i18n.createTranslator("de");
+  const fr = i18n.createTranslator("fr");
+  const es = i18n.createTranslator("es");
+  const it = i18n.createTranslator("it");
+
+  assert.equal(de("materials.items.iron.name"), "Eisen");
+  assert.equal(fr("materials.items.iron.name"), "Fer");
+  assert.equal(es("materials.items.iron.name"), "Hierro");
+  assert.equal(es("bases.city.title"), "Adoquines de Ciudad Libre");
+  assert.equal(it("materials.items.iron.name"), "Ferro");
+  assert.equal(it("bases.city.title"), "Ciottoli della Città Libera");
+});
+
+function leafPaths(value, prefix = "") {
+  if (Array.isArray(value) || value === null || typeof value !== "object") {
+    return [prefix];
+  }
+
+  return Object.keys(value).flatMap(key => (
+    leafPaths(value[key], prefix ? `${prefix}.${key}` : key)
+  ));
+}
+
+
+test("workflow labels stay in their selected language after locale overrides", () => {
+  const expected = {
+    en: ["Workflow", "Palette", "Painting plan", "Paints & supplies", "Your palette · live preview", "Plan your painting →", "Find your paints →", "Back to palette", "Skip to workspace"],
+    it: ["Passaggi", "Tavolozza", "Piano di pittura", "Colori e materiali", "La tua tavolozza · anteprima", "Pianifica la pittura →", "Trova i colori →", "Torna alla tavolozza", "Vai allo spazio di lavoro"]
+  };
+  const keys = ["workflow", "stepPalette", "stepPlan", "stepPaints", "livePalette", "nextPlan", "nextPaints", "backPalette", "skipWorkspace"];
+  for (const [language, labels] of Object.entries(expected)) {
+    const translate = i18n.createTranslator(language);
+    keys.forEach((key, index) => {
+      assert.equal(translate(`ui.${key}`), labels[index], `${language}: ${key}`);
+    });
+  }
+});

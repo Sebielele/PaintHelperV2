@@ -421,16 +421,13 @@
     // Paint equivalents in the notes: brush paints only, brands the painter owns first.
     function equivalentPaints(hex) {
       const pool = filteredCataloguePaints().filter(paint => paint.hex && isBrushPaint(paint));
-      if (!pool.length) {
-        return [];
-      }
-      const owned = pool.filter(paint => ownedPaintKeys.has(paintKey(paint)));
-      const preferred = new Set(owned.length ? owned.map(paint => paint.manufacturer) : GUIDE_DEFAULT_BRANDS);
-      return W.findClosestPaints(hex, pool, 12)
-        .map(match => ({ match, score: match.distance + (preferred.has(match.manufacturer) ? 0 : GUIDE_BRAND_PENALTY) }))
-        .sort((a, b) => a.score - b.score)
-        .slice(0, 1)
-        .map(item => item.match);
+      return W.equivalentPaint(hex, pool, {
+        ownedKeys: ownedPaintKeys,
+        paintKey,
+        defaultBrands: GUIDE_DEFAULT_BRANDS,
+        brandPenalty: GUIDE_BRAND_PENALTY,
+        findClosestPaints: W.findClosestPaints
+      });
     }
 
     function isBrushPaint(paint) {
@@ -1677,17 +1674,14 @@
     // when it is close enough; otherwise the best catalogue paint is shown instead and
     // flagged, so a tiny collection does not turn every colour into the same three pots.
     function closestMatchesFor(hex, limit = 3) {
-      const all = filteredCataloguePaints().filter(paint => paint.hex);
-      if (!state.onlyOwnedMatches) {
-        return { matches: all.length ? W.findClosestPaints(hex, all, limit) : [], ownedMissing: false };
-      }
-      const owned = all.filter(paint => ownedPaintKeys.has(paintKey(paint)));
-      const close = (owned.length ? W.findClosestPaints(hex, owned, limit) : [])
-        .filter(match => match.distance <= OWNED_MATCH_MAX_DISTANCE);
-      if (close.length) {
-        return { matches: close, ownedMissing: false };
-      }
-      return { matches: all.length ? W.findClosestPaints(hex, all, 1) : [], ownedMissing: true };
+      return W.closestMatches(hex, filteredCataloguePaints().filter(paint => paint.hex), {
+        onlyOwned: state.onlyOwnedMatches,
+        ownedKeys: ownedPaintKeys,
+        paintKey,
+        limit,
+        maxDistance: OWNED_MATCH_MAX_DISTANCE,
+        findClosestPaints: W.findClosestPaints
+      });
     }
 
     function closestMatchCataloguePaints() {

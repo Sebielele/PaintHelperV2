@@ -14,6 +14,8 @@
     return new Set(Array.isArray(defaultBrands) ? defaultBrands : []);
   }
 
+  // Closest paints, but a paint from a brand the painter uses wins unless another
+  // brand is clearly closer; keeps a guide from mixing six brands.
   function rankByPreferredBrand(matches, preferred, penalty) {
     const preferredSet = preferred instanceof Set ? preferred : new Set(Array.isArray(preferred) ? preferred : []);
     const brandPenalty = penalty === undefined ? 0 : penalty;
@@ -78,6 +80,8 @@
     return "opaque";
   }
 
+  // Washes for shading steps, transparent paints for contrast/glaze steps, opaque
+  // paints otherwise; metallics only for metal areas. poolOfKinds falls back to all paints.
   function guideKindsForStep(stepKey, metal) {
     if (stepKey === "shadeWash") return ["wash"];
     if (stepKey === "transparentCoat" || stepKey === "glazeLayer") return ["transparent", "wash"];

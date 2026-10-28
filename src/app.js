@@ -2573,44 +2573,13 @@
     }
 
     function sanitizeCustomScheme(scheme) {
-      if (!scheme || typeof scheme !== "object" || !/^custom-[a-z0-9-]{1,40}$/.test(String(scheme.id || ""))) {
-        return null;
-      }
-      const roles = (Array.isArray(scheme.roles) ? scheme.roles : [])
-        .map(role => {
-          const hex = String(role && role.hex || "").trim().toUpperCase();
-          return CUSTOM_ROLE_CODES.includes(role && role.code) && /^#[0-9A-F]{6}$/.test(hex)
-            ? { code: role.code, name: cleanText(role.name, 60), hex }
-            : null;
-        })
-        .filter(Boolean)
-        .slice(0, CUSTOM_ROLE_CODES.length);
-      if (!roles.length) {
-        return null;
-      }
-      return {
-        id: scheme.id,
-        name: cleanText(scheme.name, 60) || "Palette",
-        source: ["ai", "photo"].includes(scheme.source) ? scheme.source : "ai",
-        prompt: cleanText(scheme.prompt, 400),
-        notes: cleanText(scheme.notes, 1200),
-        paintEquivalents: cleanText(scheme.paintEquivalents, 1200),
-        createdAt: typeof scheme.createdAt === "string" ? scheme.createdAt.slice(0, 40) : "",
-        rating: scheme.rating > 0 ? 1 : scheme.rating < 0 ? -1 : 0,
-        roles
-      };
+      return W.sanitizeCustomScheme(scheme, CUSTOM_ROLE_CODES);
     }
 
     // A palette received through a share link is added to the own palettes once
     // (same colours = same id) and selected.
     function importSharedCustomScheme(shared) {
-      const roles = Array.isArray(shared.roles) ? shared.roles : [];
-      const fingerprint = roles.map(role => `${role && role.code}${role && role.hex}`).join("") + String(shared.name || "");
-      let hash = 5381;
-      for (let i = 0; i < fingerprint.length; i += 1) {
-        hash = ((hash * 33) ^ fingerprint.charCodeAt(i)) >>> 0;
-      }
-      const scheme = sanitizeCustomScheme({ ...shared, id: `custom-s${hash.toString(36)}`, createdAt: new Date().toISOString() });
+      const scheme = sanitizeCustomScheme({ ...shared, id: W.sharedSchemeId(shared), createdAt: new Date().toISOString() });
       if (!scheme) {
         return;
       }
@@ -2622,134 +2591,35 @@
     }
 
     function cleanText(value, maxLength) {
-      return String(value || "").replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, maxLength);
+      return W.cleanText(value, maxLength);
     }
 
     function sanitizePaintRackCustomPaint(paint) {
-      if (!paint || typeof paint !== "object") {
-        return null;
-      }
-      const name = String(paint.name || "").trim();
-      const manufacturer = String(paint.manufacturer || "").trim();
-      if (!name || !manufacturer) {
-        return null;
-      }
-      return {
-        id: String(paint.id || ""),
-        name,
-        hex: null,
-        range: String(paint.range || ""),
-        finish: "",
-        manufacturer,
-        collection: String(paint.collection || ""),
-        status: "paintRack",
-        sourceUrl: "",
-        notes: String(paint.notes || "Imported from PaintRack CSV; no catalogue colour value."),
-        manufacturerCode: String(paint.manufacturerCode || ""),
-        paintRackImport: true,
-        count: validNumber(paint.count) ? paint.count : 1
-      };
+      return W.sanitizePaintRackCustomPaint(paint);
     }
 
     function normalizeControlGroupsCollapsed(value) {
-      const collapsedGroups = { ...DEFAULT_CONTROL_GROUP_COLLAPSE };
-      if (!value || typeof value !== "object") {
-        return collapsedGroups;
-      }
-      Object.keys(DEFAULT_CONTROL_GROUP_COLLAPSE).forEach(key => {
-        collapsedGroups[key] = Boolean(value[key]);
-      });
-      return collapsedGroups;
+      return W.normalizeFlags(value, DEFAULT_CONTROL_GROUP_COLLAPSE);
     }
 
     function normalizeCollapsedSections(value) {
-      const collapsedSections = { ...DEFAULT_SECTION_COLLAPSE };
-      if (!value || typeof value !== "object") {
-        return collapsedSections;
-      }
-      Object.keys(DEFAULT_SECTION_COLLAPSE).forEach(key => {
-        collapsedSections[key] = Boolean(value[key]);
-      });
-      return collapsedSections;
+      return W.normalizeFlags(value, DEFAULT_SECTION_COLLAPSE);
     }
 
     function readSettingsFromUrl() {
       try {
-        const params = new URLSearchParams(window.location.search);
-        if (!params.has("wph") && !params.has("hex")) {
-          return null;
-        }
-
-        const snapshot = {};
-        try {
-          snapshot.paletteEdits = W.normalizePaletteEdits(JSON.parse(params.get("palette") || "null"));
-        } catch (error) {
-          snapshot.paletteEdits = null;
-        }
-        const primary = hslFromHexParam(params.get("hex"));
-        const secondary = hslFromHexParam(params.get("shex"));
-        if (primary) {
-          snapshot.h = primary.h;
-          snapshot.s = primary.s;
-          snapshot.l = primary.l;
-        }
-        if (secondary) {
-          snapshot.secondary = secondary;
-        }
-        setStringSetting(snapshot, "language", params.get("lang"));
-        setStringSetting(snapshot, "system", params.get("system"));
-        setStringSetting(snapshot, "mode", params.get("mode"));
-        setStringSetting(snapshot, "factionSchemeId", params.get("faction"));
-        try {
-          const shared = JSON.parse(params.get("custom") || "null");
-          if (shared && typeof shared === "object") {
-            snapshot.sharedCustomScheme = shared;
-          }
-        } catch (error) {
-          snapshot.sharedCustomScheme = null;
-        }
-        setStringSetting(snapshot, "activeColor", params.get("active"));
-        setStringSetting(snapshot, "heraldicLayout", params.get("layout"));
-        setStringSetting(snapshot, "heraldicRatio", params.get("ratio"));
-        setStringSetting(snapshot, "heraldicAccent", params.get("accent"));
-        setStringSetting(snapshot, "schemeKey", params.get("scheme"));
-        setStringSetting(snapshot, "roleProfileKey", params.get("role"));
-        setStringSetting(snapshot, "baseThemeKey", params.get("base"));
-        setStringSetting(snapshot, "recipeModeKey", params.get("recipe"));
-        setStringSetting(snapshot, "paintSearch", params.get("search"));
-        const style = Number(params.get("style"));
-        if (Number.isFinite(style)) {
-          snapshot.style = style;
-        }
-        const producers = params.get("producers");
-        if (producers !== null) {
-          snapshot.producerKeys = producers.split(",")
-            .map(value => value.trim())
-            .filter(Boolean);
-        }
-        return snapshot;
+        return W.settingsFromParams(new URLSearchParams(window.location.search), {
+          normalizePaletteEdits: W.normalizePaletteEdits,
+          hexToRgb: W.hexToRgb,
+          rgbToHsl: W.rgbToHsl
+        });
       } catch (error) {
         return null;
       }
     }
 
-    function hslFromHexParam(value) {
-      if (!value) {
-        return null;
-      }
-      const hex = value.startsWith("#") ? value : `#${value}`;
-      const rgb = W.hexToRgb(hex);
-      return rgb ? W.rgbToHsl(rgb.r, rgb.g, rgb.b) : null;
-    }
-
-    function setStringSetting(target, key, value) {
-      if (typeof value === "string" && value) {
-        target[key] = value;
-      }
-    }
-
     function validNumber(value) {
-      return typeof value === "number" && Number.isFinite(value);
+      return W.validNumber(value);
     }
 
     function readSettingsSnapshot(key) {

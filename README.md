@@ -70,7 +70,7 @@ a paint from the catalogue, select a fixed faction scheme, or vary unlocked pale
 It then generates painting-friendly color schemes with role suggestions, paint matches,
 and steps you can turn into a practical miniature painting plan.
 
-Current app version: `v0.24` (`package.json` version `0.24.0`). The static HTML uses the
+Current app version: `v0.25` (`package.json` version `0.25.0`). The static HTML uses the
 major/minor version as a cache-buster on local CSS and JavaScript assets so deployed
 updates on GitHub Pages are less likely to reuse stale browser-cached files.
 
@@ -172,6 +172,30 @@ the Army page turns an army list into a painting project and tracks every model.
 - The painting desk shows the guide one step at a time, with large buttons for a tablet; ticked steps are saved.
 
 With the Synology server, army projects are stored per user on the server; in the static version they stay in the browser.
+
+## Painting Kit and Backup (PaintHelperV2)
+
+### Pack a painting kit
+
+On the paints page, "Pack a painting kit" lists every saved guide – palette guides and
+army unit guides. Tick the ones you want to paint (e.g. for a trip) and choose how far a
+stand-in may be off:
+
+- **Exact paints only** – pack exactly the owned paints the guides name.
+- **Very close / Similar / Travel light** (ΔE ≤ 5 / 10 / 15) – one owned pot may stand in
+  for several guide paints of the same kind (opaque, wash, transparent, metallic,
+  technical). The app picks the fewest pots that cover everything (greedy set cover).
+
+Guide paints nothing covers are listed with one button for the shopping list. The list
+can be copied or downloaded as a text file with tick boxes.
+
+### Backup
+
+"Back up your data" downloads all stored entries (palettes, profiles, guides, army
+projects, collection, shopping list, kit selection) as one JSON file. "Restore backup…"
+reads such a file, shows what it contains, and after confirmation overwrites those
+entries and reloads the page. With the server, the backup belongs to the signed-in
+user, so it can also move data between accounts.
 
 ## Saved Settings and Profiles
 

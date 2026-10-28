@@ -97,6 +97,9 @@ test("asset cache buster matches package major and minor version", () => {
     `src/bench.js?v=${majorMinor}`,
     `src/assist.js?v=${majorMinor}`,
     `src/army.js?v=${majorMinor}`,
+    `src/kit.js?v=${majorMinor}`,
+    `src/kit-ui.js?v=${majorMinor}`,
+    `src/backup.js?v=${majorMinor}`,
     `src/ui.js?v=${majorMinor}`
   ]);
   localAssets.forEach(asset => assert.match(asset, new RegExp(`\\?v=${escapeRegExp(majorMinor)}$`)));
@@ -130,6 +133,9 @@ test("application scripts load dependencies before app bootstrap", () => {
     "src/bench.js",
     "src/assist.js",
     "src/army.js",
+    "src/kit.js",
+    "src/kit-ui.js",
+    "src/backup.js",
     "src/ui.js"
   ]);
 });

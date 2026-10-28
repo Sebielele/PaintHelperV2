@@ -121,6 +121,24 @@
       }
       localSet(key, text);
     },
+    // All "wph.*" keys of the current user (server) or this browser (local); for backups.
+    keys() {
+      if (mode === "server") {
+        return Array.from(memory.keys()).filter(key => key.startsWith(LOCAL_PREFIX));
+      }
+      const keys = [];
+      try {
+        for (let index = 0; index < window.localStorage.length; index += 1) {
+          const key = window.localStorage.key(index);
+          if (key && key.startsWith(LOCAL_PREFIX)) {
+            keys.push(key);
+          }
+        }
+      } catch (error) {
+        // Storage blocked: nothing to list.
+      }
+      return keys;
+    },
     flush: () => flush(),
     ready: null
   };

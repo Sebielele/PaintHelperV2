@@ -249,7 +249,7 @@ ein Zugriffsprofil nur für LAN und VPN. Nach 10 Fehlversuchen pro Benutzer und 
 
 - Jede Version bekommt ein Git-Tag `vX.Y.Z` (passend zu `package.json`), z. B. in GitHub Desktop über „Create Tag“ und danach „Push origin“.
 - Der Workflow baut daraus zusätzlich ein Image mit der Versionsnummer (`ghcr.io/sebielele/painthelperv2:X.Y.Z`), dank `type=semver` in `.github/workflows/docker.yml`.
-- Im Portainer-Stack kann statt `:latest` eine feste Version stehen, z. B. `ghcr.io/sebielele/painthelperv2:0.24.0`.
+- Im Portainer-Stack kann statt `:latest` eine feste Version stehen, z. B. `ghcr.io/sebielele/painthelperv2:0.25.0`.
 - Zurückrollen: im Stack die ältere Versionsnummer eintragen und „Update the stack“ mit „Re-pull image“. Die Daten unter `/volume1/docker/painthelper` bleiben erhalten.
 - Vor grossen Updates ein Backup: Container-Console → `wph-user backup`.
 

@@ -99,6 +99,7 @@
     let resetUndo = null;
     let paintNameIndex = null;
     let paintNameIndexSource = null;
+    let catalogueReady = false;
     let cataloguePaints = mergePaintRackCustomPaints(W.DEFAULT_PAINT_CATALOGUE || W.DEFAULT_CITADEL_PAINTS);
     let factionSchemes = W.normalizeFactionSchemes(W.DEFAULT_FACTION_SCHEMES || W.DEFAULT_FACTION_SCHEME_DATA || []);
     let profiles = readProfiles();
@@ -215,6 +216,7 @@
     W.loadPaintCatalogue("data/paint-catalogue.json").then(result => {
       reconcileSavedPaints(result.paints);
       cataloguePaints = mergePaintRackCustomPaints(result.paints);
+      catalogueReady = true;
       catalogueSource = result.source;
       renderProducerFilters(true);
       renderPaintSelectorOptions();
@@ -303,6 +305,11 @@
           addShoppingPaintByKey(paintKey(paint));
         },
         isOwnedKey: key => ownedPaintKeys.has(key),
+        // For the painting kit (src/kit-ui.js): every owned brush paint, whatever brand
+        // filter is active, plus the key and colour difference the app uses.
+        ownedPaints: () => cataloguePaints.filter(paint => paint.hex && ownedPaintKeys.has(paintKey(paint)) && isBrushPaint(paint)),
+        paintKey: paint => paintKey(paint),
+        colorDistance: (hexA, hexB) => W.colorDistance(hexA, hexB),
         nearestPaints(hex, limit = 3) {
           return closestMatchesFor(hex, limit).matches;
         }
@@ -2249,7 +2256,9 @@
     function pruneOwnedShoppingPaints() {
       let changed = false;
       shoppingPaintKeys.forEach(key => {
-        if (ownedPaintKeys.has(key) || !paintByKey(key)) {
+        // Unknown keys are only dropped once the full catalogue is loaded; before that the
+        // small fallback set would wipe the saved shopping list on every page load.
+        if (ownedPaintKeys.has(key) || (catalogueReady && !paintByKey(key))) {
           shoppingPaintKeys.delete(key);
           changed = true;
         }

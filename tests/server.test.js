@@ -241,3 +241,12 @@ test("the database folder may not be inside a served folder", () => {
   const nested = loadConfig({ DATA_DIR: path.join(appRoot, "assets", "db"), APP_ROOT: appRoot });
   assert.throws(() => createServer(nested, {}, silentLog), /öffentlich/);
 });
+test("health reports the app version and uptime", async t => {
+  const { base } = await startTestServer(t);
+  const response = await fetch(`${base}/api/health`);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.version, require("../package.json").version);
+  assert.ok(Number.isInteger(body.uptime) && body.uptime >= 0);
+});

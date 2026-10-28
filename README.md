@@ -149,6 +149,30 @@ Typical workflow:
 9. Use the generated palette, role plan, paint ladder, base advice, and catalogue matches
    as a painting plan.
 
+## Army Projects
+
+the Army page turns an army list into a painting project and tracks every model.
+
+### Import
+
+1. In NewRecruit open your list and choose Export → JSON (BattleScribe: the `.rosz` or `.ros` file).
+2. On the Army page choose "Import army list" and pick the file.
+3. Units, models and points are read in; manifestations and terrain are hidden by default.
+4. Importing a newer version of the same list keeps progress, guides and the chosen palette; new and removed units are reported.
+
+### Tracking progress
+
+- Each model has a stage: Not started, Built, Primed, Painted, Based. A drop-down sets the stage for a whole unit.
+- The overview shows painted models, painted points and finished units, plus a bar per stage.
+- "Paint next" suggests up to three units: nearly finished units first, then the biggest untouched units.
+
+### Guides per unit
+
+- Choose a palette for the army; the assistant writes a painting guide per unit (needs the AI server).
+- The painting desk shows the guide one step at a time, with large buttons for a tablet; ticked steps are saved.
+
+With the Synology server, army projects are stored per user on the server; in the static version they stay in the browser.
+
 ## Saved Settings and Profiles
 
 The app automatically stores the last-used settings in the browser with `localStorage`,

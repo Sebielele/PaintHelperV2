@@ -106,3 +106,62 @@ test("next units prefer nearly finished, then big units", () => {
   // Ensure manifestations and terrain are not in the list
   assert.ok(next.every(entry => entry.unit.kind === "unit"));
 });
+
+// edge cases: empty armies and units without models
+test("edge cases: empty armies and units without models", () => {
+  // unitProgress with empty models
+  const unit = army.unitProgress({ models: [] });
+  assert.equal(unit.total, 0);
+  assert.equal(unit.painted, 0);
+  assert.equal(unit.share, 0);
+  assert.equal(unit.done, false);
+
+  // armyProgress with empty regiments
+  const armyEmpty = army.armyProgress({ regiments: [] });
+  assert.equal(armyEmpty.models, 0);
+  assert.equal(armyEmpty.painted, 0);
+  assert.equal(armyEmpty.units, 0);
+  assert.equal(armyEmpty.unitsDone, 0);
+
+  // nextUnits with empty regiments
+  const nextEmpty = army.nextUnits({ regiments: [] });
+  assert.equal(nextEmpty.length, 0);
+
+  // nextUnits skipping finished unit
+  const armyWithUnits = {
+    regiments: [
+      {
+        units: [
+          { name: "Finished", kind: "unit", models: [{ stage: 3 }] },
+          { name: "NotStarted", kind: "unit", models: [{ stage: 0 }] }
+        ]
+      }
+    ]
+  };
+  const nextUnitsResult = army.nextUnits(armyWithUnits, 3);
+  assert.equal(nextUnitsResult.length, 1);
+  assert.equal(nextUnitsResult[0].unit.name, "NotStarted");
+
+  // nextUnits with 5 units, limit 2
+  const armyMit5Einheiten = {
+    regiments: [
+      {
+        units: [
+          { name: "U1", kind: "unit", models: [{ stage: 0 }] },
+          { name: "U2", kind: "unit", models: [{ stage: 0 }] },
+          { name: "U3", kind: "unit", models: [{ stage: 0 }] },
+          { name: "U4", kind: "unit", models: [{ stage: 0 }] },
+          { name: "U5", kind: "unit", models: [{ stage: 0 }] }
+        ]
+      }
+    ]
+  };
+  const nextFive = army.nextUnits(armyMit5Einheiten, 2);
+  assert.equal(nextFive.length, 2);
+});
+
+// guide steps ignore text without numbered steps
+test("guide steps ignore text without numbered steps", () => {
+  const guide = army.guideSteps("## Nur Titel\nKein Schritt");
+  assert.equal(guide.total, 0);
+});

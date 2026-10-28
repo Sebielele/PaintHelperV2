@@ -247,6 +247,7 @@
     }
     el.armyBody.replaceChildren(
       renderOverview(army),
+      renderNext(army),
       renderPalette(army),
       renderToolbar(army),
       ...army.regiments

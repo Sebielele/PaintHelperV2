@@ -445,14 +445,7 @@
       const ownedOnly = Boolean(options.ownedOnly && ownedPaints.length);
       const allPaints = (ownedOnly ? ownedPaints : catalogue).filter(brushable);
       const ownedBrushPaints = ownedPaints.filter(brushable);
-      const preferredBrands = new Set(ownedPaints.length ? ownedPaints.map(paint => paint.manufacturer) : GUIDE_DEFAULT_BRANDS);
-      // Closest paints, but a paint from a brand the painter uses wins unless another
-      // brand is clearly closer; keeps a guide from mixing six brands.
-      const closest = (hex, pool, limit) => (pool.length ? W.findClosestPaints(hex, pool, 12) : [])
-        .map(match => ({ match, score: match.distance + (preferredBrands.has(match.manufacturer) ? 0 : GUIDE_BRAND_PENALTY) }))
-        .sort((a, b) => a.score - b.score)
-        .slice(0, limit)
-        .map(item => item.match);
+      const preferredBrands = W.preferredBrands(ownedPaints, GUIDE_DEFAULT_BRANDS);
       const describe = match => ({
         name: match.name,
         manufacturer: match.manufacturer || "",
@@ -460,40 +453,19 @@
         owned: ownedPaintKeys.has(paintKey(match)),
         distance: Math.round(match.distance)
       });
-      // Washes for shading steps, transparent paints for contrast/glaze steps, opaque
-      // paints otherwise; metallics only for metal areas. Falls back to all paints.
-      const kindOf = paint => {
-        const text = `${paint.range || ""} ${paint.finish || ""}`.toLowerCase();
-        if (/metallic/.test(text)) return "metal";
-        if (/wash|shade|ink|tone/.test(text)) return "wash";
-        if (/contrast|speedpaint|xpress|glaze/.test(text)) return "transparent";
-        return "opaque";
+      // An owned paint goes first only when it is close enough; a far-off owned pot
+      // would otherwise be used for every step of the guide.
+      const stepContext = {
+        allPaints,
+        ownedBrushPaints,
+        ownedOnly,
+        preferred: preferredBrands,
+        brandPenalty: GUIDE_BRAND_PENALTY,
+        maxDistance: OWNED_MATCH_MAX_DISTANCE,
+        findClosestPaints: W.findClosestPaints
       };
-      const kindsFor = (stepKey, metal) => {
-        if (stepKey === "shadeWash") return ["wash"];
-        if (stepKey === "transparentCoat" || stepKey === "glazeLayer") return ["transparent", "wash"];
-        return metal ? ["metal"] : ["opaque"];
-      };
-      const poolFor = (list, kinds) => {
-        const pool = list.filter(paint => kinds.includes(kindOf(paint)));
-        return pool.length ? pool : list;
-      };
-      const paintsFor = (hex, stepKey = "basecoat", metal = false) => {
-        const kinds = kindsFor(stepKey, metal);
-        const best = closest(hex, poolFor(allPaints, kinds), 2).map(describe);
-        // An owned paint goes first only when it is close enough; a far-off owned pot
-        // would otherwise be used for every step of the guide.
-        const owned = ownedBrushPaints.length && !ownedOnly
-          ? closest(hex, poolFor(ownedBrushPaints, kinds), 1)
-            .filter(match => match.distance <= OWNED_MATCH_MAX_DISTANCE && kinds.includes(kindOf(match)))
-            .map(describe)
-          : [];
-        const seen = new Set();
-        return owned.concat(best).filter(paint => {
-          const key = `${paint.manufacturer}|${paint.name}`;
-          return seen.has(key) ? false : seen.add(key);
-        }).slice(0, 3);
-      };
+      const paintsFor = (hex, stepKey = "basecoat", metal = false) =>
+        W.guideStepPaints(hex, stepKey, metal, stepContext).map(describe);
       const bases = W.baseSuggestions({
         palette: currentPalette,
         state,
@@ -550,20 +522,16 @@
     // Primer: a coloured spray close to the main colour when there is one (owned first),
     // otherwise black, grey or a light primer by brightness; light for contrast schemes.
     function primerFor(main, catalogue, ownedOnly, transparentMode, preferredBrands) {
-      const all = catalogue.filter(paint => /primer/i.test(`${paint.range || ""} ${paint.finish || ""}`));
-      const preferred = all.filter(paint => preferredBrands.has(paint.manufacturer));
-      const primers = preferred.length ? preferred : all;
-      const owned = primers.filter(paint => ownedPaintKeys.has(paintKey(paint)));
-      const pick = (list, hex, max) => {
-        const match = list.length ? W.findClosestPaints(hex, list, 1)[0] : null;
-        return match && match.distance <= max ? match : null;
-      };
-      const lightness = Number(main.l) || 50;
-      const fallbackHex = transparentMode || lightness > 62 ? "#DBD1B2" : lightness < 32 ? "#000000" : "#A2A5A7";
-      const coloured = !transparentMode && (pick(owned, main.hex, 12) || (!ownedOnly && pick(primers, main.hex, 9)));
-      const match = coloured || pick(owned, fallbackHex, 15) || (!ownedOnly && pick(primers, fallbackHex, 15));
+      const { tone, match } = W.pickPrimer(main, catalogue, {
+        ownedOnly,
+        transparentMode,
+        preferred: preferredBrands,
+        ownedKeys: ownedPaintKeys,
+        paintKey,
+        findClosestPaints: W.findClosestPaints
+      });
       return {
-        tone: coloured ? "color" : transparentMode || lightness > 62 ? "light" : lightness < 32 ? "dark" : "grey",
+        tone,
         name: match ? match.name : "",
         manufacturer: match ? match.manufacturer || "" : "",
         owned: Boolean(match && ownedPaintKeys.has(paintKey(match)))

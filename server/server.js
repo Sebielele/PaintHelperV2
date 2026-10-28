@@ -10,6 +10,7 @@ const path = require("node:path");
 const zlib = require("node:zlib");
 const { openDatabase, UserError, STORAGE_KEY_PATTERN } = require("./db");
 const { createAi, loadAiConfig, AiError } = require("./ai");
+const APP_VERSION = require("../package.json").version;
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_VALUE_BYTES = 2 * 1024 * 1024;
@@ -118,7 +119,7 @@ function createServer(config, store, log = console, ai = null) {
     }
 
     if (route === "GET /api/health") {
-      return sendJson(res, 200, { ok: true });
+      return sendJson(res, 200, { ok: true, version: APP_VERSION, uptime: Math.round(process.uptime()) });
     }
 
     if (route === "GET /api/session") {

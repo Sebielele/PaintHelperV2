@@ -310,6 +310,29 @@
   function stageSummary(stages) {
     return Data.STAGES.map((stage, index) => `${t(`army.stages.${stage}`)} ${stages[index]}`).join(", ");
   }
+  function renderNext(army) {
+    const next = Data.nextUnits(army, 3);
+    if (!next.length) {
+      return h("div", { className: "army-next", hidden: true });
+    }
+    return h("section", { className: "army-next", "aria-label": t("army.nextTitle") }, [
+      h("h4", { text: t("army.nextTitle") }),
+      h("div", { className: "army-next-list" }, next.map(entry => {
+        const detail = entry.progress.painted > 0
+          ? t("army.nextProgress", { painted: entry.progress.painted, total: entry.progress.total })
+          : t("army.nextStart", { points: entry.unit.points });
+        const text = `${entry.regiment} · ${detail}`;
+        return h("button", {
+          type: "button",
+          className: "secondary army-next-item",
+          onClick: () => scrollToUnit(entry.unit)
+        }, [
+          h("strong", { text: entry.unit.name }),
+          h("span", { className: "meta", text })
+        ]);
+      }))
+    ]);
+  }
 
   function renderPalette(army) {
     const palettes = app.customPalettes();
@@ -428,6 +451,12 @@
     ]);
   }
 
+  function scrollToUnit(unit) {
+    const elUnit = el.armyBody.querySelector(`[data-unit-key="${CSS.escape(unit.key || "")}"]`);
+    if (elUnit) {
+      elUnit.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
   function renderUnit(army, unit) {
     const progress = Data.unitProgress(unit);
     const groups = [];

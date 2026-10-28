@@ -466,7 +466,7 @@
       text: unit.guide ? t("army.rewriteGuide") : `✨ ${t("army.writeGuide")}`,
       onClick: () => writeUnitGuide(army, unit)
     }));
-    return h("article", { className: `army-unit${progress.done ? " is-done" : ""}` }, [
+    return h("article", { className: `army-unit${progress.done ? " is-done" : ""}`, "data-unit-key": unit.key || "" }, [
       h("div", { className: "army-unit-head" }, [
         h("h4", {}, [unit.name, unit.isNew ? h("span", { className: "army-new", text: t("army.new") }) : null]),
         h("span", { className: "meta", text: [unit.points ? t("army.points", { points: unit.points }) : "", unit.kind !== "unit" ? t(`army.kind.${unit.kind}`) : ""].filter(Boolean).join(" · ") })

@@ -114,11 +114,41 @@
     return zones;
   }
 
+  // Figure types selected from unit keywords.
+  const FIGURE_TYPES = ["infantry", "cavalry", "monster"];
+
+  // Compute shaded tones for a zone from its base colour.
+  function zoneTones(hex, core) {
+    const rgb = core && core.hexToRgb ? core.hexToRgb(hex) : null;
+    if (!rgb) {
+      return null;
+    }
+    const hsl = core.rgbToHsl(rgb.r, rgb.g, rgb.b);
+    const ladder = core.ladderForColor({ hex, h: hsl.h, s: hsl.s, l: hsl.l }, 0, "battle");
+    const pick = key => (ladder.find(step => step.key === key) || {}).hex || hex;
+    return { highlight: pick("edgeHighlight"), layer: pick("layer"), base: hex, shade: pick("shadeWash") };
+  }
+
+  // Choose the figure silhouette from unit keywords.
+  function figureForKeywords(keywords) {
+    const words = (Array.isArray(keywords) ? keywords : []).map(word => String(word).toUpperCase());
+    if (words.includes("MONSTER") || words.includes("BEAST")) {
+      return "monster";
+    }
+    if (words.includes("CAVALRY") || words.includes("WAR MACHINE")) {
+      return "cavalry";
+    }
+    return "infantry";
+  }
+
   return {
     FIGURE_ZONES,
     ZONE_BY_AREA,
     zoneForArea,
     areaKeysInText,
-    figureZonesForText
+    figureZonesForText,
+    FIGURE_TYPES,
+    zoneTones,
+    figureForKeywords
   };
 }));

@@ -33,6 +33,21 @@
     const done = new Set(options.done || []);
     const firstOpen = cards.findIndex(card => card.kind === "step" && !done.has(card.step.index));
     session = { options, cards, done, total: parsed.total, current: firstOpen > -1 ? firstOpen : 0 };
+    // Figure preview: each colour section fills the zones named in its "where" line.
+    session.zoneFills = {};
+    session.sectionZones = new Map();
+    if (window.WPH && window.WPH.figureZonesForText && window.WPH.TRANSLATIONS) {
+      parsed.sections.forEach(section => {
+        const zones = section.lead ? window.WPH.figureZonesForText(section.lead, window.WPH.TRANSLATIONS) : [];
+        session.sectionZones.set(section, zones);
+        const hex = swatchFor(section.title);
+        zones.forEach(zone => {
+          if (hex && !session.zoneFills[zone]) {
+            session.zoneFills[zone] = hex;
+          }
+        });
+      });
+    }
     build();
     render();
     document.documentElement.classList.add("bench-open");
@@ -209,6 +224,18 @@
       main.className = "bench-step";
       inline(main, parts[0]);
       stage.append(head, counter, main);
+      const hasFigure = Boolean(window.WPHFigure && Object.keys(session.zoneFills).length);
+      stage.classList.toggle("has-figure", hasFigure);
+      if (hasFigure) {
+        const figure = document.createElement("div");
+        figure.className = "bench-figure";
+        figure.appendChild(window.WPHFigure.create({
+          fills: session.zoneFills,
+          highlight: session.sectionZones.get(card.section) || [],
+          title: card.section.title
+        }));
+        stage.appendChild(figure);
+      }
       if (card.section.lead) {
         const lead = document.createElement("p");
         lead.className = "bench-lead";
@@ -232,6 +259,7 @@
       overlay.querySelector(".bench-next").textContent = isDone ? t("bench.undo") : `✓ ${t("bench.doneNext")}`;
     } else {
       stage.classList.remove("is-done");
+      stage.classList.remove("has-figure");
       card.sections.forEach(section => {
         const head = document.createElement("div");
         head.className = "bench-section";

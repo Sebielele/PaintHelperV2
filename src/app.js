@@ -1850,45 +1850,29 @@
       }
     }
 
+    // Import plan from src/logic/collection.js; here only state, rendering and saving.
     function importPaintRackCsv(csvText) {
       const parsed = W.parsePaintRackCsv(csvText);
-      const previouslyOwned = new Set(ownedPaintKeys);
-      const customByKey = new Map(paintRackCustomPaints.map(paint => [paintKey(paint), paint]));
-      const matched = [];
-      const custom = [];
       const invalid = parsed.invalid.map(item => ({
         label: paintRackInvalidLabel(item),
         reason: item.reason
       }));
-
-      parsed.paints.forEach(row => {
-        const match = W.findPaintRackCatalogueMatch(row, cataloguePaints.filter(paint => paint.hex && !paint.paintRackImport));
-        if (match) {
-          // A row imported earlier without a catalogue match leaves a colourless entry;
-          // drop it now that the catalogue knows the paint.
-          const staleKey = paintKey(W.createPaintRackCustomPaint(row));
-          if (customByKey.has(staleKey)) {
-            customByKey.delete(staleKey);
-            ownedPaintKeys.delete(staleKey);
-          }
-          const key = paintKey(match);
-          ownedPaintKeys.add(key);
-          shoppingPaintKeys.delete(key);
-          selectedManufacturers.add(paintProducerKey(match));
-          matched.push({ row, paint: match, alreadyOwned: previouslyOwned.has(key) });
-          return;
-        }
-
-        const paint = W.createPaintRackCustomPaint(row);
-        const key = paintKey(paint);
-        customByKey.set(key, paint);
-        ownedPaintKeys.add(key);
-        shoppingPaintKeys.delete(key);
-        selectedManufacturers.add(paintProducerKey(paint));
-        custom.push({ row, paint });
+      const plan = W.planPaintRackImport({
+        parsed,
+        catalogue: cataloguePaints,
+        customPaints: paintRackCustomPaints,
+        ownedKeys: ownedPaintKeys,
+        shoppingKeys: shoppingPaintKeys,
+        findMatch: W.findPaintRackCatalogueMatch,
+        createCustom: W.createPaintRackCustomPaint
       });
+      ownedPaintKeys.clear();
+      plan.ownedKeys.forEach(key => ownedPaintKeys.add(key));
+      shoppingPaintKeys.clear();
+      plan.shoppingKeys.forEach(key => shoppingPaintKeys.add(key));
+      plan.producers.forEach(producer => selectedManufacturers.add(producer));
 
-      paintRackCustomPaints = Array.from(customByKey.values())
+      paintRackCustomPaints = plan.customPaints
         .sort((a, b) => paintSelectorText(a).localeCompare(paintSelectorText(b)));
       cataloguePaints = mergePaintRackCustomPaints(cataloguePaints);
       state.paintRackCustomPaints = paintRackCustomPaints;
@@ -1901,7 +1885,7 @@
       renderCitadelMatches();
       saveLastSettings();
 
-      return { matched, custom, invalid };
+      return { matched: plan.matched, custom: plan.custom, invalid };
     }
 
     function showPaintRackImportReport(report) {

@@ -230,9 +230,10 @@ test("PaintRack CSV import controls mark matched and custom paints owned", () =>
   assert.match(app, /async function importPaintRackFile\(\)/);
   assert.match(app, /function importPaintRackCsv\(csvText\)/);
   assert.match(app, /W\.parsePaintRackCsv\(csvText\)/);
-  assert.match(app, /W\.findPaintRackCatalogueMatch\(row, cataloguePaints\.filter\(paint => paint\.hex && !paint\.paintRackImport\)\)/);
-  assert.match(app, /W\.createPaintRackCustomPaint\(row\)/);
-  assert.match(app, /ownedPaintKeys\.add\(key\)/);
+  assert.match(app, /W\.planPaintRackImport\(\{/);
+  assert.match(app, /findMatch: W\.findPaintRackCatalogueMatch/);
+  assert.match(app, /createCustom: W\.createPaintRackCustomPaint/);
+  assert.match(app, /plan\.ownedKeys\.forEach\(key => ownedPaintKeys\.add\(key\)\)/);
   assert.match(app, /function showPaintRackImportReport\(report\)/);
   assert.match(app, /paintSelectorOptions = filteredCataloguePaints\(\)[\s\S]*\.filter\(paint => paint\.hex\)/);
 });

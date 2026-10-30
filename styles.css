@@ -1648,6 +1648,14 @@ h1 { font-size: clamp(1.6rem, 2.6vw, 2.3rem); }
 .collection-group-name { font-weight: 700; }
 .collection-group-count { margin-left: auto; color: var(--muted); font-size: .8rem; }
 .collection-group-count.has-owned { color: var(--accent); }
+/* Collection: one fold per brand, its product lines inside */
+.collection-brand { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.collection-brand > summary { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; list-style: none; font-weight: 750; }
+.collection-brand > summary::-webkit-details-marker { display: none; }
+.collection-brand > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+.collection-brand[open] > summary::before { transform: rotate(90deg); }
+.collection-brand-groups { display: grid; gap: 8px; padding: 0 10px 10px; }
+.collection-brand .collection-group-brand { display: none; }
 .collection-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px; padding: 0 10px 10px; }
 .collection-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 8px; background: var(--panel); }
 .collection-item.is-owned { outline: 1px solid rgba(var(--accent-rgb), .45); }

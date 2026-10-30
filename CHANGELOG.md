@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.29.0 (PaintHelperV2)
+
+- Painting desk: the figure is shaded with the painting ladder of each colour (edge highlight,
+  layer, basecoat, shade; light from the top left), so the plan reads like a painted model.
+- Three figures: infantry, cavalry and monster. Opened from the army page, the figure follows the
+  unit's keywords (MONSTER/BEAST → monster, CAVALRY/WAR MACHINE → cavalry).
+- Unit photos: shown next to the title in the painting desk and as thumbnails in "Paint next";
+  photos are cleared when an army is deleted or a unit disappears on re-import. A unit matched
+  by name on re-import keeps its old key, so its photo stays attached.
+- Texts are split into one file per language (`src/i18n/<language>.js`); `src/i18n.js` only
+  holds the translator.
+
 ## v0.28.0 (PaintHelperV2)
 
 - Painting desk: a figure next to each step shows the guide's colours on nine zones

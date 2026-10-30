@@ -114,9 +114,41 @@
     };
   }
 
+  // Paints that can be added to the shopping list, filtered by search and sorted by label.
+  function shoppingCandidates(options) {
+    const opts = options || {};
+    const paints = Array.isArray(opts.paints) ? opts.paints : [];
+    const ownedKeys = opts.ownedKeys || new Set();
+    const shoppingKeys = opts.shoppingKeys || new Set();
+    const keyOf = opts.keyOf;
+    const labelOf = opts.labelOf;
+    const query = String(opts.query || "").trim().toLowerCase();
+    return paints
+      .filter(paint => paint.hex)
+      .filter(paint => !ownedKeys.has(keyOf(paint)))
+      .filter(paint => !shoppingKeys.has(keyOf(paint)))
+      .filter(paint => !query || String(labelOf(paint)).toLowerCase().includes(query))
+      .sort((a, b) => String(labelOf(a)).localeCompare(String(labelOf(b))));
+  }
+
+  // Shopping list entries for saved keys, skipping unknown and now-owned paints.
+  function shoppingEntries(options) {
+    const opts = options || {};
+    const shoppingKeys = Array.from(opts.shoppingKeys || []);
+    const ownedKeys = opts.ownedKeys || new Set();
+    const paintByKey = opts.paintByKey || (() => null);
+    const labelOf = opts.labelOf;
+    return shoppingKeys
+      .map(key => ({ key, paint: paintByKey(key) }))
+      .filter(item => item.paint && !ownedKeys.has(item.key))
+      .sort((a, b) => String(labelOf(a.paint)).localeCompare(String(labelOf(b.paint))));
+  }
+
   return {
     collectionPaintKey,
     reconcilePaintKeys,
-    planPaintRackImport
+    planPaintRackImport,
+    shoppingCandidates,
+    shoppingEntries
   };
 }));

@@ -2129,20 +2129,23 @@
     }
 
     function shoppingSearchPaints() {
-      const query = el.shoppingSearch.value.trim().toLowerCase();
-      return cataloguePaints
-        .filter(paint => paint.hex)
-        .filter(paint => !ownedPaintKeys.has(paintKey(paint)))
-        .filter(paint => !shoppingPaintKeys.has(paintKey(paint)))
-        .filter(paint => !query || paintSelectorText(paint).toLowerCase().includes(query))
-        .sort((a, b) => paintSelectorText(a).localeCompare(paintSelectorText(b)));
+      return W.shoppingCandidates({
+        paints: cataloguePaints,
+        ownedKeys: ownedPaintKeys,
+        shoppingKeys: shoppingPaintKeys,
+        keyOf: paintKey,
+        labelOf: paintSelectorText,
+        query: el.shoppingSearch.value
+      });
     }
 
     function shoppingListPaints() {
-      return Array.from(shoppingPaintKeys)
-        .map(key => ({ key, paint: paintByKey(key) }))
-        .filter(item => item.paint && !ownedPaintKeys.has(item.key))
-        .sort((a, b) => paintSelectorText(a.paint).localeCompare(paintSelectorText(b.paint)));
+      return W.shoppingEntries({
+        shoppingKeys: shoppingPaintKeys,
+        ownedKeys: ownedPaintKeys,
+        paintByKey,
+        labelOf: paintSelectorText
+      });
     }
 
     function renderShoppingList() {

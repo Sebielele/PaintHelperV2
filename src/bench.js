@@ -42,9 +42,13 @@
     session.sectionZones = new Map();
     if (window.WPH && window.WPH.figureZonesForText && window.WPH.TRANSLATIONS) {
       parsed.sections.forEach(section => {
-        const zones = section.lead ? window.WPH.figureZonesForText(section.lead, window.WPH.TRANSLATIONS) : [];
-        session.sectionZones.set(section, zones);
+        let zones = section.lead ? window.WPH.figureZonesForText(section.lead, window.WPH.TRANSLATIONS) : [];
         const hex = swatchFor(section.title);
+        // Accent colours have no "where" line; highlight and fill the generic accent zone.
+        if (hex && !zones.length) {
+          zones = ["accent"];
+        }
+        session.sectionZones.set(section, zones);
         zones.forEach(zone => {
           if (hex && !session.zoneFills[zone]) {
             session.zoneFills[zone] = hex;
@@ -347,10 +351,10 @@
       const counter = document.createElement("p");
       counter.className = "bench-counter";
       counter.textContent = t("bench.stepOf", { number: card.step.index + 1, total, position: card.position + 1, count: card.count });
-      const parts = card.step.text.split(" – ");
+      const split = window.WPHArmyData.splitStepText(card.step.text);
       const main = document.createElement("p");
       main.className = "bench-step";
-      inline(main, parts[0]);
+      inline(main, split.main);
       stage.append(head, counter, main);
       const hasFigure = Boolean(window.WPHFigure && Object.keys(session.zoneFills).length);
       stage.classList.toggle("has-figure", hasFigure);
@@ -382,10 +386,10 @@
         lead.textContent = card.section.lead;
         stage.appendChild(lead);
       }
-      if (parts.length > 1) {
+      if (split.hint) {
         const hint = document.createElement("p");
         hint.className = "bench-hint";
-        hint.textContent = parts.slice(1).join(" – ");
+        inline(hint, split.hint);
         stage.appendChild(hint);
       }
       const isDone = done.has(card.step.index);

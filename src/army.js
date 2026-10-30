@@ -127,6 +127,15 @@
     }
   }
 
+  // Clear the photos of these units (only keys that hold a photo are written).
+  function clearPhotos(army, units) {
+    units.forEach(unit => {
+      if (readPhoto(army, unit)) {
+        writePhoto(army, unit, "");
+      }
+    });
+  }
+
   // Downscale a picked image to a small JPEG data URL; tries smaller sizes until it fits.
   async function photoFromFile(file) {
     const url = URL.createObjectURL(file);
@@ -177,6 +186,8 @@
       let army;
       if (existing) {
         army = Data.mergeArmy(existing, { ...parsed, id: existing.id, updatedAt: now });
+        const keptPhotos = new Set(army.regiments.flatMap(regiment => regiment.units).map(unit => Data.photoKey(army.id, unit)));
+        clearPhotos(existing, existing.regiments.flatMap(regiment => regiment.units).filter(unit => !keptPhotos.has(Data.photoKey(existing.id, unit))));
         store.armies = store.armies.map(entry => (entry.id === existing.id ? army : entry));
         setStatus(t("army.reimported", { name: army.name, added: army.addedUnits || 0, removed: (army.removedUnits || []).length }));
       } else {
@@ -466,6 +477,7 @@
           return;
         }
         confirmDelete = false;
+        clearPhotos(army, army.regiments.flatMap(regiment => regiment.units));
         store.armies = store.armies.filter(entry => entry.id !== army.id);
         store.activeId = store.armies[0] ? store.armies[0].id : "";
         save();

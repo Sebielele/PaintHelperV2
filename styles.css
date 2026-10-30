@@ -1949,6 +1949,10 @@ main[data-workflow-view="army"] > .controls, main[data-workflow-view="army"] > .
 .guide-missing .ai-paint-swatch { width: 16px; height: 16px; }
 .guide-missing-name { font-weight: 650; }
 .guide-missing p { margin: 0; }
+/* Painting guide: missing paints below the guide, folded */
+.guide-missing-toggle { padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.guide-missing-toggle::before { content: "▸ "; color: var(--muted); }
+.guide-missing-toggle[aria-expanded="true"]::before { content: "▾ "; }
 .assist-undo { min-height: 42px; }
 
 /* ---- Painting kit and backup (v0.25) -------------------------------------- */

@@ -19,6 +19,7 @@
   let recipeId = "";
   let recipeUnknown = 0;
   let undoState = null;
+  let missingOpen = false;
   const el = {};
 
   document.addEventListener("wph:update", () => {
@@ -496,11 +497,14 @@
     const toBuy = missing.filter(item => !item.substitute && !app.isOnShoppingList(item.paint));
     const head = document.createElement("div");
     head.className = "guide-missing-head";
-    const title = document.createElement("strong");
+    const title = document.createElement("button");
+    title.type = "button";
+    title.className = "guide-missing-toggle";
     title.textContent = t("assist.missingTitle", { count: missing.length });
+    title.setAttribute("aria-expanded", String(missingOpen));
     const add = document.createElement("button");
     add.type = "button";
-    add.className = "secondary";
+    add.className = "secondary guide-missing-add";
     add.textContent = toBuy.length ? t("assist.missingAdd", { count: toBuy.length }) : t("assist.missingAllListed");
     add.disabled = !toBuy.length;
     add.addEventListener("click", () => {
@@ -528,6 +532,15 @@
     const hint = document.createElement("p");
     hint.className = "meta";
     hint.textContent = t("assist.missingHint");
+    // Folded by default so the guide stays at the top; the choice holds for this visit.
+    list.hidden = !missingOpen;
+    hint.hidden = !missingOpen;
+    title.addEventListener("click", () => {
+      missingOpen = !missingOpen;
+      title.setAttribute("aria-expanded", String(missingOpen));
+      list.hidden = !missingOpen;
+      hint.hidden = !missingOpen;
+    });
     el.aiRecipeMissing.replaceChildren(head, list, hint);
   }
 

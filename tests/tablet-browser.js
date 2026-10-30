@@ -77,9 +77,9 @@ async function main() {
 
     // What am I missing: unowned guide paints go to the shopping list with one button.
     await page.waitForSelector("#aiRecipeMissing:not([hidden])");
-    await page.locator("#aiRecipeMissing .guide-missing-head button").click();
+    await page.locator("#aiRecipeMissing .guide-missing-add").click();
     assert.ok(await page.locator("#shoppingList .shopping-item, #shoppingList li, #shoppingList > *").count() > 0, "missing paints listed");
-    assert.equal(await page.locator("#aiRecipeMissing .guide-missing-head button").isDisabled(), true);
+    assert.equal(await page.locator("#aiRecipeMissing .guide-missing-add").isDisabled(), true);
 
     // Painting desk: starts at the first open step; "done, next" ticks and moves on.
     await page.click("#aiRecipeBenchBtn");

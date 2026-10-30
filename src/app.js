@@ -441,28 +441,22 @@
 
     // Everything the assistant needs to write a recipe grounded in real catalogue paints.
     function recipeContext(options = {}) {
-      // Airbrush, lacquer, spray and vehicle-colour lines are left out of brush guides.
-      const brushable = isBrushPaint;
-      const catalogue = filteredCataloguePaints().filter(paint => paint.hex);
-      const ownedPaints = catalogue.filter(paint => ownedPaintKeys.has(paintKey(paint)));
-      const ownedOnly = Boolean(options.ownedOnly && ownedPaints.length);
-      // Discontinued paints only when the painter still has the pot.
-      const available = paint => !paint.discontinued || ownedPaintKeys.has(paintKey(paint));
-      const allPaints = (ownedOnly ? ownedPaints : catalogue).filter(paint => brushable(paint) && available(paint));
-      const ownedBrushPaints = ownedPaints.filter(brushable);
-      const preferredBrands = W.preferredBrands(ownedPaints, GUIDE_DEFAULT_BRANDS);
-      const describe = match => ({
-        name: match.name,
-        manufacturer: match.manufacturer || "",
-        range: match.range || match.finish || "",
-        owned: ownedPaintKeys.has(paintKey(match)),
-        distance: Math.round(match.distance)
+      // Paint pool, paint descriptions, areas and colour ladders follow src/logic/recipe.js.
+      const pool = W.guidePaintPool({
+        catalogue: filteredCataloguePaints(),
+        ownedKeys: ownedPaintKeys,
+        paintKey,
+        ownedOnly: options.ownedOnly,
+        isBrushPaint
       });
+      const { catalogue, ownedOnly } = pool;
+      const preferredBrands = W.preferredBrands(pool.ownedPaints, GUIDE_DEFAULT_BRANDS);
+      const describe = match => W.describeGuidePaint(match, ownedPaintKeys.has(paintKey(match)));
       // An owned paint goes first only when it is close enough; a far-off owned pot
       // would otherwise be used for every step of the guide.
       const stepContext = {
-        allPaints,
-        ownedBrushPaints,
+        allPaints: pool.allPaints,
+        ownedBrushPaints: pool.ownedBrushPaints,
         ownedOnly,
         preferred: preferredBrands,
         brandPenalty: GUIDE_BRAND_PENALTY,
@@ -500,25 +494,14 @@
         onlyOwnedPaints: Boolean(state.onlyOwnedMatches),
         ownedOnly,
         primer: currentPalette.length ? primerFor(currentPalette[0], catalogue, ownedOnly, transparentMode, preferredBrands) : null,
-        areas: rolePlannerItems().slice(0, 12).map(item => {
-          const color = resolveRoleColor(item.colorRef);
-          return { area: item.extra ? color.name : t(`roleAreas.${item.areaKey}`), color: color.name, hex: color.hex };
-        }),
-        colors: currentPalette.slice(0, 6).map(color => {
-          const name = colorName(color);
-          const metal = GUIDE_METAL_NAMES.test(name);
-          return {
-            name,
-            hex: color.hex,
-            metal,
-            steps: W.ladderForColor(color, state.style, state.recipeModeKey).map(step => ({
-              key: step.key,
-              step: t(`ladder.steps.${step.key}`),
-              hint: t(`ladder.hints.${step.key}`),
-              hex: step.hex,
-              paints: paintsFor(step.hex, step.key, metal)
-            }))
-          };
+        areas: W.recipeAreas(rolePlannerItems(), resolveRoleColor, areaKey => t(`roleAreas.${areaKey}`)),
+        colors: W.recipeColors(currentPalette, {
+          colorName,
+          metalPattern: GUIDE_METAL_NAMES,
+          ladderForColor: color => W.ladderForColor(color, state.style, state.recipeModeKey),
+          stepLabel: key => t(`ladder.steps.${key}`),
+          stepHint: key => t(`ladder.hints.${key}`),
+          paintsFor
         }),
         base: bases[0] || null
       };

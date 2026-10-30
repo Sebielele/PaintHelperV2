@@ -96,7 +96,7 @@
   function describeItems(items) {
     const areas = new Set();
     Object.keys(items).forEach(key => {
-      if (key.startsWith("wph.armies")) areas.add("armies");
+      if (key.startsWith("wph.armies") || key.startsWith("wph.photo.")) areas.add("armies");
       else if (key.startsWith("wph.guides")) areas.add("guides");
       else if (key.startsWith("wph.settings") || key.startsWith("wph.profiles")) areas.add("palettes");
       else if (key.startsWith("wph.kit")) areas.add("kit");

@@ -44,3 +44,8 @@ test("describes the areas a backup touches and names the file", () => {
   assert.equal(backup.fileName(new Date("2026-10-28T12:00:00Z"), "Sebi/../x"), "painthelper-backup-Sebi..x-2026-10-28.json");
   assert.equal(backup.fileName(new Date("2026-10-28T12:00:00Z"), ""), "painthelper-backup-2026-10-28.json");
 });
+
+test("unit photos count as army projects in the restore summary", () => {
+  assert.deepEqual(backup.describeItems({ "wph.photo.09563ff1": "data:image/jpeg;base64,AA==" }), ["armies"]);
+  assert.deepEqual(backup.describeItems({ "wph.armies.v1": "", "wph.photo.9508f0e7": "" }), ["armies"]);
+});

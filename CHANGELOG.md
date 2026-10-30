@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.32.0 (PaintHelperV2)
+
+- Compact layout for the tablet: slimmer header (the subtitle only on the palette page), all
+  palette colours in one row on the palette page, and a thin colour strip instead of the big
+  cards on the plan, paints and army pages. On the plan and paints pages the settings sit above
+  the content, which gets the full width.
+- Painting plan: the guide comes first; "Missing paints" moved below it and is folded (click
+  the title to open it; the shopping-list button stays visible).
+- Collection: one row per brand ("x of y owned"); opening a brand shows its product lines as
+  before. Narrowed lists (search or filter, up to 400 paints) open the brands right away.
+  The paints page shrinks from about 10,000 px to under 3,000 px on a tablet.
+
 ## v0.31.0 (PaintHelperV2)
 
 - Share link parameters are built by `shareParams` in `src/logic/settings.js`, next to

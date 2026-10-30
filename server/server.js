@@ -417,13 +417,13 @@ function readJson(req) {
       if (size > MAX_BODY_BYTES) {
         tooLarge = true;
         chunks.length = 0;
-        reject(new HttpError(413, "Anfrage zu gross.", "too_large"));
         return;
       }
       chunks.push(chunk);
     });
     req.on("end", () => {
       if (tooLarge) {
+        reject(new HttpError(413, "Anfrage zu gross.", "too_large"));
         return;
       }
       try {

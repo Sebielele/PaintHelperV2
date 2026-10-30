@@ -1513,6 +1513,11 @@ function guideText(language) {
   return GUIDE_TEXT[String(language || "").slice(0, 2)] || GUIDE_TEXT.en;
 }
 
+// Same colour, ignoring the case of the hex digits.
+function sameHex(a, b) {
+  return Boolean(a && b) && String(a).toLowerCase() === String(b).toLowerCase();
+}
+
 function buildGuide(context, text) {
   const lines = [`## ${text.prep}`];
   const primer = context.primer;
@@ -1523,7 +1528,9 @@ function buildGuide(context, text) {
   lines.push(`${primer ? 2 : 1}. ${text.prepTip}`);
   context.colors.forEach((color, index) => {
     lines.push("", `## ${color.name || color.hex}`);
-    const areas = context.areas.filter(area => area.color === color.name && area.area && area.area !== color.name).map(area => area.area);
+    // Areas of this colour: by name, or by hex when the role planner names the colour by its role.
+    const areas = context.areas.filter(area => area.area && area.area !== color.name && area.area !== area.color
+      && (area.color === color.name || sameHex(area.hex, color.hex))).map(area => area.area);
     if (areas.length) {
       lines.push(`${text.where}: ${Array.from(new Set(areas)).join(", ")}`);
     }

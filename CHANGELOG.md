@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.30.0 (PaintHelperV2)
+
+- Fix: painting guides got no "where" lines (and so no figure in the painting desk) when the
+  role planner names a colour by its role ("Dominant colour") while the palette names it
+  differently ("Armour"). Areas now also match the palette colour by hex. Write the guide
+  again to get the figure for older guides.
+- Collection rules moved out of `src/app.js` into `src/logic/collection.js` (paint keys,
+  catalogue corrections, PaintRack import plan) with their own tests; behaviour unchanged.
+
 ## v0.29.0 (PaintHelperV2)
 
 - Painting desk: the figure is shaded with the painting ladder of each colour (edge highlight,

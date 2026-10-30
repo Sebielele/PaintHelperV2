@@ -514,3 +514,22 @@ test("status reports reachability and the queue; guides can name a unit", async 
   const offline = await login(offlineBase, "anna", "anna-pass-1");
   assert.equal((await offline("GET", "/api/ai/status")).data.reachable, false);
 });
+
+test("where lines also find a palette colour by hex when the role has another name", () => {
+  const { buildGuide, guideText } = require("../server/ai");
+  const step = { key: "basecoat", step: "Basis", hint: "", hex: "#6B7A3A", paints: [{ name: "Deep Green", distance: 2, owned: false }] };
+  const guide = buildGuide(sanitizeContext({
+    language: "de",
+    areas: [
+      { area: "Rüstung, Haut, Robe oder Hauptstoff", color: "Dominante Farbe", hex: "#6B7A3A" },
+      { area: "Metalldetails", color: "Eisen", hex: "#6D7478" },
+      { area: "Heller Neutralton", color: "Heller Neutralton", hex: "#D8CBA0" }
+    ],
+    colors: [
+      { name: "Rüstung", hex: "#6b7a3a", steps: [step] },
+      { name: "Knochen", hex: "#D8CBA0", steps: [step] }
+    ]
+  }), guideText("de"));
+  assert.match(guide, /## Rüstung\nWo: Rüstung, Haut, Robe oder Hauptstoff\n1\. Basis: \*\*Deep Green\*\*/);
+  assert.match(guide, /## Knochen\n1\. Basis/);
+});

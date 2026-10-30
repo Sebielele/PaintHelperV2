@@ -112,6 +112,7 @@
     const collection = { search: "", filter: ownedPaintKeys.size ? "owned" : "all", open: new Set(), openBrands: new Set(), limits: new Map() };
     let collectionSearchTimer = null;
     let paintTooltip = null;
+    let wheel = null;
 
     const $ = id => document.getElementById(id);
     const el = {
@@ -206,6 +207,13 @@
 
     syncControlsFromState();
     renderProfiles();
+    wheel = window.WPHWheel.create({
+      canvas: el.wheel,
+      dot: el.dot,
+      markers: el.markers,
+      onStart: clearFactionScheme,
+      onPick: applyWheelPick
+    });
     drawWheel();
     attachEvents();
     W.app = createAppApi();
@@ -662,19 +670,6 @@
         update();
       });
 
-      el.wheel.addEventListener("pointerdown", event => {
-        clearFactionScheme();
-        if (el.wheel.setPointerCapture) {
-          el.wheel.setPointerCapture(event.pointerId);
-        }
-        pickFromWheel(event);
-      });
-      el.wheel.addEventListener("pointermove", event => {
-        if (event.buttons === 1) {
-          pickFromWheel(event);
-        }
-      });
-      el.wheel.addEventListener("click", pickFromWheel);
       el.scheme.addEventListener("change", () => {
         clearFactionScheme();
         update();
@@ -2688,74 +2683,33 @@
     }
 
     function drawWheel() {
-      const canvas = el.wheel;
-      const ctx = canvas.getContext("2d");
-      const size = canvas.width;
-      const r = size / 2;
-      const img = ctx.createImageData(size, size);
-      const data = img.data;
-      for (let y = 0; y < size; y += 1) {
-        for (let x = 0; x < size; x += 1) {
-          const dx = x - r;
-          const dy = y - r;
-          const i = (y * size + x) * 4;
-          const color = W.wheelColorAt(dx, dy, r);
-          if (color) {
-            const rgb = W.hslToRgb(color.h, color.s, 50);
-            data[i] = rgb.r;
-            data[i + 1] = rgb.g;
-            data[i + 2] = rgb.b;
-            data[i + 3] = 255;
-          } else {
-            data[i + 3] = 0;
-          }
-        }
+      if (wheel) {
+        wheel.draw();
       }
-      ctx.putImageData(img, 0, 0);
     }
 
     function setDot() {
-      const rect = el.wheel.getBoundingClientRect();
-      const wrap = el.wheel.parentElement.getBoundingClientRect();
-      const color = activeWheelColor();
-      positionWheelMarker(el.dot, color.h, color.s, rect, wrap);
-      el.dot.style.background = color.hex;
+      if (wheel) {
+        wheel.placeDot(activeWheelColor());
+      }
     }
 
     function setSchemeMarkers() {
-      const rect = el.wheel.getBoundingClientRect();
-      const wrap = el.wheel.parentElement.getBoundingClientRect();
-      const markers = currentPalette.slice(1);
-
-      replaceChildren(el.markers, markers.map((color, index) => createElement("span", {
-        className: "scheme-marker",
-        attributes: { "data-marker-index": index },
-        styleBackground: color.hex
-      })));
-
-      el.markers.querySelectorAll(".scheme-marker").forEach((marker, index) => {
-        const color = markers[index];
-        marker.title = `${roleName(color.roleKey)} ${color.hex}`;
-        positionWheelMarker(marker, color.h, color.s, rect, wrap);
-      });
-    }
-
-    function positionWheelMarker(marker, hue, saturation, rect, wrap) {
-      const point = W.wheelMarkerPoint(hue, saturation, rect.width / 2);
-      marker.style.left = `${rect.left + point.x - wrap.left}px`;
-      marker.style.top = `${rect.top + point.y - wrap.top}px`;
-    }
-
-    function pickFromWheel(event) {
-      const rect = el.wheel.getBoundingClientRect();
-      const r = rect.width / 2;
-      const color = W.wheelColorAt(event.clientX - rect.left - r, event.clientY - rect.top - r, r, 5);
-      if (!color) {
+      if (!wheel) {
         return;
       }
+      wheel.placeMarkers(currentPalette.slice(1).map(color => ({
+        h: color.h,
+        s: color.s,
+        hex: color.hex,
+        title: `${roleName(color.roleKey)} ${color.hex}`
+      })));
+    }
+
+    function applyWheelPick(color) {
       const picked = {
-        h: Math.round(color.h),
-        s: Math.round(color.s),
+        h: color.h,
+        s: color.s,
         l: state.activeColor === "secondary" && state.mode === "heraldic" ? state.secondary.l : state.l
       };
       if (state.mode === "heraldic" && state.activeColor === "secondary") {

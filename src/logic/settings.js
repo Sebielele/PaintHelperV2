@@ -164,6 +164,58 @@
     return snapshot;
   }
 
+  // URL parameters of a share link (settingsFromParams reads them back). The colours come in
+  // as hex values; producers are only listed when they differ from the whole catalogue.
+  function shareParams(snapshot, options) {
+    const opts = options || {};
+    const params = new URLSearchParams();
+    params.set("wph", String(opts.settingsVersion));
+    params.set("system", snapshot.system);
+    params.set("mode", snapshot.mode);
+    params.set("hex", String(opts.primaryHex || "").replace(/^#/, ""));
+    params.set("style", String(Math.round(snapshot.style)));
+    params.set("scheme", snapshot.schemeKey);
+    params.set("role", snapshot.roleProfileKey);
+    params.set("base", snapshot.baseThemeKey);
+    params.set("recipe", snapshot.recipeModeKey);
+    params.set("lang", snapshot.language);
+    if (snapshot.paletteEdits) {
+      params.set("palette", JSON.stringify(snapshot.paletteEdits));
+    }
+    if (snapshot.factionSchemeId) {
+      params.set("faction", snapshot.factionSchemeId);
+      const custom = (opts.customSchemes || []).find(scheme => scheme.id === snapshot.factionSchemeId);
+      if (custom) {
+        params.set("custom", JSON.stringify({
+          name: custom.name,
+          source: custom.source,
+          notes: custom.notes,
+          roles: custom.roles
+        }));
+      }
+    }
+    if (snapshot.mode === "heraldic") {
+      params.set("active", snapshot.activeColor);
+      params.set("shex", String(opts.secondaryHex || "").replace(/^#/, ""));
+      params.set("layout", snapshot.heraldicLayout);
+      params.set("ratio", snapshot.heraldicRatio);
+      params.set("accent", snapshot.heraldicAccent);
+    }
+    if (snapshot.paintSearch) {
+      params.set("search", snapshot.paintSearch);
+    }
+    if (snapshot.onlyOwnedMatches) {
+      params.set("ownedOnly", "1");
+    }
+    const allProducers = opts.allProducerKeys || [];
+    const sameProducers = snapshot.producerKeys.length === allProducers.length
+      && snapshot.producerKeys.every(key => allProducers.includes(key));
+    if (!sameProducers) {
+      params.set("producers", snapshot.producerKeys.join(","));
+    }
+    return params;
+  }
+
   return {
     cleanText,
     validNumber,
@@ -172,6 +224,7 @@
     sanitizePaintRackCustomPaint,
     normalizeFlags,
     hslFromHexParam,
-    settingsFromParams
+    settingsFromParams,
+    shareParams
   };
 }));

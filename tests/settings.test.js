@@ -120,3 +120,52 @@ test("settingsFromParams reads URL parameters and keeps parse failures null", ()
   const langParams = new URLSearchParams("wph=1&lang=");
   assert.equal(settings.settingsFromParams(langParams, deps).language, undefined);
 });
+
+test("shareParams writes a share link that settingsFromParams reads back", () => {
+  const deps = { normalizePaletteEdits: core.normalizePaletteEdits, hexToRgb: core.hexToRgb, rgbToHsl: core.rgbToHsl };
+  const snapshot = {
+    system: "aos", mode: "heraldic", style: 12.4, schemeKey: "complementary", roleProfileKey: "default",
+    baseThemeKey: "auto", recipeModeKey: "battle", language: "de", paletteEdits: null,
+    factionSchemeId: "custom-abc", activeColor: "secondary", heraldicLayout: "quartered", heraldicRatio: "balanced",
+    heraldicAccent: "gold", paintSearch: "nuln", onlyOwnedMatches: true, producerKeys: ["Citadel"]
+  };
+  const params = settings.shareParams(snapshot, {
+    settingsVersion: 3,
+    primaryHex: "#3366CC",
+    secondaryHex: "#CC3333",
+    customSchemes: [{ id: "custom-abc", name: "Mine", source: "me", notes: "", roles: { D: "#3366CC" }, prompt: "secret" }],
+    allProducerKeys: ["Citadel", "Vallejo"]
+  });
+  assert.equal(params.get("wph"), "3");
+  assert.equal(params.get("hex"), "3366CC");
+  assert.equal(params.get("shex"), "CC3333");
+  assert.equal(params.get("style"), "12");
+  assert.equal(params.get("ownedOnly"), "1");
+  assert.deepEqual(JSON.parse(params.get("custom")), { name: "Mine", source: "me", notes: "", roles: { D: "#3366CC" } });
+  const back = settings.settingsFromParams(new URLSearchParams(params.toString()), deps);
+  assert.equal(back.system, "aos");
+  assert.equal(back.mode, "heraldic");
+  assert.equal(back.h, 220);
+  assert.equal(back.style, 12);
+  assert.equal(back.heraldicLayout, "quartered");
+  assert.equal(back.paintSearch, "nuln");
+  assert.deepEqual(back.producerKeys, ["Citadel"]);
+  assert.equal(back.sharedCustomScheme.name, "Mine");
+});
+
+test("shareParams leaves out producers when all are selected and heraldic fields otherwise", () => {
+  const params = settings.shareParams({
+    system: "k40", mode: "single", style: 0, schemeKey: "s", roleProfileKey: "r", baseThemeKey: "b",
+    recipeModeKey: "battle", language: "en", paletteEdits: null, factionSchemeId: "", paintSearch: "",
+    onlyOwnedMatches: false, producerKeys: ["Vallejo", "Citadel"]
+  }, { settingsVersion: 3, primaryHex: "#112233", allProducerKeys: ["Citadel", "Vallejo"] });
+  assert.equal(params.has("producers"), false);
+  assert.equal(params.has("shex"), false);
+  assert.equal(params.has("faction"), false);
+  assert.equal(params.has("ownedOnly"), false);
+  const none = settings.shareParams({
+    system: "k40", mode: "single", style: 0, schemeKey: "s", roleProfileKey: "r", baseThemeKey: "b",
+    recipeModeKey: "battle", language: "en", producerKeys: []
+  }, { settingsVersion: 3, primaryHex: "#112233", allProducerKeys: ["Citadel"] });
+  assert.equal(none.get("producers"), "");
+});

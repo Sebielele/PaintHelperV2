@@ -13,6 +13,8 @@ const { createAi, loadAiConfig, AiError } = require("./ai");
 const APP_VERSION = require("../package.json").version;
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
+// Drain oversized bodies so the client can receive 413, but cap total bytes to stop endless uploads.
+const MAX_DRAIN_BYTES = 4 * MAX_BODY_BYTES;
 const MAX_VALUE_BYTES = 2 * 1024 * 1024;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_PER_USER = 10;
@@ -409,31 +411,48 @@ function readJson(req) {
     let size = 0;
     const chunks = [];
     let tooLarge = false;
+    let rejected = false;
+    const fail = error => {
+      if (!rejected) {
+        rejected = true;
+        reject(error);
+      }
+    };
     req.on("data", chunk => {
+      if (rejected) {
+        return;
+      }
       size += chunk.length;
-      if (tooLarge) {
+      if (size > MAX_DRAIN_BYTES) {
+        fail(new HttpError(413, "Anfrage zu gross.", "too_large"));
+        req.destroy();
         return;
       }
       if (size > MAX_BODY_BYTES) {
-        tooLarge = true;
-        chunks.length = 0;
-        reject(new HttpError(413, "Anfrage zu gross.", "too_large"));
+        if (!tooLarge) {
+          tooLarge = true;
+          chunks.length = 0;
+        }
         return;
       }
       chunks.push(chunk);
     });
     req.on("end", () => {
+      if (rejected) {
+        return;
+      }
       if (tooLarge) {
+        fail(new HttpError(413, "Anfrage zu gross.", "too_large"));
         return;
       }
       try {
         const parsed = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
         resolve(parsed && typeof parsed === "object" ? parsed : {});
       } catch (error) {
-        reject(new HttpError(400, "Ungültiges JSON."));
+        fail(new HttpError(400, "Ungültiges JSON."));
       }
     });
-    req.on("error", reject);
+    req.on("error", fail);
   });
 }
 

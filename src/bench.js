@@ -14,7 +14,7 @@
     return app ? app.t(key, params) : key;
   }
 
-  // options: { title, subtitle, text, done: number[], colors: [{name, hex}], onToggle(index, checked) }
+  // options: { title, subtitle, text, photo, photoAlt, done: number[], colors: [{name, hex}], onToggle(index, checked) }
   function open(options) {
     const parsed = window.WPHArmyData.guideSteps(options.text);
     const cards = [];
@@ -81,6 +81,7 @@
     overlay.innerHTML = `
       <div class="bench-top">
         <div class="bench-heading">
+          <img class="bench-photo" alt="" hidden />
           <p class="eyebrow bench-eyebrow"></p>
           <h2 class="bench-title"></h2>
         </div>
@@ -192,6 +193,14 @@
     const card = cards[session.current];
     overlay.querySelector(".bench-eyebrow").textContent = options.subtitle || t("bench.title");
     overlay.querySelector(".bench-title").textContent = options.title || "";
+    const photo = overlay.querySelector(".bench-photo");
+    photo.hidden = !options.photo;
+    if (options.photo) {
+      photo.src = options.photo;
+      photo.alt = options.photoAlt || "";
+    } else {
+      photo.removeAttribute("src");
+    }
     overlay.querySelector(".bench-close").textContent = `✕ ${t("bench.close")}`;
     overlay.querySelector(".bench-close").setAttribute("aria-label", t("bench.close"));
     const fullscreen = overlay.querySelector(".bench-fullscreen");

@@ -699,6 +699,8 @@
     window.WPHBench.open({
       title: unit.name,
       subtitle: army.name,
+      photo: readPhoto(army, unit),
+      photoAlt: t("army.photoAlt", { unit: unit.name }),
       text: unit.guide.text,
       done: unit.guide.done,
       colors: army.paletteId ? app.palette() : [],

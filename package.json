@@ -11,7 +11,8 @@
     "test:server-browser": "node --disable-warning=ExperimentalWarning tests/server-browser.js",
     "test:ai-browser": "node --disable-warning=ExperimentalWarning tests/ai-browser.js",
     "update:catalogue": "node scripts/update-catalogue.js",
-    "test:tablet-browser": "node --disable-warning=ExperimentalWarning tests/tablet-browser.js"
+    "test:tablet-browser": "node --disable-warning=ExperimentalWarning tests/tablet-browser.js",
+    "test:kit-browser": "node --disable-warning=ExperimentalWarning tests/kit-browser.js"
   },
   "devDependencies": {
     "playwright-core": "^1.60.0"

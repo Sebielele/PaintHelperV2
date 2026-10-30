@@ -1442,7 +1442,6 @@ function sanitizeContext(input) {
       tone: ["dark", "grey", "light", "color"].includes(primer.tone) ? primer.tone : "grey",
       name: str(primer.name, 80),
       manufacturer: str(primer.manufacturer, 40),
-      collection: str(primer.collection, 60),
       owned: Boolean(primer.owned)
     } : null,
     areas: (Array.isArray(ctx.areas) ? ctx.areas : []).slice(0, 12).map(area => ({
@@ -1517,8 +1516,7 @@ function buildGuide(context, text) {
   const lines = [`## ${text.prep}`];
   const primer = context.primer;
   if (primer) {
-    const line = [primer.manufacturer, primer.collection].filter(Boolean).join(" ");
-    lines.push(`1. ${text.primer[primer.tone] || text.primer.grey}${primer.name ? ` (${text.primerWith} **${primer.name}**${line ? `, ${line}` : ""})` : ""}.`);
+    lines.push(`1. ${text.primer[primer.tone] || text.primer.grey}${primer.name ? ` (${text.primerWith} **${primer.name}**)` : ""}.`);
   }
   lines.push(`${primer ? 2 : 1}. ${text.prepTip}`);
   context.colors.forEach((color, index) => {

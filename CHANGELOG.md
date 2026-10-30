@@ -2,18 +2,18 @@
 
 ## v0.25.0 (PaintHelperV2)
 
-- Army page: "Paint next" box with up to three units (nearly finished first, then the
-  biggest untouched units); a tap scrolls to the unit.
-- Painting guide: the primer line names the product line (e.g. "Army Painter Warpaints
-  Primer"), so a colour primer spray is not mistaken for a pot of paint.
-- Stand-ins for missing paints are of the same kind: a wash for a wash, a metallic for a
-  metallic (Iron Hands Steel no longer stands in for Agrax Earthshade Gloss).
-- Metallic paints are recognised by their type too, so Citadel metallics no longer end up
-  in non-metal guide steps; discontinued paints are only used when you own them.
-- Catalogue: Agrax Earthshade, Nuln Oil and Reikland Fleshshade Gloss get the colour of
-  the shade instead of a pale swatch.
-- /api/health reports version and uptime; scripts/check-ai.js checks a running server
-  against the real AI server.
+- Painting kit (paints page): tick saved guides – palette guides and army unit guides –
+  and get the pots to pack from your collection. With "stand-ins" one owned pot covers
+  several guide paints that are close (ΔE ≤ 5 / 10 / 15, greedy set cover), so a
+  travel kit stays small. Paints nothing covers are listed with one button for the
+  shopping list; the list can be copied or downloaded as text. Selection and tolerance
+  are kept in `wph.kit.v1` (per user on the server).
+- Backup: download every `wph.*` entry (palettes, guides, army projects, collection,
+  shopping list) as one JSON file and restore it on another device or account. Restore
+  asks for confirmation, overwrites only the areas in the file and reloads the page.
+- `WPHStorage.keys()` lists the stored keys in server and local mode.
+- Fix: the shopping list no longer empties itself on page load. Saved entries were checked
+  against the small fallback catalogue before the full catalogue had loaded and dropped.
 
 ## v0.24.0 (PaintHelperV2)
 

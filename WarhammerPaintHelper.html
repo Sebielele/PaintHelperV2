@@ -532,6 +532,53 @@
       </div>
     </section>
 
+    <section data-workflow-panel="paints" id="kitPanel" class="panel kit-panel" aria-labelledby="kitTitle">
+      <div class="shopping-list-heading">
+        <div class="section-head compact">
+          <h3 id="kitTitle" data-i18n="kit.title">Pack a painting kit</h3>
+          <p data-i18n="kit.description">Pick saved guides – the app lists the pots to pack from your collection, lets one pot stand in for close colours, and shows what is still missing.</p>
+        </div>
+        <button id="kitCollapseBtn" type="button" class="secondary collapse-button" aria-expanded="false" aria-controls="kitBody"></button>
+      </div>
+      <div id="kitBody" class="kit-body" hidden>
+        <div class="kit-toolbar">
+          <div class="field">
+            <label for="kitFilterInput" data-i18n="kit.filter">Filter guides</label>
+            <input id="kitFilterInput" type="search" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="kitToleranceSelect" data-i18n="kit.tolerance">Stand-ins</label>
+            <select id="kitToleranceSelect">
+              <option value="0" data-i18n="kit.toleranceExact">Exact paints only</option>
+              <option value="5" data-i18n="kit.toleranceClose">Very close (ΔE ≤ 5)</option>
+              <option value="10" data-i18n="kit.toleranceSimilar">Similar (ΔE ≤ 10)</option>
+              <option value="15" data-i18n="kit.toleranceLoose">Travel light (ΔE ≤ 15)</option>
+            </select>
+          </div>
+          <div class="kit-select-buttons">
+            <button id="kitAllBtn" type="button" class="secondary" data-i18n="kit.selectAll">All</button>
+            <button id="kitNoneBtn" type="button" class="secondary" data-i18n="kit.selectNone">None</button>
+          </div>
+        </div>
+        <div id="kitSources" class="kit-sources" role="group" aria-labelledby="kitTitle"></div>
+        <div id="kitStatus" class="owned-paint-status" aria-live="polite"></div>
+        <div id="kitResult" class="kit-result"></div>
+      </div>
+    </section>
+
+    <section data-workflow-panel="paints" id="backupPanel" class="panel kit-panel backup-panel" aria-labelledby="backupTitle">
+      <div class="section-head compact">
+        <h3 id="backupTitle" data-i18n="backup.title">Back up your data</h3>
+        <p data-i18n="backup.description">Download palettes, guides, army projects, collection and shopping list as one file, or bring a backup back.</p>
+      </div>
+      <div class="backup-actions">
+        <button id="backupExportBtn" type="button" data-i18n="backup.export">Download backup</button>
+        <button id="backupImportBtn" type="button" class="secondary" data-i18n="backup.import">Restore backup…</button>
+        <input id="backupImportInput" type="file" accept=".json,application/json" hidden />
+      </div>
+      <p id="backupStatus" class="owned-paint-status" aria-live="polite"></p>
+    </section>
+
     <section data-workflow-panel="army" id="armyPanel" class="panel army-panel" aria-labelledby="armyTitle">
       <div class="army-head">
         <div>
@@ -560,6 +607,8 @@
   <script src="src/factions.js?v=0.25"></script>
   <script src="src/i18n.js?v=0.25"></script>
   <script src="src/citadel.js?v=0.25"></script>
+  <script src="src/logic/paint-match.js?v=0.25"></script>
+  <script src="src/logic/settings.js?v=0.25"></script>
   <script src="src/storage.js?v=0.25"></script>
   <script src="src/app.js?v=0.25"></script>
   <script src="src/army-data.js?v=0.25"></script>
@@ -567,6 +616,9 @@
   <script src="src/bench.js?v=0.25"></script>
   <script src="src/assist.js?v=0.25"></script>
   <script src="src/army.js?v=0.25"></script>
+  <script src="src/kit.js?v=0.25"></script>
+  <script src="src/kit-ui.js?v=0.25"></script>
+  <script src="src/backup.js?v=0.25"></script>
   <script src="src/ui.js?v=0.25"></script>
 </body>
 </html>

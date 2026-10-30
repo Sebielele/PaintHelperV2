@@ -424,5 +424,35 @@
     return Array.from(counts, ([month, count]) => ({ month, count })).sort((a, b) => a.month.localeCompare(b.month));
   }
 
-  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps, nextUnits, setStage, paintedByMonth };
+  // Maximum length of a stored photo data URL; keeps every photo key small for the storage API.
+  const PHOTO_MAX_CHARS = 80000;
+
+  // Storage key for one unit photo.
+  function photoKey(armyId, unit) {
+    const source = `${armyId}|${(unit && (unit.key || unit.name)) || ""}`;
+    let hash = 0x811c9dc5;
+    for (let index = 0; index < source.length; index += 1) {
+      hash ^= source.charCodeAt(index);
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return `wph.photo.${hash.toString(16).padStart(8, "0")}`;
+  }
+
+  // Accepts only small jpeg/webp data URLs.
+  function sanitizePhoto(value) {
+    return typeof value === "string" && value.length <= PHOTO_MAX_CHARS && /^data:image\/(jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value) ? value : "";
+  }
+
+  // Target size for downscaling a photo without enlarging it.
+  function photoSize(width, height, max = 480) {
+    const w = Number(width);
+    const h = Number(height);
+    if (!(w > 0) || !(h > 0)) {
+      return { width: 0, height: 0 };
+    }
+    const scale = Math.min(1, max / Math.max(w, h));
+    return { width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)) };
+  }
+
+  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps, nextUnits, setStage, paintedByMonth, PHOTO_MAX_CHARS, photoKey, sanitizePhoto, photoSize };
 }));

@@ -185,3 +185,24 @@ test("painting dates: set when painted, kept, cleared and counted per month", ()
   ] }] }] });
   assert.deepEqual(clean.regiments[0].units[0].models.map(m => m.paintedAt), ["2026-09-30", undefined, undefined]);
 });
+
+test("unit photos: stable keys, strict data URLs and downscaled sizes", () => {
+  assert.equal(army.photoKey("army-abc", { key: "u1" }), "wph.photo.09563ff1");
+  assert.equal(army.photoKey("army-abc", { name: "Blissbarb Archers" }), "wph.photo.9508f0e7");
+  assert.equal(army.photoKey("army-abc", { key: "", name: "Blissbarb Archers" }), "wph.photo.9508f0e7");
+  assert.match(army.photoKey("army-x", null), /^wph\.photo\.[0-9a-f]{8}$/);
+
+  const jpeg = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+  assert.equal(army.sanitizePhoto(jpeg), jpeg);
+  assert.equal(army.sanitizePhoto("data:image/webp;base64,UklGRg=="), "data:image/webp;base64,UklGRg==");
+  assert.equal(army.sanitizePhoto("data:image/svg+xml;base64,PHN2Zz4="), "");
+  assert.equal(army.sanitizePhoto("data:image/jpeg;base64,<script>"), "");
+  assert.equal(army.sanitizePhoto(`data:image/jpeg;base64,${"A".repeat(army.PHOTO_MAX_CHARS)}`), "");
+  assert.equal(army.sanitizePhoto(null), "");
+
+  assert.deepEqual(army.photoSize(4000, 3000), { width: 480, height: 360 });
+  assert.deepEqual(army.photoSize(3000, 4000, 360), { width: 270, height: 360 });
+  assert.deepEqual(army.photoSize(300, 200), { width: 300, height: 200 });
+  assert.deepEqual(army.photoSize(5000, 2), { width: 480, height: 1 });
+  assert.deepEqual(army.photoSize(0, 5), { width: 0, height: 0 });
+});

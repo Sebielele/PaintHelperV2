@@ -250,3 +250,13 @@ test("health reports the app version and uptime", async t => {
   assert.equal(body.version, require("../package.json").version);
   assert.ok(Number.isInteger(body.uptime) && body.uptime >= 0);
 });
+
+test("very large bodies end the connection and the server keeps working", async t => {
+  const { base, store } = await startTestServer(t);
+  store.createUser("painter", "brush-1234");
+  const call = client(base);
+  await call("POST", "/api/login", { username: "painter", password: "brush-1234" });
+  const answer = await call("PUT", "/api/storage/wph.huge", { value: "x".repeat(20 * 1024 * 1024) }).catch(error => error);
+  assert.ok(answer instanceof Error || answer.status === 413, "no success for a 20 MB body");
+  assert.equal((await call("PUT", "/api/storage/wph.small", { value: "ok" })).status, 200);
+});

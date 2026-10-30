@@ -1445,7 +1445,7 @@ function sanitizeContext(input) {
       collection: str(primer.collection, 60),
       owned: Boolean(primer.owned)
     } : null,
-    areas: (Array.isArray(ctx.areas) ? ctx.areas : []).slice(0, 12).map(area => ({
+    areas: (Array.isArray(ctx.areas) ? ctx.areas : []).slice(0, 16).map(area => ({
       area: str(area && area.area, 60),
       color: str(area && area.color, 60),
       hex: hex(area && area.hex)

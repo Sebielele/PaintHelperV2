@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.31.0 (PaintHelperV2)
+
+- Share link parameters are built by `shareParams` in `src/logic/settings.js`, next to
+  `settingsFromParams` that reads them back; a test writes a link and reads it back. The link
+  itself is unchanged.
+
 ## v0.30.0 (PaintHelperV2)
 
 - Fix: painting guides got no "where" lines (and so no figure in the painting desk) when the

@@ -165,3 +165,23 @@ test("guide steps ignore text without numbered steps", () => {
   const guide = army.guideSteps("## Nur Titel\nKein Schritt");
   assert.equal(guide.total, 0);
 });
+
+test("painting dates: set when painted, kept, cleared and counted per month", () => {
+  const model = { name: "M", stage: 0 };
+  army.setStage(model, 3, new Date("2026-10-05T10:00:00Z"));
+  assert.equal(model.paintedAt, "2026-10-05");
+  army.setStage(model, 4, new Date("2026-11-01T10:00:00Z"));
+  assert.equal(model.paintedAt, "2026-10-05", "basing keeps the painting date");
+  army.setStage(model, 1);
+  assert.equal(model.paintedAt, undefined);
+  const data = { id: "army-dates", regiments: [{ name: "R", units: [
+    { name: "A", kind: "unit", models: [{ name: "a", stage: 3, paintedAt: "2026-09-30" }, { name: "b", stage: 4, paintedAt: "2026-10-02" }, { name: "c", stage: 1, paintedAt: "2026-10-03" }] },
+    { name: "T", kind: "terrain", models: [{ name: "t", stage: 3, paintedAt: "2026-10-04" }] }
+  ] }] };
+  assert.deepEqual(army.paintedByMonth(data), [{ month: "2026-09", count: 1 }, { month: "2026-10", count: 1 }]);
+  assert.deepEqual(army.paintedByMonth(data, { includeExtras: true }).map(entry => entry.count), [1, 2]);
+  const clean = army.sanitizeArmy({ ...data, regiments: [{ name: "R", units: [{ name: "A", models: [
+    { name: "a", stage: 3, paintedAt: "2026-09-30" }, { name: "b", stage: 1, paintedAt: "2026-10-02" }, { name: "x", stage: 3, paintedAt: "javascript:1" }
+  ] }] }] });
+  assert.deepEqual(clean.regiments[0].units[0].models.map(m => m.paintedAt), ["2026-09-30", undefined, undefined]);
+});

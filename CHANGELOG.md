@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.28.0 (PaintHelperV2)
+
+- Painting desk: a figure next to each step shows the guide's colours on nine zones
+  (armour, cloth, skin, leather, metal, weapon, bone, accents, base); the zones named in the
+  current colour's "where" line are highlighted. Works for saved guides in all five languages.
+- Army page: a photo per unit (camera or gallery). It is shrunk in the browser to at most
+  480 px as a small JPEG and kept in its own key (`wph.photo.*`), so ticking a model does not
+  resend every photo; "Change photo" and "Remove photo" next to it.
+- Backup: unit photos are listed under army projects when restoring.
+- New modules: `src/logic/figure-zones.js` (role area → zone, "where" line parser) and
+  `src/figure.js` (SVG figure); photo helpers in `src/army-data.js`.
+
 ## v0.27.0 (PaintHelperV2)
 
 - Army page: changing a model's stage records the date, and a new "Painted per month"

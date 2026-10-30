@@ -107,12 +107,11 @@
     let selectedManufacturers = new Set();
     let producerFiltersInitialized = false;
     let paintSelectorOptions = [];
-    let hoverTimer = null;
     // Collection view (not saved): search, filter, brand chips, open groups.
     // With a collection, the paints page opens on the owned paints instead of 5,400 entries.
     const collection = { search: "", filter: ownedPaintKeys.size ? "owned" : "all", open: new Set(), openBrands: new Set(), limits: new Map() };
     let collectionSearchTimer = null;
-    let activeHoverTarget = null;
+    let paintTooltip = null;
 
     const $ = id => document.getElementById(id);
     const el = {
@@ -196,7 +195,6 @@
       rolePlannerTitle: $("rolePlannerTitle"),
       baseAdviceTitle: $("baseAdviceTitle"),
       paintLadderTitle: $("paintLadderTitle"),
-      paintTooltip: createPaintTooltip(),
       undoResetBtn: $("undoResetBtn"),
       controlGroups: Array.from(document.querySelectorAll("[data-control-group]")),
       sectionCollapseButtons: Array.from(document.querySelectorAll("[data-section-collapse]"))
@@ -862,19 +860,18 @@
         }
         removeShoppingPaint(button.dataset.removeShoppingKey);
       });
-      el.paintTooltip.addEventListener("click", event => {
-        const button = event.target.closest("[data-add-shopping-key]");
-        if (!button) {
-          return;
+      // Hover tooltip for paint swatches (src/ui/paint-tooltip.js); content from paintTooltipContent.
+      paintTooltip = window.WPHPaintTooltip.create({
+        render: paintTooltipContent,
+        onClick: event => {
+          const button = event.target.closest("[data-add-shopping-key]");
+          if (!button) {
+            return;
+          }
+          addShoppingPaintByKey(button.dataset.addShoppingKey);
+          paintTooltip.refresh();
         }
-        addShoppingPaintByKey(button.dataset.addShoppingKey);
-        showPaintTooltip(activeHoverTarget);
       });
-      el.paintTooltip.addEventListener("mouseover", () => {
-        clearTimeout(hoverTimer);
-        hoverTimer = null;
-      });
-      el.paintTooltip.addEventListener("mouseleave", hidePaintTooltip);
       el.saveProfile.addEventListener("click", saveNamedProfile);
       el.loadProfile.addEventListener("click", loadSelectedProfile);
       el.deleteProfile.addEventListener("click", deleteSelectedProfile);
@@ -964,16 +961,14 @@
         el.undoResetBtn.hidden = true;
       });
 
-      document.addEventListener("mouseover", handlePaintHoverStart);
-      document.addEventListener("mouseout", handlePaintHoverEnd);
-      document.addEventListener("focusin", handlePaintHoverStart);
-      document.addEventListener("focusout", handlePaintHoverEnd);
-      window.addEventListener("scroll", hidePaintTooltip, true);
-      window.addEventListener("resize", hidePaintTooltip);
+      window.addEventListener("scroll", () => paintTooltip.hide(), true);
+      window.addEventListener("resize", () => paintTooltip.hide());
     }
 
     function update() {
-      hidePaintTooltip();
+      if (paintTooltip) {
+        paintTooltip.hide();
+      }
       state.mode = el.mode.value;
       state.activeColor = el.activeColor.value;
       state.style = Number(el.style.value);
@@ -2604,47 +2599,8 @@
       safeLocalStorage("set", key, JSON.stringify(value));
     }
 
-    function createPaintTooltip() {
-      const tooltip = document.createElement("div");
-      tooltip.className = "paint-tooltip";
-      tooltip.setAttribute("role", "tooltip");
-      tooltip.setAttribute("aria-hidden", "true");
-      document.body.appendChild(tooltip);
-      return tooltip;
-    }
-
-    function handlePaintHoverStart(event) {
-      const target = event.target.closest("[data-color-hex]");
-      if (!target || el.paintTooltip.contains(event.target)) {
-        return;
-      }
-      if (activeHoverTarget === target) {
-        return;
-      }
-      hidePaintTooltip();
-      activeHoverTarget = target;
-      hoverTimer = setTimeout(() => {
-        showPaintTooltip(target);
-      }, 550);
-    }
-
-    function handlePaintHoverEnd(event) {
-      const target = event.target.closest("[data-color-hex]");
-      if (!target) {
-        return;
-      }
-      if (event.relatedTarget && (target.contains(event.relatedTarget) || el.paintTooltip.contains(event.relatedTarget))) {
-        return;
-      }
-      if (target === activeHoverTarget) {
-        hidePaintTooltip();
-      }
-    }
-
-    function showPaintTooltip(target) {
-      if (target !== activeHoverTarget) {
-        return;
-      }
+    // Content of the paint tooltip: the colour and its closest catalogue paints.
+    function paintTooltipContent(target) {
       const hex = target.dataset.colorHex;
       const colorName = target.dataset.colorName || hex;
       const { matches, ownedMissing } = closestMatchesFor(hex, 3);
@@ -2687,7 +2643,7 @@
         matchRows.unshift(createElement("p", { className: "notes owned-missing-note", text: t("citadel.noCloseOwned") }));
       }
 
-      replaceChildren(el.paintTooltip, [
+      return [
         createElement("div", { className: "paint-tooltip-head" }, [
           createSwatch("paint-tooltip-swatch", hex),
           createElement("div", {}, [
@@ -2697,37 +2653,7 @@
         ]),
         createElement("div", { className: "paint-tooltip-subtitle", text: t("citadel.closest") }),
         createElement("div", { className: "paint-tooltip-list" }, matchRows)
-      ]);
-      el.paintTooltip.classList.add("is-visible");
-      el.paintTooltip.setAttribute("aria-hidden", "false");
-      positionPaintTooltip(target);
-    }
-
-    function positionPaintTooltip(target) {
-      const rect = target.getBoundingClientRect();
-      const gap = 12;
-      const margin = 12;
-      const tooltipRect = el.paintTooltip.getBoundingClientRect();
-      const maxLeft = window.innerWidth - tooltipRect.width - margin;
-      let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
-      let top = rect.bottom + gap;
-
-      left = W.clamp(left, margin, Math.max(margin, maxLeft));
-      if (top + tooltipRect.height > window.innerHeight - margin) {
-        top = rect.top - tooltipRect.height - gap;
-      }
-      top = Math.max(margin, top);
-
-      el.paintTooltip.style.left = `${left}px`;
-      el.paintTooltip.style.top = `${top}px`;
-    }
-
-    function hidePaintTooltip() {
-      clearTimeout(hoverTimer);
-      hoverTimer = null;
-      activeHoverTarget = null;
-      el.paintTooltip.classList.remove("is-visible");
-      el.paintTooltip.setAttribute("aria-hidden", "true");
+      ];
     }
 
     function resolveRoleColor(ref) {

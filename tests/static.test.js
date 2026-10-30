@@ -101,6 +101,7 @@ test("asset cache buster matches package major and minor version", () => {
     `src/logic/collection.js?v=${majorMinor}`,
     `src/logic/recipe.js?v=${majorMinor}`,
     `src/logic/geometry.js?v=${majorMinor}`,
+    `src/ui/paint-tooltip.js?v=${majorMinor}`,
     `src/storage.js?v=${majorMinor}`,
     `src/app.js?v=${majorMinor}`,
     `src/army-data.js?v=${majorMinor}`,
@@ -149,6 +150,7 @@ test("application scripts load dependencies before app bootstrap", () => {
     "src/logic/collection.js",
     "src/logic/recipe.js",
     "src/logic/geometry.js",
+    "src/ui/paint-tooltip.js",
     "src/storage.js",
     "src/app.js",
     "src/army-data.js",
@@ -218,7 +220,7 @@ test("owned paint controls persist and filter closest catalogue matches", () => 
   assert.match(app, /function closestMatchCataloguePaints\(\) \{/);
   assert.match(app, /W\.filterOwnedPaints\(filteredCataloguePaints\(\)\.filter\(paint => paint\.hex\), \{/);
   assert.match(app, /function renderCitadelMatches\(\) \{\s+const paints = closestMatchCataloguePaints\(\)/);
-  assert.match(app, /function showPaintTooltip[\s\S]*closestMatchesFor\(hex, 3\)/);
+  assert.match(app, /function paintTooltipContent[\s\S]*closestMatchesFor\(hex, 3\)/);
   // Owned paints only count when close enough; otherwise the best catalogue paint is flagged.
   // The distance check itself lives in src/logic/paint-match.js (tests/paint-match.test.js).
   assert.match(app, /maxDistance: OWNED_MATCH_MAX_DISTANCE/);

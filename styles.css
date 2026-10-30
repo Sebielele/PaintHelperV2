@@ -1927,6 +1927,31 @@ main[data-workflow-view="army"] > .controls, main[data-workflow-view="army"] > .
   .guide-progress-bar span, .bench-progress span { transition: none; }
 }
 
+/* Compact layout (v0.32): slim header, the palette as a colour strip outside the palette
+   page, and the settings above the content on the plan and paints pages. */
+header { padding-top: 12px; padding-bottom: 12px; }
+.header-utility { margin-bottom: 10px; }
+h1 { font-size: clamp(1.35rem, 2.2vw, 1.9rem); }
+body:has(main:not([data-workflow-view="palette"])) .header-subtitle { display: none; }
+.palette { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+main[data-workflow-view="palette"] .swatch { height: 110px; }
+main:not([data-workflow-view="palette"]) #palette { display: flex; flex-wrap: wrap; gap: 6px; }
+main:not([data-workflow-view="palette"]) #palette > .card { flex: 1 1 90px; min-width: 0; }
+main:not([data-workflow-view="palette"]) #palette .swatch { height: 26px; }
+main:not([data-workflow-view="palette"]) #palette .card-body { padding: 5px 8px; }
+main:not([data-workflow-view="palette"]) #palette .card-body > :not(.role) { display: none; }
+main:not([data-workflow-view="palette"]) #palette .role { font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+main:not([data-workflow-view="palette"]) .palette-actions,
+main:not([data-workflow-view="palette"]) #schemeDescription { display: none; }
+main:not([data-workflow-view="palette"]) .toolbar h2 { font-size: 1.15rem; }
+@media (min-width: 761px) {
+  main[data-workflow-view="plan"], main[data-workflow-view="paints"] { grid-template-columns: minmax(0, 1fr); }
+  main[data-workflow-view="plan"] > *, main[data-workflow-view="paints"] > * { grid-column: 1 / -1; }
+  main[data-workflow-view="plan"] > .controls, main[data-workflow-view="paints"] > .controls { display: flex; flex-wrap: wrap; align-items: start; gap: 8px 16px; }
+  main[data-workflow-view="plan"] > .controls > .controls-heading, main[data-workflow-view="paints"] > .controls > .controls-heading { flex-basis: 100%; margin: 0; }
+  main[data-workflow-view="plan"] > .controls > .control-group, main[data-workflow-view="paints"] > .controls > .control-group { flex: 1 1 260px; }
+}
+
 /* v0.21: one search box on the paints page (names + descriptions) */
 .collection-search { display: flex; flex: 1 1 360px; gap: 8px; min-width: 0; }
 .collection-search input[type="search"] { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--field-bg); color: var(--text); font: inherit; }

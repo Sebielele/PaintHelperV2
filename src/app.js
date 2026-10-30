@@ -110,7 +110,7 @@
     let hoverTimer = null;
     // Collection view (not saved): search, filter, brand chips, open groups.
     // With a collection, the paints page opens on the owned paints instead of 5,400 entries.
-    const collection = { search: "", filter: ownedPaintKeys.size ? "owned" : "all", open: new Set(), limits: new Map() };
+    const collection = { search: "", filter: ownedPaintKeys.size ? "owned" : "all", open: new Set(), openBrands: new Set(), limits: new Map() };
     let collectionSearchTimer = null;
     let activeHoverTarget = null;
 
@@ -758,6 +758,15 @@
       });
       // "toggle" does not bubble: listen in the capture phase to render groups lazily.
       el.ownedPaintList.addEventListener("toggle", event => {
+        const brand = event.target.dataset && event.target.dataset.brandKey;
+        if (brand !== undefined) {
+          if (event.target.open) {
+            collection.openBrands.add(brand);
+          } else {
+            collection.openBrands.delete(brand);
+          }
+          return;
+        }
         const group = event.target.closest && event.target.closest("[data-group-key]");
         if (!group || group !== event.target) {
           return;
@@ -1764,42 +1773,70 @@
       const autoOpen = narrowed && paints.length <= 400;
       const sorted = Array.from(groups.values())
         .sort((a, b) => a.brand.localeCompare(b.brand) || a.label.localeCompare(b.label));
-      replaceChildren(el.ownedPaintList, sorted.map(group => {
-        const ownedInGroup = group.paints.filter(paint => ownedPaintKeys.has(paintKey(paint))).length;
-        const open = autoOpen || collection.open.has(group.key);
-        const details = createElement("details", {
-          className: "collection-group",
-          dataset: { groupKey: group.key },
-          attributes: { open }
+      // One fold per brand (open when the list is narrowed or the user opened it), product lines inside.
+      const brands = new Map();
+      sorted.forEach(group => {
+        if (!brands.has(group.brand)) {
+          brands.set(group.brand, []);
+        }
+        brands.get(group.brand).push(group);
+      });
+      replaceChildren(el.ownedPaintList, Array.from(brands, ([brand, groups]) => {
+        const total = groups.reduce((sum, group) => sum + group.paints.length, 0);
+        const owned = groups.reduce((sum, group) => sum + group.paints.filter(paint => ownedPaintKeys.has(paintKey(paint))).length, 0);
+        return createElement("details", {
+          className: "collection-brand",
+          dataset: { brandKey: brand },
+          attributes: { open: autoOpen || brands.size === 1 || collection.openBrands.has(brand) }
         }, [
           createElement("summary", {}, [
-            createElement("span", { className: "collection-group-brand", text: group.brand }),
-            createElement("span", { className: "collection-group-name", text: group.label }),
+            createElement("span", { className: "collection-brand-name", text: brand }),
             createElement("span", {
-              className: `collection-group-count${ownedInGroup ? " has-owned" : ""}`,
-              text: t("collection.groupOwned", { owned: ownedInGroup, count: group.paints.length })
+              className: `collection-group-count${owned ? " has-owned" : ""}`,
+              text: t("collection.groupOwned", { owned, count: total })
             })
-          ])
+          ]),
+          createElement("div", { className: "collection-brand-groups" }, groups.map(group => collectionGroup(group, autoOpen)))
         ]);
-        if (open) {
-          const limit = collection.limits.get(group.key) || COLLECTION_PAGE;
-          const items = group.paints
-            .slice()
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .slice(0, limit)
-            .map(collectionItem);
-          details.appendChild(createElement("div", { className: "collection-items" }, items));
-          if (group.paints.length > limit) {
-            details.appendChild(createElement("button", {
-              type: "button",
-              className: "secondary collection-more",
-              dataset: { moreGroup: group.key },
-              text: t("collection.more", { count: Math.min(COLLECTION_PAGE, group.paints.length - limit) })
-            }));
-          }
-        }
-        return details;
       }));
+    }
+
+    // One product line of a brand in the collection; its paints are only built when open.
+    function collectionGroup(group, autoOpen) {
+      const ownedInGroup = group.paints.filter(paint => ownedPaintKeys.has(paintKey(paint))).length;
+      const open = autoOpen || collection.open.has(group.key);
+      const details = createElement("details", {
+        className: "collection-group",
+        dataset: { groupKey: group.key },
+        attributes: { open }
+      }, [
+        createElement("summary", {}, [
+          createElement("span", { className: "collection-group-brand", text: group.brand }),
+          createElement("span", { className: "collection-group-name", text: group.label }),
+          createElement("span", {
+            className: `collection-group-count${ownedInGroup ? " has-owned" : ""}`,
+            text: t("collection.groupOwned", { owned: ownedInGroup, count: group.paints.length })
+          })
+        ])
+      ]);
+      if (open) {
+        const limit = collection.limits.get(group.key) || COLLECTION_PAGE;
+        const items = group.paints
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .slice(0, limit)
+          .map(collectionItem);
+        details.appendChild(createElement("div", { className: "collection-items" }, items));
+        if (group.paints.length > limit) {
+          details.appendChild(createElement("button", {
+            type: "button",
+            className: "secondary collection-more",
+            dataset: { moreGroup: group.key },
+            text: t("collection.more", { count: Math.min(COLLECTION_PAGE, group.paints.length - limit) })
+          }));
+        }
+      }
+      return details;
     }
 
     function collectionItem(paint) {

@@ -1802,6 +1802,13 @@ main[data-workflow-view="army"] > .controls, main[data-workflow-view="army"] > .
 .army-next-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
 .army-next-item { display: grid; gap: 2px; justify-items: start; min-height: 48px; padding: 10px 12px; text-align: left; }
 .army-next-item .meta { font-size: .78rem; }
+.army-monthly { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel2); }
+.army-monthly h4 { margin: 0; font-size: .95rem; }
+.army-monthly-bars { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.army-monthly-bar { display: grid; grid-template-rows: 120px auto auto; gap: 4px; justify-items: center; min-width: 0; }
+.army-monthly-fill { width: 100%; min-height: 2px; background: var(--accent); border-radius: 8px 8px 0 0; align-self: end; }
+.army-monthly-bar strong { font-size: .78rem; font-variant-numeric: tabular-nums; }
+.army-monthly-label { color: var(--muted); font-size: .72rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .army-stage-legend { grid-column: 1 / -1; display: grid; gap: 8px; }
 .army-stage-bar, .army-unit-bar { display: flex; height: 10px; }
 .army-stage-bar span, .army-unit-bar span { height: 100%; }

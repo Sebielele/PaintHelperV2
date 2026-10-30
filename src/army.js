@@ -248,6 +248,7 @@
     el.armyBody.replaceChildren(
       renderOverview(army),
       renderNext(army),
+      renderMonthly(army),
       renderPalette(army),
       renderToolbar(army),
       ...army.regiments
@@ -451,6 +452,38 @@
     ]);
   }
 
+  // Show painted models per month for the last six calendar months.
+  function renderMonthly(army) {
+    const counts = Data.paintedByMonth(army) || [];
+    if (!counts.length) {
+      return h("div", { className: "army-monthly", hidden: true });
+    }
+    const byMonth = new Map(counts.map(entry => [entry.month, entry.count]));
+    const now = new Date();
+    const months = [];
+    for (let offset = 5; offset >= 0; offset -= 1) {
+      const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const month = date.toLocaleDateString(app.language(), { month: "short" });
+      months.push({ key, month, count: byMonth.get(key) || 0 });
+    }
+    const max = Math.max(...months.map(entry => entry.count), 1);
+    return h("section", { className: "army-monthly", "aria-label": t("army.monthlyTitle") }, [
+      h("h4", { text: t("army.monthlyTitle") }),
+      h("div", { className: "army-monthly-bars" }, months.map(entry => h("div", {
+        className: "army-monthly-bar",
+        title: t("army.monthlyBar", { month: entry.month, count: entry.count })
+      }, [
+        h("span", {
+          className: "army-monthly-fill",
+          style: { height: `${Math.max(2, Math.round((entry.count / max) * 100))}%` }
+        }),
+        h("strong", { text: String(entry.count) }),
+        h("span", { className: "army-monthly-label", text: entry.month })
+      ])))
+    ]);
+  }
+
   function scrollToUnit(unit) {
     const elUnit = el.armyBody.querySelector(`[data-unit-key="${CSS.escape(unit.key || "")}"]`);
     if (elUnit) {
@@ -474,7 +507,7 @@
     ]);
     bulk.addEventListener("change", () => {
       if (bulk.value !== "") {
-        unit.models.forEach(model => { model.stage = Number(bulk.value); });
+        unit.models.forEach(model => { Data.setStage(model, Number(bulk.value)); });
         delete unit.isNew;
         save();
         render();
@@ -516,7 +549,7 @@
             "aria-label": t("army.modelLabel", { name: group.name, number: position + 1, stage: t(`army.stages.${stage}`) }),
             text: STAGE_ICONS[model.stage],
             onClick: () => {
-              model.stage = (model.stage + 1) % Data.STAGES.length;
+              Data.setStage(model, (model.stage + 1) % Data.STAGES.length);
               delete unit.isNew;
               save();
               render();

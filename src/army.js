@@ -718,6 +718,7 @@
       text: unit.guide.text,
       done: unit.guide.done,
       colors: army.paletteId ? app.palette() : [],
+      figure: window.WPH && window.WPH.figureForKeywords ? window.WPH.figureForKeywords(unit.keywords) : "infantry",
       onToggle: (index, checked) => {
         const done = new Set(unit.guide.done);
         if (checked) {

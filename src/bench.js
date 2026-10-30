@@ -14,7 +14,7 @@
     return app ? app.t(key, params) : key;
   }
 
-  // options: { title, subtitle, text, photo, photoAlt, done: number[], colors: [{name, hex}], onToggle(index, checked) }
+  // options: { title, subtitle, text, photo, photoAlt, done: number[], colors: [{name, hex}], figure: string, onToggle(index, checked) }
   function open(options) {
     const parsed = window.WPHArmyData.guideSteps(options.text);
     const cards = [];
@@ -46,6 +46,16 @@
             session.zoneFills[zone] = hex;
           }
         });
+      });
+    }
+    // Shading tones of the painting ladder for every filled zone.
+    session.zoneTones = {};
+    if (window.WPH && window.WPH.zoneTones) {
+      Object.keys(session.zoneFills).forEach(zone => {
+        const tones = window.WPH.zoneTones(session.zoneFills[zone], window.WPH);
+        if (tones) {
+          session.zoneTones[zone] = tones;
+        }
       });
     }
     build();
@@ -240,6 +250,8 @@
         figure.className = "bench-figure";
         figure.appendChild(window.WPHFigure.create({
           fills: session.zoneFills,
+          tones: session.zoneTones,
+          figure: options.figure || "infantry",
           highlight: session.sectionZones.get(card.section) || [],
           title: card.section.title
         }));

@@ -1970,3 +1970,33 @@ main[data-workflow-view="army"] > .controls, main[data-workflow-view="army"] > .
   #kitResult { position: absolute; inset: 0; }
   .kit-actions { display: none; }
 }
+
+/* Figure preview (bench) */
+.wph-figure {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+}
+
+.wph-figure .wph-zone {
+  stroke: #15161a;
+  stroke-width: 1;
+  transition: opacity .2s ease;
+}
+
+.wph-figure.has-highlight .wph-zone {
+  opacity: .3;
+}
+
+.wph-figure.has-highlight .wph-zone.is-active {
+  opacity: 1;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wph-figure .wph-zone {
+    transition: none;
+  }
+}

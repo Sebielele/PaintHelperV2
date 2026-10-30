@@ -2244,52 +2244,27 @@
     // Keeps owned paints and the shopping list valid when the catalogue changes:
     // corrected entries (new name or hex) take over keys saved with their old values,
     // and colourless PaintRack entries are replaced once the catalogue knows the paint.
+    // Corrected catalogue paints and known PaintRack paints move to their new keys (src/logic/collection.js).
     function reconcileSavedPaints(basePaints) {
-      const paints = (Array.isArray(basePaints) ? basePaints : []).filter(paint => paint.hex);
-      const moves = new Map();
-      paints.forEach(paint => {
-        (paint.previous || []).forEach(previous => {
-          const oldKey = paintKey({ ...paint, name: previous.name || paint.name, hex: previous.hex || paint.hex });
-          moves.set(oldKey, paintKey(paint));
-        });
+      const result = W.reconcilePaintKeys({
+        basePaints,
+        customPaints: paintRackCustomPaints,
+        ownedKeys: ownedPaintKeys,
+        shoppingKeys: shoppingPaintKeys,
+        findMatch: W.findPaintRackCatalogueMatch
       });
-      const remaining = [];
-      paintRackCustomPaints.forEach(custom => {
-        const match = W.findPaintRackCatalogueMatch({
-          brand: custom.manufacturer,
-          sku: custom.manufacturerCode,
-          name: custom.name,
-          paintClass: custom.collection
-        }, paints);
-        if (match) {
-          moves.set(paintKey(custom), paintKey(match));
-        } else {
-          remaining.push(custom);
-        }
-      });
-      let changed = remaining.length !== paintRackCustomPaints.length;
-      [ownedPaintKeys, shoppingPaintKeys].forEach(keys => {
-        moves.forEach((newKey, oldKey) => {
-          if (oldKey !== newKey && keys.has(oldKey)) {
-            keys.delete(oldKey);
-            keys.add(newKey);
-            changed = true;
-          }
-        });
-      });
-      shoppingPaintKeys.forEach(key => {
-        if (ownedPaintKeys.has(key)) {
-          shoppingPaintKeys.delete(key);
-        }
-      });
-      if (changed) {
-        paintRackCustomPaints = remaining;
-        state.paintRackCustomPaints = remaining;
+      ownedPaintKeys.clear();
+      result.ownedKeys.forEach(key => ownedPaintKeys.add(key));
+      shoppingPaintKeys.clear();
+      result.shoppingKeys.forEach(key => shoppingPaintKeys.add(key));
+      if (result.changed) {
+        paintRackCustomPaints = result.customPaints;
+        state.paintRackCustomPaints = result.customPaints;
         state.ownedPaintKeys = Array.from(ownedPaintKeys);
         state.shoppingPaintKeys = Array.from(shoppingPaintKeys);
         saveLastSettings();
       }
-      return changed;
+      return result.changed;
     }
 
     function mergePaintRackCustomPaints(basePaints) {
@@ -2304,13 +2279,7 @@
     }
 
     function paintKey(paint) {
-      return [
-        paint.manufacturer,
-        paint.collection,
-        paint.range,
-        paint.name,
-        paint.hex
-      ].map(value => String(value || "").trim().toLowerCase()).join("|");
+      return W.collectionPaintKey(paint);
     }
 
     function paintProducerKey(paint) {

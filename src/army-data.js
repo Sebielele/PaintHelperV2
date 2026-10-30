@@ -13,6 +13,7 @@
   // Painting stages of one model, in order.
   const STAGES = ["open", "built", "primed", "painted", "based"];
   const PAINTED = STAGES.indexOf("painted");
+  const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
   const MAX_UNITS = 200;
   const MAX_MODELS_PER_UNIT = 120;
   const MANIFESTATION = /\b(manifestation|endless spell|invocation)\b/i;
@@ -223,13 +224,17 @@
       const stages = new Map();
       match.models.forEach(model => {
         const entries = stages.get(model.name) || [];
-        entries.push(model.stage);
+        entries.push({ stage: model.stage, paintedAt: model.paintedAt });
         stages.set(model.name, entries);
       });
       unit.models.forEach(model => {
         const entries = stages.get(model.name);
         if (entries && entries.length) {
-          model.stage = entries.shift();
+          const kept = entries.shift();
+          model.stage = kept.stage;
+          if (kept.paintedAt) {
+            model.paintedAt = kept.paintedAt;
+          }
         }
       });
       ["guide", "paletteId", "note"].forEach(field => {
@@ -310,10 +315,11 @@
           points: Math.max(0, Math.min(100000, Number(unit && unit.points) || 0)),
           kind: ["unit", "manifestation", "terrain"].includes(unit && unit.kind) ? unit.kind : "unit",
           keywords: list(unit && unit.keywords).map(word => text(word, 40)).filter(Boolean).slice(0, 12),
-          models: list(unit && unit.models).slice(0, MAX_MODELS_PER_UNIT).map(model => ({
-            name: text(model && model.name, 80) || "Model",
-            stage: Math.max(0, Math.min(STAGES.length - 1, Math.round(Number(model && model.stage) || 0)))
-          })),
+          models: list(unit && unit.models).slice(0, MAX_MODELS_PER_UNIT).map(model => {
+            const stage = Math.max(0, Math.min(STAGES.length - 1, Math.round(Number(model && model.stage) || 0)));
+            const paintedAt = stage >= PAINTED && DATE_PATTERN.test(String(model && model.paintedAt || "")) ? model.paintedAt : "";
+            return { name: text(model && model.name, 80) || "Model", stage, ...(paintedAt ? { paintedAt } : {}) };
+          }),
           ...(guide ? { guide } : {}),
           ...(unit && unit.isNew ? { isNew: true } : {})
         };
@@ -391,5 +397,32 @@
     return result;
   }
 
-  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps, nextUnits };
+  function setStage(model, stage, now = new Date()) {
+    const next = Math.max(0, Math.min(STAGES.length - 1, Math.round(Number(stage) || 0)));
+    if (next >= PAINTED) {
+      if (!(model.stage >= PAINTED && model.paintedAt)) {
+        model.paintedAt = now.toISOString().slice(0, 10);
+      }
+    } else {
+      delete model.paintedAt;
+    }
+    model.stage = next;
+    return model;
+  }
+
+  function paintedByMonth(army, options = {}) {
+    const counts = new Map();
+    list(army && army.regiments)
+      .flatMap(regiment => list(regiment && regiment.units))
+      .filter(unit => options.includeExtras || unit.kind === "unit")
+      .forEach(unit => list(unit.models).forEach(model => {
+        if (model.stage >= PAINTED && model.paintedAt) {
+          const month = String(model.paintedAt).slice(0, 7);
+          counts.set(month, (counts.get(month) || 0) + 1);
+        }
+      }));
+    return Array.from(counts, ([month, count]) => ({ month, count })).sort((a, b) => a.month.localeCompare(b.month));
+  }
+
+  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps, nextUnits, setStage, paintedByMonth };
 }));

@@ -206,3 +206,12 @@ test("unit photos: stable keys, strict data URLs and downscaled sizes", () => {
   assert.deepEqual(army.photoSize(5000, 2), { width: 480, height: 1 });
   assert.deepEqual(army.photoSize(0, 5), { width: 0, height: 0 });
 });
+
+test("re-import keeps the old unit key when a unit is matched by name", () => {
+  const unit = (key, name) => ({ key, name, points: 100, kind: "unit", keywords: [], models: [{ name, stage: 0 }] });
+  const previous = { id: "army-k", regiments: [{ name: "R", units: [unit("old-1", "Daemonettes"), unit("old-2", "Fiends"), unit("same", "Slickblade")] }] };
+  const next = { id: "army-k", regiments: [{ name: "R", units: [unit("new-1", "Daemonettes"), unit("old-2", "Blissbarb"), unit("same", "Slickblade"), unit("new-4", "Fiends")] }] };
+  const merged = army.mergeArmy(previous, next);
+  const keys = merged.regiments[0].units.map(entry => `${entry.name}=${entry.key}`);
+  assert.deepEqual(keys, ["Daemonettes=old-1", "Blissbarb=old-2", "Slickblade=same", "Fiends=new-4"]);
+});

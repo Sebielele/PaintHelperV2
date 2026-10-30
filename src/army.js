@@ -379,11 +379,13 @@
           ? t("army.nextProgress", { painted: entry.progress.painted, total: entry.progress.total })
           : t("army.nextStart", { points: entry.unit.points });
         const text = `${entry.regiment} · ${detail}`;
+        const photo = readPhoto(army, entry.unit);
         return h("button", {
           type: "button",
-          className: "secondary army-next-item",
+          className: `secondary army-next-item${photo ? " has-photo" : ""}`,
           onClick: () => scrollToUnit(entry.unit)
         }, [
+          photo ? h("img", { className: "army-next-photo", src: photo, alt: "", loading: "lazy" }) : null,
           h("strong", { text: entry.unit.name }),
           h("span", { className: "meta", text })
         ]);

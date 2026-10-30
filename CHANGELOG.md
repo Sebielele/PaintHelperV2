@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.33.0 (PaintHelperV2)
+
+- Code: `src/app.js` keeps getting smaller (about 2,870 instead of 3,050 lines); behaviour is
+  unchanged.
+  - `src/logic/recipe.js`: which paints a guide may use, paint descriptions, role areas and
+    colour ladders for the guide request (the request was compared byte for byte).
+  - `src/logic/geometry.js`: colour wheel points and tooltip placement, with tests.
+  - `src/ui/paint-tooltip.js`: the paint tooltip (hover/focus, delay, placement) as the first
+    UI module; `app.js` only supplies its content.
+
 ## v0.32.0 (PaintHelperV2)
 
 - Compact layout for the tablet: slimmer header (the subtitle only on the palette page), all

@@ -101,6 +101,62 @@
     }, 300);
   }
 
+  // Unit photos live in their own keys, so a stage click does not resend every photo.
+  function readPhoto(army, unit) {
+    try {
+      const key = Data.photoKey(army.id, unit);
+      const raw = window.WPHStorage ? window.WPHStorage.get(key) : window.localStorage.getItem(key);
+      return Data.sanitizePhoto(raw);
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function writePhoto(army, unit, value) {
+    const key = Data.photoKey(army.id, unit);
+    try {
+      if (window.WPHStorage) {
+        window.WPHStorage.set(key, value || "");
+      } else if (value) {
+        window.localStorage.setItem(key, value);
+      } else {
+        window.localStorage.removeItem(key);
+      }
+    } catch (error) {
+      setStatus(t("army.photoError"));
+    }
+  }
+
+  // Downscale a picked image to a small JPEG data URL; tries smaller sizes until it fits.
+  async function photoFromFile(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+      });
+      for (const [max, quality] of [[480, 0.72], [360, 0.6], [240, 0.5]]) {
+        const size = Data.photoSize(image.naturalWidth, image.naturalHeight, max);
+        if (!size.width) {
+          return "";
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = size.width;
+        canvas.height = size.height;
+        canvas.getContext("2d").drawImage(image, 0, 0, size.width, size.height);
+        const data = Data.sanitizePhoto(canvas.toDataURL("image/jpeg", quality));
+        if (data) {
+          return data;
+        }
+      }
+      return "";
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
   function activeArmy() {
     return store.armies.find(army => army.id === store.activeId) || store.armies[0] || null;
   }
@@ -529,11 +585,40 @@
       text: unit.guide ? t("army.rewriteGuide") : `✨ ${t("army.writeGuide")}`,
       onClick: () => writeUnitGuide(army, unit)
     }));
+    const photo = readPhoto(army, unit);
+    const photoInput = h("input", { type: "file", accept: "image/*", hidden: true, "aria-hidden": "true", tabindex: "-1" });
+    photoInput.addEventListener("change", async () => {
+      const file = photoInput.files && photoInput.files[0];
+      if (!file) {
+        return;
+      }
+      const data = await photoFromFile(file).catch(() => "");
+      if (!data) {
+        setStatus(t("army.photoError"));
+        return;
+      }
+      writePhoto(army, unit, data);
+      render();
+    });
+    const photoButtons = [
+      photoInput,
+      h("button", { type: "button", className: "secondary army-photo-add", text: `📷 ${t(photo ? "army.photoChange" : "army.photoAdd")}`, onClick: () => photoInput.click() })
+    ];
+    if (photo) {
+      photoButtons.push(h("button", {
+        type: "button", className: "secondary army-photo-remove", text: t("army.photoRemove"),
+        onClick: () => {
+          writePhoto(army, unit, "");
+          render();
+        }
+      }));
+    }
     return h("article", { className: `army-unit${progress.done ? " is-done" : ""}`, "data-unit-key": unit.key || "" }, [
       h("div", { className: "army-unit-head" }, [
         h("h4", {}, [unit.name, unit.isNew ? h("span", { className: "army-new", text: t("army.new") }) : null]),
         h("span", { className: "meta", text: [unit.points ? t("army.points", { points: unit.points }) : "", unit.kind !== "unit" ? t(`army.kind.${unit.kind}`) : ""].filter(Boolean).join(" · ") })
       ]),
+      photo ? h("img", { className: "army-unit-photo", src: photo, alt: t("army.photoAlt", { unit: unit.name }), loading: "lazy" }) : null,
       h("div", { className: "army-unit-bar", role: "img", "aria-label": stageSummary(progress.stages) },
         progress.stages.map((count, index) => (count ? h("span", { className: `stage-${index}`, style: { flexGrow: String(count) } }) : null))),
       h("p", { className: "meta army-unit-count", text: t("army.unitProgress", { painted: progress.painted, total: progress.total }) }),
@@ -557,7 +642,7 @@
           });
         }))
       ])),
-      h("div", { className: "army-unit-actions" }, [bulk, ...guideButtons]),
+      h("div", { className: "army-unit-actions" }, [bulk, ...guideButtons, ...photoButtons]),
       job ? h("p", { className: "ai-status", text: job }) : null
     ]);
   }

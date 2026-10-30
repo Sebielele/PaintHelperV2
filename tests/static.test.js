@@ -191,10 +191,10 @@ test("producer filter restore preserves an explicit empty selection until JSON l
 });
 
 test("share link code preserves explicit empty producer selections", () => {
-  const app = fs.readFileSync(path.join(root, "src", "app.js"), "utf8");
+  const settings = fs.readFileSync(path.join(root, "src", "logic", "settings.js"), "utf8");
 
-  assert.match(app, /params\.set\("producers", snapshot\.producerKeys\.join\(","\)\)/);
-  assert.doesNotMatch(app, /if \(snapshot\.producerKeys\.length\) \{\s+params\.set\("producers"/);
+  assert.match(settings, /params\.set\("producers", snapshot\.producerKeys\.join\(","\)\)/);
+  assert.doesNotMatch(settings, /if \(snapshot\.producerKeys\.length\) \{\s+params\.set\("producers"/);
 });
 
 test("partial reroll only changes palette edits and preserves other settings", () => {

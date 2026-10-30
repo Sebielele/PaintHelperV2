@@ -2415,51 +2415,17 @@
       };
     }
 
+    // Share link: parameters from src/logic/settings.js (shareParams).
     function buildShareUrl() {
       const snapshot = createSettingsSnapshot();
       const url = new URL(window.location.href);
-      const params = new URLSearchParams();
-      params.set("wph", String(SETTINGS_VERSION));
-      params.set("system", snapshot.system);
-      params.set("mode", snapshot.mode);
-      params.set("hex", W.primaryHex(state).slice(1));
-      params.set("style", String(Math.round(snapshot.style)));
-      params.set("scheme", snapshot.schemeKey);
-      params.set("role", snapshot.roleProfileKey);
-      params.set("base", snapshot.baseThemeKey);
-      params.set("recipe", snapshot.recipeModeKey);
-      params.set("lang", snapshot.language);
-      if (snapshot.paletteEdits) params.set("palette", JSON.stringify(snapshot.paletteEdits));
-
-      if (snapshot.factionSchemeId) {
-        params.set("faction", snapshot.factionSchemeId);
-        const custom = state.customSchemes.find(scheme => scheme.id === snapshot.factionSchemeId);
-        if (custom) {
-          params.set("custom", JSON.stringify({
-            name: custom.name,
-            source: custom.source,
-            notes: custom.notes,
-            roles: custom.roles
-          }));
-        }
-      }
-      if (snapshot.mode === "heraldic") {
-        params.set("active", snapshot.activeColor);
-        params.set("shex", W.hslToHex(snapshot.secondary.h, snapshot.secondary.s, snapshot.secondary.l).slice(1));
-        params.set("layout", snapshot.heraldicLayout);
-        params.set("ratio", snapshot.heraldicRatio);
-        params.set("accent", snapshot.heraldicAccent);
-      }
-      if (snapshot.paintSearch) {
-        params.set("search", snapshot.paintSearch);
-      }
-      if (snapshot.onlyOwnedMatches) {
-        params.set("ownedOnly", "1");
-      }
-      if (!sameStringSet(snapshot.producerKeys, catalogueManufacturers().map(producer => producer.key))) {
-        params.set("producers", snapshot.producerKeys.join(","));
-      }
-
+      const params = W.shareParams(snapshot, {
+        settingsVersion: SETTINGS_VERSION,
+        primaryHex: W.primaryHex(state),
+        secondaryHex: W.hslToHex(snapshot.secondary.h, snapshot.secondary.s, snapshot.secondary.l),
+        customSchemes: state.customSchemes,
+        allProducerKeys: catalogueManufacturers().map(producer => producer.key)
+      });
       url.search = params.toString();
       url.hash = "";
       return url.toString();

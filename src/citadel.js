@@ -381,6 +381,7 @@
     const brandKey = normalizePaintRackText(row.brand);
     const skuKey = normalizePaintRackSku(row.sku);
     const classKey = normalizePaintRackText(row.paintClass);
+    const wantsSpecialLine = /\b(primer|spray|air)\b/i.test(String(row.paintClass || ""));
     const nameKeys = paintRackNameKeys(row.name);
     const sameBrand = paints.filter(paint => paintRackBrandMatches(brandKey, paint.manufacturer));
 
@@ -397,7 +398,17 @@
         score: paintRackMatchScore(paint, nameKeys, classKey)
       }))
       .filter(item => item.score >= 60)
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        const aSpecial = isSpecialPaintLine(a.paint);
+        const bSpecial = isSpecialPaintLine(b.paint);
+        if (aSpecial !== bSpecial) {
+          return wantsSpecialLine ? (aSpecial ? -1 : 1) : (aSpecial ? 1 : -1);
+        }
+        return 0;
+      });
 
     return scored.length ? scored[0].paint : null;
   }
@@ -486,6 +497,13 @@
       manufacturerKey.includes(rowKey) ||
       rowKey.includes(manufacturerKey)
     ));
+  }
+
+  // Primer sprays and airbrush paints share names with brush pots; without a hint in
+  // the PaintRack class the pot is the better guess.
+  function isSpecialPaintLine(paint) {
+    const text = `${paint && paint.collection || ""} ${paint && paint.finish || ""} ${paint && paint.type || ""}`;
+    return /\b(primer|spray|air)\b/i.test(text);
   }
 
   function paintRackMatchScore(paint, nameKeys, classKey) {

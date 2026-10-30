@@ -356,3 +356,15 @@ test("colour distance is CIEDE2000 (reference pairs from Sharma et al.)", () => 
   assert.ok(citadel.colorDistance("#69A05A", "#6EAC56") < 5, "two greens are close");
   assert.ok(citadel.colorDistance("#69A05A", "#B94278") > 50, "green and pink are far apart");
 });
+
+test("PaintRack rows without code prefer the brush pot over primer sprays", () => {
+  const paints = [
+    { name: "Goblin Green", manufacturer: "Army Painter", collection: "Warpaints Primer", finish: "primer", type: "primer", hex: "#1E8430" },
+    { name: "Goblin Green", manufacturer: "Army Painter", collection: "Warpaints Air", finish: "opaque", hex: "#528536" },
+    { name: "Goblin Green", manufacturer: "Army Painter", collection: "Warpaints", finish: "opaque", hex: "#338E46" }
+  ];
+
+  assert.equal(citadel.findPaintRackCatalogueMatch({ brand: "The Army Painter", name: "Goblin Green" }, paints).collection, "Warpaints");
+  assert.equal(citadel.findPaintRackCatalogueMatch({ brand: "The Army Painter", name: "Goblin Green", paintClass: "Colour Primer" }, paints).collection, "Warpaints Primer");
+  assert.equal(citadel.findPaintRackCatalogueMatch({ brand: "The Army Painter", name: "Goblin Green", paintClass: "Air" }, paints).collection, "Warpaints Air");
+});

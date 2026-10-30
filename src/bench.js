@@ -8,6 +8,10 @@
   let session = null;
   let wakeLock = null;
   let touchStart = null;
+  let use3d = readPref3d();
+  let viewer = null;
+  let viewerBox = null;
+  let loading3d = null;
 
   function t(key, params) {
     const app = window.WPH && window.WPH.app;
@@ -64,6 +68,14 @@
     overlay.hidden = false;
     overlay.querySelector(".bench-next").focus({ preventScroll: true });
     requestWakeLock();
+    if (use3d) {
+      ensure3d().then(ok => {
+        use3d = ok;
+        if (session) {
+          render();
+        }
+      });
+    }
   }
 
   function close() {
@@ -76,7 +88,85 @@
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
     }
+    disposeViewer();
     session = null;
+  }
+
+  // ---- 3D figure -------------------------------------------------------------
+  // three.js (src/vendor/three-bundle.js) and src/ui/figure3d.js load only when the painter
+  // switches to 3D; the choice is remembered on this device (not synced).
+  function readPref3d() {
+    try {
+      return window.localStorage.getItem("wph-bench-3d") === "1";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function writePref3d(value) {
+    try {
+      window.localStorage.setItem("wph-bench-3d", value ? "1" : "0");
+    } catch (error) {
+      // Storage blocked: the choice lasts for this visit only.
+    }
+  }
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  function ensure3d() {
+    if (window.WPHFigure3D) {
+      return Promise.resolve(true);
+    }
+    if (!loading3d) {
+      const own = document.querySelector('script[src*="src/bench.js"]');
+      const query = own && own.getAttribute("src").includes("?") ? `?${own.getAttribute("src").split("?")[1]}` : "";
+      loading3d = loadScript(`src/vendor/three-bundle.js${query}`)
+        .then(() => loadScript(`src/ui/figure3d.js${query}`))
+        .then(() => true)
+        .catch(() => {
+          loading3d = null;
+          return false;
+        });
+    }
+    return loading3d;
+  }
+
+  function disposeViewer() {
+    if (viewer) {
+      viewer.dispose();
+    }
+    viewer = null;
+    viewerBox = null;
+  }
+
+  // The 3D view in its box, kept between steps so the WebGL context is made only once.
+  function figure3dBox(options) {
+    if (!viewerBox) {
+      try {
+        const box = document.createElement("div");
+        box.className = "bench-figure bench-figure-3d";
+        // Turning the figure must not count as a swipe to the next step.
+        box.addEventListener("touchstart", event => event.stopPropagation(), { passive: true });
+        box.addEventListener("touchend", event => event.stopPropagation(), { passive: true });
+        viewer = window.WPHFigure3D.create(box, options);
+        viewerBox = box;
+      } catch (error) {
+        use3d = false;
+        disposeViewer();
+        return null;
+      }
+    } else {
+      viewer.update(options);
+    }
+    return viewerBox;
   }
 
   function build() {
@@ -96,6 +186,7 @@
           <h2 class="bench-title"></h2>
         </div>
         <div class="bench-tools">
+          <button type="button" class="secondary bench-3d" aria-pressed="false" hidden>3D</button>
           <button type="button" class="secondary bench-fullscreen" aria-hidden="true"></button>
           <button type="button" class="secondary bench-close"></button>
         </div>
@@ -109,6 +200,21 @@
       </div>`;
     document.body.appendChild(overlay);
     overlay.querySelector(".bench-close").addEventListener("click", close);
+    overlay.querySelector(".bench-3d").addEventListener("click", () => {
+      use3d = !use3d;
+      writePref3d(use3d);
+      if (!use3d) {
+        disposeViewer();
+        render();
+        return;
+      }
+      ensure3d().then(ok => {
+        use3d = ok;
+        if (session) {
+          render();
+        }
+      });
+    });
     overlay.querySelector(".bench-prev").addEventListener("click", () => go(-1));
     overlay.querySelector(".bench-skip").addEventListener("click", () => go(1));
     overlay.querySelector(".bench-next").addEventListener("click", completeAndNext);
@@ -213,6 +319,9 @@
     }
     overlay.querySelector(".bench-close").textContent = `✕ ${t("bench.close")}`;
     overlay.querySelector(".bench-close").setAttribute("aria-label", t("bench.close"));
+    const toggle3d = overlay.querySelector(".bench-3d");
+    toggle3d.hidden = !Object.keys(session.zoneFills).length;
+    toggle3d.setAttribute("aria-pressed", String(use3d));
     const fullscreen = overlay.querySelector(".bench-fullscreen");
     fullscreen.textContent = "⛶";
     fullscreen.title = t("bench.fullscreen");
@@ -245,7 +354,17 @@
       stage.append(head, counter, main);
       const hasFigure = Boolean(window.WPHFigure && Object.keys(session.zoneFills).length);
       stage.classList.toggle("has-figure", hasFigure);
-      if (hasFigure) {
+      const figureOptions = {
+        fills: session.zoneFills,
+        tones: session.zoneTones,
+        figure: options.figure || "infantry",
+        highlight: session.sectionZones.get(card.section) || [],
+        title: card.section.title
+      };
+      const box3d = hasFigure && use3d && window.WPHFigure3D ? figure3dBox(figureOptions) : null;
+      if (box3d) {
+        stage.appendChild(box3d);
+      } else if (hasFigure) {
         const figure = document.createElement("div");
         figure.className = "bench-figure";
         figure.appendChild(window.WPHFigure.create({

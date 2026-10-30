@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.34.0 (PaintHelperV2)
+
+- Painting desk in 3D: the "3D" button next to full screen shows a 3D figure in the palette
+  colours (own design built from basic shapes, no third-party models). Drag to turn it, pinch
+  or scroll to zoom; it turns slowly until touched. The zones of the current colour stand out,
+  the others fade. three.js (MIT, `src/vendor/three-bundle.js`, ~800 KB) and
+  `src/ui/figure3d.js` load only when 3D is switched on; the tablet remembers the choice.
+- Colour wheel as UI module `src/ui/wheel.js`; shopping-list rules (`shoppingCandidates`,
+  `shoppingEntries`) in `src/logic/collection.js` with tests – written by the local agent
+  from a specification only.
+
 ## v0.33.0 (PaintHelperV2)
 
 - Code: `src/app.js` keeps getting smaller (about 2,870 instead of 3,050 lines); behaviour is

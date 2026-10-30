@@ -209,6 +209,8 @@
       byName.set(unit.name, entries);
     });
     const used = new Set();
+    // Keys of the new list; an old key is only taken over when no new unit uses it.
+    const nextKeys = new Set(next.regiments.flatMap(regiment => regiment.units).map(unit => unit.key).filter(Boolean));
     let added = 0;
     next.regiments.forEach(regiment => regiment.units.forEach(unit => {
       let match = unit.key && byKey.get(unit.key);
@@ -221,6 +223,10 @@
         return;
       }
       used.add(match);
+      // Matched by name with a changed key: keep the old key so photos and links stay attached.
+      if (match.key && unit.key !== match.key && !nextKeys.has(match.key)) {
+        unit.key = match.key;
+      }
       const stages = new Map();
       match.models.forEach(model => {
         const entries = stages.get(model.name) || [];

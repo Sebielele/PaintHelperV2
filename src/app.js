@@ -2772,12 +2772,10 @@
         for (let x = 0; x < size; x += 1) {
           const dx = x - r;
           const dy = y - r;
-          const dist = Math.sqrt(dx * dx + dy * dy);
           const i = (y * size + x) * 4;
-          if (dist <= r) {
-            const h = W.normHue(Math.atan2(dy, dx) * 180 / Math.PI);
-            const s = W.clamp(dist / r * 100, 0, 100);
-            const rgb = W.hslToRgb(h, s, 50);
+          const color = W.wheelColorAt(dx, dy, r);
+          if (color) {
+            const rgb = W.hslToRgb(color.h, color.s, 50);
             data[i] = rgb.r;
             data[i + 1] = rgb.g;
             data[i + 2] = rgb.b;
@@ -2817,25 +2815,21 @@
     }
 
     function positionWheelMarker(marker, hue, saturation, rect, wrap) {
-      const r = rect.width / 2;
-      const markerR = r * (W.clamp(saturation, 0, 100) / 100);
-      const angle = hue * Math.PI / 180;
-      marker.style.left = `${rect.left + r + Math.cos(angle) * markerR - wrap.left}px`;
-      marker.style.top = `${rect.top + r + Math.sin(angle) * markerR - wrap.top}px`;
+      const point = W.wheelMarkerPoint(hue, saturation, rect.width / 2);
+      marker.style.left = `${rect.left + point.x - wrap.left}px`;
+      marker.style.top = `${rect.top + point.y - wrap.top}px`;
     }
 
     function pickFromWheel(event) {
       const rect = el.wheel.getBoundingClientRect();
       const r = rect.width / 2;
-      const dx = event.clientX - rect.left - r;
-      const dy = event.clientY - rect.top - r;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > r) {
+      const color = W.wheelColorAt(event.clientX - rect.left - r, event.clientY - rect.top - r, r, 5);
+      if (!color) {
         return;
       }
       const picked = {
-        h: Math.round(W.normHue(Math.atan2(dy, dx) * 180 / Math.PI)),
-        s: Math.round(W.clamp(dist / r * 100, 5, 100)),
+        h: Math.round(color.h),
+        s: Math.round(color.s),
         l: state.activeColor === "secondary" && state.mode === "heraldic" ? state.secondary.l : state.l
       };
       if (state.mode === "heraldic" && state.activeColor === "secondary") {

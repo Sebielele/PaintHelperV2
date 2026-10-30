@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.26.0 (PaintHelperV2)
+
+- Painting guide: the primer line names the product line (e.g. "Army Painter Warpaints
+  Primer"), so a colour primer spray is not mistaken for a pot of paint.
+- Stand-ins for missing paints are of the same kind: a wash for a wash, a metallic for a
+  metallic (Iron Hands Steel no longer stands in for Agrax Earthshade Gloss).
+- Metallic paints are recognised by their type too, so Citadel metallics no longer end up
+  in non-metal guide steps; discontinued paints are only used when you own them.
+- Catalogue: Agrax Earthshade, Nuln Oil and Reikland Fleshshade Gloss get the colour of
+  the shade instead of a pale swatch.
+- Army page: "Paint next" box; /api/health reports version and uptime;
+  scripts/check-ai.js checks a running server against the real AI server.
+
 ## v0.25.0 (PaintHelperV2)
 
 - Painting kit (paints page): tick saved guides – palette guides and army unit guides –

@@ -72,9 +72,11 @@
     return { matches: Array.isArray(matches) ? matches : [], ownedMissing: true };
   }
 
+  // Range, finish and type: Citadel metallics carry "metallic" only in type
+  // ("opaque-metallic", finish "base").
   function guidePaintKind(paint) {
-    const text = `${paint.range || ""} ${paint.finish || ""}`.toLowerCase();
-    if (/metallic/.test(text)) return "metal";
+    const text = `${paint.range || ""} ${paint.finish || ""} ${paint.type || ""}`.toLowerCase();
+    if (/metal/.test(text)) return "metal";
     if (/wash|shade|ink|tone/.test(text)) return "wash";
     if (/contrast|speedpaint|xpress|glaze/.test(text)) return "transparent";
     return "opaque";
@@ -130,6 +132,19 @@
     return { tone, match: match || null };
   }
 
+  // Closest owned paint of the same kind (a wash for a wash, a metallic for a metallic)
+  // that can stand in for a missing one, or null.
+  function ownedStandIn(paint, owned, opts) {
+    if (!paint || !paint.hex || !Array.isArray(owned)) {
+      return null;
+    }
+    const kind = guidePaintKind(paint);
+    const pool = owned.filter(entry => entry && entry.hex && guidePaintKind(entry) === kind
+      && (!opts.paintKey || opts.paintKey(entry) !== opts.paintKey(paint)));
+    const match = pool.length ? opts.findClosestPaints(paint.hex, pool, 1)[0] : null;
+    return match && match.distance <= opts.maxDistance ? match : null;
+  }
+
   return {
     preferredBrands,
     rankByPreferredBrand,
@@ -140,6 +155,7 @@
     poolOfKinds,
     closestPreferred,
     guideStepPaints,
-    pickPrimer
+    pickPrimer,
+    ownedStandIn
   };
 }));

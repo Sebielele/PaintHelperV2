@@ -1,3 +1,8 @@
+// Checks a running PaintHelper instance against the real AI server:
+// status light, palette from a description, painting guide with tips.
+//
+//   WPH_URL=http://10.2.1.89:8484 WPH_USER=anna WPH_PASSWORD=... node scripts/check-ai.js
+//   PowerShell: $env:WPH_URL="http://10.2.1.89:8484"; $env:WPH_USER="anna"; $env:WPH_PASSWORD="..."; node scripts/check-ai.js
 "use strict";
 
 const { fetch, AbortSignal } = globalThis;
@@ -17,7 +22,11 @@ async function login(base, username, password) {
     headers: { "Content-Type": "application/json", "X-WPH-Request": "1" },
     body: JSON.stringify({ username, password })
   });
-  const cookie = response.headers.get("set-cookie").split(";")[0];
+  const setCookie = response.headers.get("set-cookie");
+  if (!response.ok || !setCookie) {
+    throw new Error(`login failed (HTTP ${response.status}) – check WPH_URL, WPH_USER and WPH_PASSWORD`);
+  }
+  const cookie = setCookie.split(";")[0];
   const call = async (method, url, body, extra = {}, options = {}) => {
     const res = await fetch(base + url, {
       method,
@@ -59,15 +68,13 @@ const recipeContext = {
             {
               name: "Death Guard Green",
               manufacturer: "Citadel",
-              owned: true,
-              secret: "x"
+              owned: true
             }
           ]
         }
       ]
     }
-  ],
-  injected: "should be dropped"
+  ]
 };
 
 async function main() {
@@ -117,7 +124,7 @@ async function main() {
   const msRecipe = Date.now() - startRecipe;
   if (recipeRes.status === 200 && recipeRes.text.includes("## ") && !recipeRes.text.includes("[[WPH-ERROR:")) {
     const hasTips = recipeRes.text.includes("## Tipps") || recipeRes.text.includes("## Tips");
-    console.log(`OK   recipe (${msRecipe} ms): ${recipeRes.text.length} chars${hasTips ? "" : " (no tips)"}`);
+    console.log(`OK   recipe (${msRecipe} ms): ${recipeRes.text.length} chars, tips: ${hasTips ? "yes" : "no"}`);
     if (!hasTips) console.log("WARN recipe: no tips section");
     checks.push(true);
   } else {
@@ -131,6 +138,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error(err);
+  console.error(`FAIL ${err.message}`);
   process.exitCode = 1;
 });

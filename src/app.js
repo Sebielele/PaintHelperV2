@@ -293,12 +293,15 @@
           return cataloguePaints.find(paint => paintKey(paint) === key) || null;
         },
         isOwned: paint => ownedPaintKeys.has(paintKey(paint)),
-        // Closest owned brush paint that can stand in for a missing one (or null).
+        // Closest owned brush paint of the same kind that can stand in for a missing one (or null).
         ownedSubstitute(paint) {
           const owned = filteredCataloguePaints()
-            .filter(entry => entry.hex && ownedPaintKeys.has(paintKey(entry)) && isBrushPaint(entry) && paintKey(entry) !== paintKey(paint));
-          const match = owned.length && paint.hex ? W.findClosestPaints(paint.hex, owned, 1)[0] : null;
-          return match && match.distance <= OWNED_MATCH_MAX_DISTANCE ? match : null;
+            .filter(entry => entry.hex && ownedPaintKeys.has(paintKey(entry)) && isBrushPaint(entry));
+          return W.ownedStandIn(paint, owned, {
+            paintKey,
+            maxDistance: OWNED_MATCH_MAX_DISTANCE,
+            findClosestPaints: W.findClosestPaints
+          });
         },
         isOnShoppingList: paint => shoppingPaintKeys.has(paintKey(paint)),
         addToShoppingList(paint) {
@@ -443,7 +446,9 @@
       const catalogue = filteredCataloguePaints().filter(paint => paint.hex);
       const ownedPaints = catalogue.filter(paint => ownedPaintKeys.has(paintKey(paint)));
       const ownedOnly = Boolean(options.ownedOnly && ownedPaints.length);
-      const allPaints = (ownedOnly ? ownedPaints : catalogue).filter(brushable);
+      // Discontinued paints only when the painter still has the pot.
+      const available = paint => !paint.discontinued || ownedPaintKeys.has(paintKey(paint));
+      const allPaints = (ownedOnly ? ownedPaints : catalogue).filter(paint => brushable(paint) && available(paint));
       const ownedBrushPaints = ownedPaints.filter(brushable);
       const preferredBrands = W.preferredBrands(ownedPaints, GUIDE_DEFAULT_BRANDS);
       const describe = match => ({
@@ -534,6 +539,8 @@
         tone,
         name: match ? match.name : "",
         manufacturer: match ? match.manufacturer || "" : "",
+        // Product line, so a colour primer (e.g. "Warpaints Primer") is not taken for a pot.
+        collection: match ? match.collection || match.range || "" : "",
         owned: Boolean(match && ownedPaintKeys.has(paintKey(match)))
       };
     }

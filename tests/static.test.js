@@ -282,13 +282,14 @@ test("left control groups persist in saved settings", () => {
 
 test("shopping list controls persist and exclude owned colours", () => {
   const app = fs.readFileSync(path.join(root, "src", "app.js"), "utf8");
+  const collection = fs.readFileSync(path.join(root, "src", "logic", "collection.js"), "utf8");
 
   assert.match(app, /shoppingPaintKeys: Array\.from\(shoppingPaintKeys\)/);
   assert.match(app, /state\.shoppingListCollapsed/);
   assert.match(app, /state\.shoppingSearch/);
   assert.match(app, /function renderShoppingList\(\) \{/);
-  assert.match(app, /function shoppingSearchPaints\(\)[\s\S]*!ownedPaintKeys\.has\(paintKey\(paint\)\)/);
-  assert.doesNotMatch(app, /function shoppingSearchPaints\(\)[\s\S]*\.slice\(0,\s*80\)/);
+  assert.match(collection, /function shoppingCandidates\(options\)[\s\S]*!ownedKeys\.has\(keyOf\(paint\)\)/);
+  assert.doesNotMatch(collection, /function shoppingCandidates\(options\)[\s\S]*\.slice\(0,\s*80\)/);
   assert.match(app, /function addShoppingPaintByKey\(key\)[\s\S]*ownedPaintKeys\.has\(key\)/);
   assert.match(app, /function markShoppingPaintOwned\(key\)[\s\S]*toggleOwnedPaint\(key, true\)/);
   assert.match(app, /function toggleOwnedPaint\(key, checked\)[\s\S]*shoppingPaintKeys\.delete\(key\)/);
@@ -300,13 +301,14 @@ test("shopping list controls persist and exclude owned colours", () => {
 
 test("shopping list controls persist and exclude owned colours", () => {
   const app = fs.readFileSync(path.join(root, "src", "app.js"), "utf8");
+  const collection = fs.readFileSync(path.join(root, "src", "logic", "collection.js"), "utf8");
 
   assert.match(app, /shoppingPaintKeys: Array\.from\(shoppingPaintKeys\)/);
   assert.match(app, /state\.shoppingListCollapsed/);
   assert.match(app, /state\.shoppingSearch/);
   assert.match(app, /function renderShoppingList\(\) \{/);
-  assert.match(app, /function shoppingSearchPaints\(\)[\s\S]*!ownedPaintKeys\.has\(paintKey\(paint\)\)/);
-  assert.doesNotMatch(app, /function shoppingSearchPaints\(\)[\s\S]*\.slice\(0,\s*80\)/);
+  assert.match(collection, /function shoppingCandidates\(options\)[\s\S]*!ownedKeys\.has\(keyOf\(paint\)\)/);
+  assert.doesNotMatch(collection, /function shoppingCandidates\(options\)[\s\S]*\.slice\(0,\s*80\)/);
   assert.match(app, /function addShoppingPaintByKey\(key\)[\s\S]*ownedPaintKeys\.has\(key\)/);
   assert.match(app, /function markShoppingPaintOwned\(key\)[\s\S]*toggleOwnedPaint\(key, true\)/);
   assert.match(app, /function toggleOwnedPaint\(key, checked\)[\s\S]*shoppingPaintKeys\.delete\(key\)/);

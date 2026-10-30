@@ -73,3 +73,53 @@ test("an earlier custom paint is replaced once the catalogue knows it", () => {
   assert.deepEqual(plan.ownedKeys, [key(retributor)]);
   assert.equal(plan.matched[0].alreadyOwned, true);
 });
+
+test("shopping candidates exclude owned and listed paints and search case-insensitively", () => {
+  const paints = [
+    { name: "Zandri Dust", hex: "#B2A378" },
+    { name: "Nuln Oil", hex: "#111111" },
+    { name: "No Colour", hex: "" },
+    { name: "Leadbelcher", hex: "#5B5A56" }
+  ];
+  const keyOf = paint => paint.name;
+  const labelOf = paint => paint.name;
+  const ownedKeys = new Set(["Leadbelcher"]);
+
+  assert.deepEqual(
+    collection.shoppingCandidates({ paints, ownedKeys, shoppingKeys: new Set(), keyOf, labelOf }),
+    [paints[1], paints[0]]
+  );
+  assert.deepEqual(
+    collection.shoppingCandidates({ paints, ownedKeys, shoppingKeys: new Set(["Zandri Dust"]), keyOf, labelOf }),
+    [paints[1]]
+  );
+  assert.deepEqual(
+    collection.shoppingCandidates({ paints, ownedKeys, shoppingKeys: new Set(), keyOf, labelOf, query: " NU " }),
+    [paints[1]]
+  );
+  assert.deepEqual(
+    collection.shoppingCandidates({ paints: [], ownedKeys, shoppingKeys: new Set(), keyOf, labelOf }),
+    []
+  );
+});
+
+test("shopping entries skip unknown and owned keys and sort by label", () => {
+  const paints = [
+    { name: "Zandri Dust", hex: "#B2A378" },
+    { name: "Nuln Oil", hex: "#111111" },
+    { name: "Leadbelcher", hex: "#5B5A56" }
+  ];
+  const paintByKey = name => paints.find(paint => paint.name === name) || null;
+  const labelOf = paint => paint.name;
+  const ownedKeys = new Set(["Leadbelcher"]);
+  const shoppingKeys = ["Zandri Dust", "Missing Paint", "Nuln Oil", "Leadbelcher"];
+
+  const entries = collection.shoppingEntries({ shoppingKeys, ownedKeys, paintByKey, labelOf });
+
+  assert.deepEqual(entries.map(entry => entry.key), ["Nuln Oil", "Zandri Dust"]);
+  assert.deepEqual(entries.map(entry => entry.paint.name), ["Nuln Oil", "Zandri Dust"]);
+  entries.forEach(entry => {
+    assert.ok(Object.hasOwn(entry, "key"));
+    assert.ok(Object.hasOwn(entry, "paint"));
+  });
+});

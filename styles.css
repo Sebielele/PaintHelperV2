@@ -1808,6 +1808,8 @@ main[data-workflow-view="army"] > .controls, main[data-workflow-view="army"] > .
 .army-next-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
 .army-next-item { display: grid; gap: 2px; justify-items: start; min-height: 48px; padding: 10px 12px; text-align: left; }
 .army-next-item .meta { font-size: .78rem; }
+.army-next-item.has-photo { grid-template-columns: 44px minmax(0, 1fr); column-gap: 10px; align-items: center; }
+.army-next-photo { grid-row: 1 / span 2; width: 44px; height: 44px; object-fit: cover; border-radius: 8px; }
 .army-monthly { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel2); }
 .army-monthly h4 { margin: 0; font-size: .95rem; }
 .army-monthly-bars { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }

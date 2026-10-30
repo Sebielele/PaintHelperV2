@@ -1,6 +1,6 @@
 {
   "name": "painthelper-v2",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "private": true,
   "description": "Miniature paint palette helper for Warhammer Age of Sigmar and Warhammer 40,000, with user accounts and SQLite storage.",
   "scripts": {

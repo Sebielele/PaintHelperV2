@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.27.0 (PaintHelperV2)
+
+- Army page: changing a model's stage records the date, and a new "Painted per month"
+  box shows how many models reached "painted" in each of the last six months.
+- Server: a request body over the size limit is now read to the end before the 413
+  answer is sent, so browsers (notably on Windows) get the error message instead of a
+  dropped connection (ECONNRESET). Bodies far beyond the limit are still cut off.
+
 ## v0.26.0 (PaintHelperV2)
 
 - Painting guide: the primer line names the product line (e.g. "Army Painter Warpaints

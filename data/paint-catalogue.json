@@ -21720,7 +21720,13 @@
         },
         {
           "name": "Agrax Earthshade Gloss",
-          "hex": "#B4AA9E",
+          "hex": "#5A543C",
+          "previous": [
+            {
+              "hex": "#B4AA9E"
+            }
+          ],
+          "notes": "Hex of the matt shade; the old value was a pale swatch.",
           "finish": "shade",
           "status": "confirmed",
           "source_url": "https://www.paintatlas.com/brands/citadel",
@@ -26221,7 +26227,13 @@
         },
         {
           "name": "Nuln Oil Gloss",
-          "hex": "#B3AFAE",
+          "hex": "#151203",
+          "previous": [
+            {
+              "hex": "#B3AFAE"
+            }
+          ],
+          "notes": "Hex of the matt shade; the old value was a pale swatch.",
           "status": "confirmed",
           "finish": "shade",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade",
@@ -26607,7 +26619,13 @@
         },
         {
           "name": "Reikland Fleshshade Gloss",
-          "hex": "#C2A896",
+          "hex": "#CA6C4D",
+          "previous": [
+            {
+              "hex": "#C2A896"
+            }
+          ],
+          "notes": "Hex of the matt shade; the old value was a pale swatch.",
           "status": "confirmed",
           "finish": "shade",
           "source_url": "https://painthoarder.com/brands/citadel-colour/lines/shade",

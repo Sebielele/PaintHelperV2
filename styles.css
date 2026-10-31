@@ -1767,7 +1767,7 @@ html.bench-open .assist-dock { display: none !important; }
 .bench-tools { display: flex; gap: 8px; }
 .bench-tools button { min-height: 48px; min-width: 48px; font-size: 1rem; }
 /* 3D figure in the painting desk */
-.bench-figure-3d { aspect-ratio: 3 / 4; }
+.bench-figure-3d { aspect-ratio: 3 / 4; max-height: 64vh; }
 .bench-figure-3d .wph-figure3d { display: block; width: 100%; height: 100%; touch-action: none; border-radius: 12px; }
 .bench-3d[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .bench-figure-3d-wrap { display: grid; gap: 8px; }
@@ -1787,7 +1787,7 @@ html.bench-open .assist-dock { display: none !important; }
 .bench-hint, .bench-lead { margin: 0; color: var(--muted); font-size: clamp(1.05rem, 2.2vw, 1.3rem); }
 .bench-done { margin: 0; color: var(--accent); font-weight: 750; font-size: 1.1rem; }
 .bench-stage.is-done .bench-step { opacity: .7; }
-.bench-stage.has-figure { grid-template-columns: minmax(0, 1fr) clamp(110px, 24vw, 220px); column-gap: 24px; }
+.bench-stage.has-figure { width: min(1280px, 100%); grid-template-columns: minmax(0, 1fr) clamp(110px, 34vw, 440px); column-gap: 24px; }
 .bench-stage.has-figure > :not(.bench-figure) { grid-column: 1; }
 .bench-figure { grid-column: 2; grid-row: 1 / span 6; align-self: start; }
 @media (max-width: 600px) {

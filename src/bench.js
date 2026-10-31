@@ -12,6 +12,14 @@
   let viewer = null;
   let viewerBox = null;
   let loading3d = null;
+  let ownModel = null;
+  let modelError = false;
+  let handlingModelError = false;
+  let modelInput = null;
+  let modelControls = null;
+  let modelUploadButton = null;
+  let modelDefaultButton = null;
+  let modelErrorNode = null;
 
   function t(key, params) {
     const app = window.WPH && window.WPH.app;
@@ -66,6 +74,9 @@
         }
       });
     }
+    ownModel = null;
+    modelError = false;
+    handlingModelError = false;
     build();
     render();
     document.documentElement.classList.add("bench-open");
@@ -75,9 +86,15 @@
     if (use3d) {
       ensure3d().then(ok => {
         use3d = ok;
-        if (session) {
-          render();
+        if (!session || !ok) {
+          return;
         }
+        readStoredModel().then(model => {
+          ownModel = model || null;
+          if (session) {
+            render();
+          }
+        });
       });
     }
   }
@@ -115,6 +132,110 @@
     }
   }
 
+  function openModelDb() {
+    return new Promise((resolve, reject) => {
+      try {
+        if (!window.indexedDB) {
+          reject(new Error("IndexedDB unavailable"));
+          return;
+        }
+        const request = window.indexedDB.open("wph-models", 1);
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains("files")) {
+            db.createObjectStore("files");
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  function readStoredModel() {
+    return openModelDb().then(db => new Promise(resolve => {
+      let settled = false;
+      const finish = value => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        try {
+          db.close();
+        } catch (error) {
+          // The read result is already available.
+        }
+        resolve(value);
+      };
+      try {
+        const tx = db.transaction("files", "readonly");
+        const get = tx.objectStore("files").get("bench");
+        get.onsuccess = () => finish(get.result || null);
+        get.onerror = () => finish(null);
+        tx.onerror = () => finish(null);
+        tx.onabort = () => finish(null);
+      } catch (error) {
+        finish(null);
+      }
+    })).catch(() => null);
+  }
+
+  function storeModel(buffer) {
+    return openModelDb().then(db => new Promise(resolve => {
+      let settled = false;
+      const finish = value => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        try {
+          db.close();
+        } catch (error) {
+          // The write result is already available.
+        }
+        resolve(value);
+      };
+      try {
+        const tx = db.transaction("files", "readwrite");
+        tx.objectStore("files").put(buffer, "bench");
+        tx.oncomplete = () => finish(true);
+        tx.onerror = () => finish(false);
+        tx.onabort = () => finish(false);
+      } catch (error) {
+        finish(false);
+      }
+    })).catch(() => false);
+  }
+
+  function deleteStoredModel() {
+    return openModelDb().then(db => new Promise(resolve => {
+      let settled = false;
+      const finish = value => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        try {
+          db.close();
+        } catch (error) {
+          // The delete result is already available.
+        }
+        resolve(value);
+      };
+      try {
+        const tx = db.transaction("files", "readwrite");
+        tx.objectStore("files").delete("bench");
+        tx.oncomplete = () => finish(true);
+        tx.onerror = () => finish(false);
+        tx.onabort = () => finish(false);
+      } catch (error) {
+        finish(false);
+      }
+    })).catch(() => false);
+  }
+
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const script = document.createElement("script");
@@ -149,6 +270,82 @@
     }
     viewer = null;
     viewerBox = null;
+    modelControls = null;
+    modelUploadButton = null;
+    modelDefaultButton = null;
+    modelErrorNode = null;
+  }
+
+  function openModelPicker() {
+    if (modelInput) {
+      modelInput.click();
+    }
+  }
+
+  function updateModelControls() {
+    if (!modelUploadButton) {
+      return;
+    }
+    modelUploadButton.textContent = t("bench.ownModel");
+    modelDefaultButton.hidden = !ownModel;
+    modelDefaultButton.textContent = t("bench.defaultModel");
+    modelErrorNode.hidden = !modelError;
+    modelErrorNode.textContent = t("bench.modelError");
+  }
+
+  function handleModelError() {
+    if (!session || handlingModelError) {
+      return;
+    }
+    handlingModelError = true;
+    modelError = true;
+    ownModel = null;
+    deleteStoredModel().then(() => {
+      disposeViewer();
+      handlingModelError = false;
+      if (session) {
+        setTimeout(() => {
+          if (session) {
+            render();
+          }
+        }, 0);
+      }
+    });
+  }
+
+  function resetToDefaultModel() {
+    ownModel = null;
+    modelError = false;
+    deleteStoredModel().then(() => {
+      disposeViewer();
+      if (session) {
+        render();
+      }
+    });
+  }
+
+  function handleModelFile(file) {
+    if (!session || !file) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      ownModel = reader.result;
+      modelError = false;
+      storeModel(ownModel).then(() => {
+        disposeViewer();
+        if (session) {
+          render();
+        }
+      });
+    };
+    reader.onerror = () => {
+      modelError = true;
+      if (session) {
+        render();
+      }
+    };
+    reader.readAsArrayBuffer(file);
   }
 
   // The 3D view in its box, kept between steps so the WebGL context is made only once.
@@ -156,11 +353,30 @@
     if (!viewerBox) {
       try {
         const box = document.createElement("div");
-        box.className = "bench-figure bench-figure-3d";
+        box.className = "bench-figure bench-figure-3d-wrap";
+        const canvasBox = document.createElement("div");
+        canvasBox.className = "bench-figure-3d";
         // Turning the figure must not count as a swipe to the next step.
-        box.addEventListener("touchstart", event => event.stopPropagation(), { passive: true });
-        box.addEventListener("touchend", event => event.stopPropagation(), { passive: true });
-        viewer = window.WPHFigure3D.create(box, options);
+        canvasBox.addEventListener("touchstart", event => event.stopPropagation(), { passive: true });
+        canvasBox.addEventListener("touchend", event => event.stopPropagation(), { passive: true });
+        box.appendChild(canvasBox);
+        viewer = window.WPHFigure3D.create(canvasBox, options);
+        modelControls = document.createElement("div");
+        modelControls.className = "bench-model-controls";
+        modelUploadButton = document.createElement("button");
+        modelUploadButton.type = "button";
+        modelUploadButton.className = "secondary bench-model-button";
+        modelUploadButton.addEventListener("click", openModelPicker);
+        modelDefaultButton = document.createElement("button");
+        modelDefaultButton.type = "button";
+        modelDefaultButton.className = "secondary bench-model-button";
+        modelDefaultButton.hidden = true;
+        modelDefaultButton.addEventListener("click", resetToDefaultModel);
+        modelControls.append(modelUploadButton, modelDefaultButton);
+        modelErrorNode = document.createElement("p");
+        modelErrorNode.className = "bench-model-error";
+        modelErrorNode.hidden = true;
+        box.append(modelControls, modelErrorNode);
         viewerBox = box;
       } catch (error) {
         use3d = false;
@@ -170,6 +386,7 @@
     } else {
       viewer.update(options);
     }
+    updateModelControls();
     return viewerBox;
   }
 
@@ -201,8 +418,17 @@
         <button type="button" class="secondary bench-prev"></button>
         <button type="button" class="bench-next"></button>
         <button type="button" class="secondary bench-skip"></button>
-      </div>`;
+      </div>
+      <input class="bench-model-input" type="file" accept=".glb,model/gltf-binary" />`;
     document.body.appendChild(overlay);
+    modelInput = overlay.querySelector(".bench-model-input");
+    if (modelInput) {
+      modelInput.addEventListener("change", () => {
+        const file = modelInput.files && modelInput.files[0];
+        modelInput.value = "";
+        handleModelFile(file);
+      });
+    }
     overlay.querySelector(".bench-close").addEventListener("click", close);
     overlay.querySelector(".bench-3d").addEventListener("click", () => {
       use3d = !use3d;
@@ -214,9 +440,15 @@
       }
       ensure3d().then(ok => {
         use3d = ok;
-        if (session) {
-          render();
+        if (!session || !ok) {
+          return;
         }
+        readStoredModel().then(model => {
+          ownModel = model || null;
+          if (session) {
+            render();
+          }
+        });
       });
     });
     overlay.querySelector(".bench-prev").addEventListener("click", () => go(-1));
@@ -365,6 +597,10 @@
         highlight: session.sectionZones.get(card.section) || [],
         title: card.section.title
       };
+      if (ownModel) {
+        figureOptions.model = ownModel;
+      }
+      figureOptions.onModelError = handleModelError;
       const box3d = hasFigure && use3d && window.WPHFigure3D ? figure3dBox(figureOptions) : null;
       if (box3d) {
         stage.appendChild(box3d);

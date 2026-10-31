@@ -134,8 +134,8 @@
     part(group, materials, "skin", new T.SphereGeometry(0.26, 20, 14), [0, 1.05, -1.3]);
     part(group, materials, "skin", new T.SphereGeometry(0.17, 16, 12), [0, 0.85, -1.6]);
 
-    part(group, materials, "cloth", box(1.1, 0.08, 1.5, 0.03), [-0.62, 2.0, -0.5], [-0.18, -0.7, 0]);
-    part(group, materials, "cloth", box(1.1, 0.08, 1.5, 0.03), [0.62, 2.0, -0.5], [-0.18, 0.7, 0]);
+    part(group, materials, "cloth", box(1.2, 1.6, 0.06, 0.02), [-0.75, 2.2, -0.45], [0, -0.6, 0.35]);
+    part(group, materials, "cloth", box(1.2, 1.6, 0.06, 0.02), [0.75, 2.2, -0.45], [0, 0.6, -0.35]);
 
     part(group, materials, "skin", capsule(0.17, 0.7), [-0.95, 1.75, 0.25], [-0.35, 0, 0.55]);
     part(group, materials, "skin", capsule(0.17, 0.7), [0.95, 1.75, 0.25], [-0.35, 0, -0.55]);

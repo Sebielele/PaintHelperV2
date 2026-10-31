@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.36.0 (PaintHelperV2)
+
+- Painting desk in 3D shows the step: highlight steps (edge, fine, quick highlight, focus
+  light, zenithal drybrush) light up the edges of the active zones in the step paint; shade
+  steps darken the zone towards it. The step kind is read from the step label in all five
+  languages (`stepKindForText` in `src/logic/figure-zones.js`, with a test).
+- Zones of other colours turn grey instead of almost black, so the figure stays readable in
+  the dark theme.
+- Bigger figure on wide screens: the desk grows to 1280 px with a figure, the figure up to
+  440 px wide (was 220 px); phones unchanged.
+
 ## v0.35.0 (PaintHelperV2)
 
 - Painting desk in 3D: three figures – infantry, cavalry and monster (with wings) – chosen

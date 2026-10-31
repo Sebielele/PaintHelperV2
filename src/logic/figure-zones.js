@@ -117,6 +117,53 @@
   // Figure types selected from unit keywords.
   const FIGURE_TYPES = ["infantry", "cavalry", "monster"];
 
+  // Painting step kinds recognised in step labels.
+  const STEP_KIND_BY_KEY = {
+    edgeHighlight: "highlight",
+    fineHighlight: "highlight",
+    quickHighlight: "highlight",
+    focusLight: "highlight",
+    zenithalDrybrush: "highlight",
+    deepShade: "shade",
+    shadeWash: "shade"
+  };
+
+  function stepKindForText(text, translations) {
+    if (!text || !translations || typeof translations !== "object") {
+      return "";
+    }
+
+    const source = String(text);
+    const colon = source.indexOf(":");
+    if (colon < 0) {
+      return "";
+    }
+
+    const prefix = source.slice(0, colon).trim().toLowerCase();
+    if (!prefix) {
+      return "";
+    }
+
+    let kind = "";
+    Object.keys(translations).some(language => {
+      const steps = translations[language] && translations[language].ladder && translations[language].ladder.steps;
+      if (!steps || typeof steps !== "object") {
+        return false;
+      }
+
+      return Object.keys(steps).some(key => {
+        const label = String(steps[key] || "").trim().toLowerCase();
+        if (label === prefix) {
+          kind = STEP_KIND_BY_KEY[key] || "";
+          return Boolean(kind);
+        }
+        return false;
+      });
+    });
+
+    return kind;
+  }
+
   // Compute shaded tones for a zone from its base colour.
   function zoneTones(hex, core) {
     const rgb = core && core.hexToRgb ? core.hexToRgb(hex) : null;
@@ -174,6 +221,7 @@
     areaKeysInText,
     figureZonesForText,
     FIGURE_TYPES,
+    stepKindForText,
     zoneTones,
     figureForKeywords,
     zoneForPartName

@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.35.0 (PaintHelperV2)
+
+- Painting desk in 3D: three figures – infantry, cavalry and monster (with wings) – chosen
+  from the keywords of the plan; the camera fits each figure.
+- Own 3D model: "Own model…" under the 3D figure loads a GLB file. Parts are matched to zones
+  by their mesh or material names (armour, skin, metal, weapon, base …) and painted in the
+  palette colours; unknown parts keep their own material. The file stays on this device
+  (IndexedDB, not on the server) and comes back on the next visit; "Standard figure" removes
+  it. A file that cannot be shown falls back to the standard figure with a short hint.
+- Accent colours: steps for colours without a role area light up the accent zone (eyes,
+  gems) on the figure; step texts with hints are split correctly.
+- Guides: every palette colour gets a "Where:" line again, also colours that the role planner
+  lists as extra roles; long placement texts are cut at a comma instead of mid-word. Rewrite
+  existing guides to get the new lines.
+- "Roles on the model": cards in a grid with swatch, role, hex and paint; long words wrap.
+- The guide request sends up to 16 role areas (was 12).
+
 ## v0.34.0 (PaintHelperV2)
 
 - Painting desk in 3D: the "3D" button next to full screen shows a 3D figure in the palette

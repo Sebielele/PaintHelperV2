@@ -141,6 +141,32 @@
     return "infantry";
   }
 
+  // Map GLB material or object names to painting zones.
+  const PART_ZONE_KEYWORDS = [
+    ["base", ["base", "sockel", "ground", "boden"]],
+    ["weapon", ["weapon", "waffe", "sword", "schwert", "blade", "klinge", "axe", "axt", "spear", "speer", "lance", "lanze", "gun", "bow"]],
+    ["metal", ["metal", "metall", "steel", "stahl", "iron", "eisen", "gold", "brass", "messing", "bronze", "silver", "silber", "trim", "chain", "kette"]],
+    ["armor", ["armor", "armour", "rüstung", "ruestung", "plate", "platte", "helmet", "helm", "pauldron", "shield", "schild"]],
+    ["cloth", ["cloth", "stoff", "cloak", "umhang", "cape", "robe", "tabard", "banner", "wing", "flügel", "fluegel"]],
+    ["leather", ["leather", "leder", "strap", "riemen", "belt", "gürtel", "guertel", "boot", "stiefel", "pouch", "tasche", "saddle", "sattel", "fur", "fell"]],
+    ["bone", ["bone", "knochen", "horn", "claw", "kralle", "tooth", "teeth", "zahn", "skull", "schädel", "schaedel"]],
+    ["accent", ["gem", "juwel", "eye", "auge", "glow", "magic", "magie", "rune", "lens", "linse", "crystal", "kristall"]],
+    ["skin", ["skin", "haut", "flesh", "fleisch", "face", "gesicht", "hand", "body", "körper", "koerper", "scale", "schuppe"]]
+  ];
+
+  function zoneForPartName(name) {
+    const value = String(name || "").toLowerCase();
+    if (!value) {
+      return "";
+    }
+    for (const [zone, keywords] of PART_ZONE_KEYWORDS) {
+      if (keywords.some(keyword => value.includes(keyword))) {
+        return zone;
+      }
+    }
+    return "";
+  }
+
   return {
     FIGURE_ZONES,
     ZONE_BY_AREA,
@@ -149,6 +175,7 @@
     figureZonesForText,
     FIGURE_TYPES,
     zoneTones,
-    figureForKeywords
+    figureForKeywords,
+    zoneForPartName
   };
 }));

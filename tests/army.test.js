@@ -166,6 +166,29 @@ test("guide steps ignore text without numbered steps", () => {
   assert.equal(guide.total, 0);
 });
 
+test("splitStepText separates the last hint outside parentheses and without backticks", () => {
+  assert.deepEqual(army.splitStepText("Grundschicht: **Rainforest** (am nächsten; keine passende Farbe – Richtung `#76FF03`) – Deckende Hauptschicht"), {
+    main: "Grundschicht: **Rainforest** (am nächsten; keine passende Farbe – Richtung `#76FF03`)",
+    hint: "Deckende Hauptschicht"
+  });
+  assert.deepEqual(army.splitStepText("Fokus: keine passende Farbe – Richtung `#556229`"), {
+    main: "Fokus: keine passende Farbe – Richtung `#556229`",
+    hint: ""
+  });
+  assert.deepEqual(army.splitStepText("Fokus: keine passende Farbe – Richtung `#556229` – Nur Gesicht und Runen"), {
+    main: "Fokus: keine passende Farbe – Richtung `#556229`",
+    hint: "Nur Gesicht und Runen"
+  });
+  assert.deepEqual(army.splitStepText("Basis: **Mephiston Red** – Deckende Hauptschicht"), {
+    main: "Basis: **Mephiston Red**",
+    hint: "Deckende Hauptschicht"
+  });
+  assert.deepEqual(army.splitStepText("Gussgrate entfernen"), {
+    main: "Gussgrate entfernen",
+    hint: ""
+  });
+});
+
 test("painting dates: set when painted, kept, cleared and counted per month", () => {
   const model = { name: "M", stage: 0 };
   army.setStage(model, 3, new Date("2026-10-05T10:00:00Z"));

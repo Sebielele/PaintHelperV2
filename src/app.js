@@ -445,6 +445,19 @@
         && !GUIDE_EXCLUDED_NAMES.test(paint.name || "");
     }
 
+    // Placement text for colours without a role area, as shown in the paint map.
+    function placementAreaText(index) {
+      const label = index === 0
+        ? t("placements.dominant")
+        : index === 1
+          ? t("placements.secondary")
+          : index === 2
+            ? t("placements.contrast")
+            : t("placements.small");
+      const colon = label.indexOf(":");
+      return (colon > -1 ? label.slice(colon + 1) : label).trim().replace(/\.$/, "");
+    }
+
     // Everything the assistant needs to write a recipe grounded in real catalogue paints.
     function recipeContext(options = {}) {
       // Paint pool, paint descriptions, areas and colour ladders follow src/logic/recipe.js.
@@ -488,6 +501,15 @@
       const custom = state.factionSchemeId ? state.customSchemes.find(scheme => scheme.id === state.factionSchemeId) : null;
       const transparentMode = currentPalette.length
         && W.ladderForColor(currentPalette[0], state.style, state.recipeModeKey).some(step => step.key === "transparentCoat");
+      const areas = W.recipeAreas(rolePlannerItems(), resolveRoleColor, areaKey => t(`roleAreas.${areaKey}`));
+      currentPalette.slice(0, 6).forEach((color, index) => {
+        const name = colorName(color);
+        const hex = String(color.hex || "").toUpperCase();
+        const known = areas.some(area => area.color === name || String(area.hex || "").toUpperCase() === hex);
+        if (!known) {
+          areas.push({ area: placementAreaText(index), color: name, hex: color.hex });
+        }
+      });
       return {
         language: state.language,
         system: t(`systems.${state.system}`),
@@ -500,7 +522,7 @@
         onlyOwnedPaints: Boolean(state.onlyOwnedMatches),
         ownedOnly,
         primer: currentPalette.length ? primerFor(currentPalette[0], catalogue, ownedOnly, transparentMode, preferredBrands) : null,
-        areas: W.recipeAreas(rolePlannerItems(), resolveRoleColor, areaKey => t(`roleAreas.${areaKey}`)),
+        areas,
         colors: W.recipeColors(currentPalette, {
           colorName,
           metalPattern: GUIDE_METAL_NAMES,

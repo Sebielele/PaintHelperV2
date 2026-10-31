@@ -460,5 +460,33 @@
     return { width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)) };
   }
 
-  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps, nextUnits, setStage, paintedByMonth, PHOTO_MAX_CHARS, photoKey, sanitizePhoto, photoSize };
+  // Splits a guide step into main text and trailing hint at the last valid " – ".
+  function splitStepText(value) {
+    const text = String(value == null ? "" : value);
+    const separator = " – ";
+    let searchFrom = text.length;
+    while (searchFrom >= 0) {
+      const index = text.lastIndexOf(separator, searchFrom);
+      if (index < 0) {
+        break;
+      }
+      const before = text.slice(0, index);
+      const after = text.slice(index + separator.length);
+      let depth = 0;
+      for (let position = 0; position < before.length; position += 1) {
+        if (before[position] === "(") {
+          depth += 1;
+        } else if (before[position] === ")") {
+          depth = Math.max(0, depth - 1);
+        }
+      }
+      if (depth === 0 && !after.includes("`")) {
+        return { main: before.trim(), hint: after.trim() };
+      }
+      searchFrom = index - 1;
+    }
+    return { main: text.trim(), hint: "" };
+  }
+
+  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps, nextUnits, setStage, paintedByMonth, PHOTO_MAX_CHARS, photoKey, sanitizePhoto, photoSize, splitStepText };
 }));

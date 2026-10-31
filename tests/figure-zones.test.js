@@ -63,3 +63,11 @@ test("part names map to figure zones", () => {
   assert.equal(zones.zoneForPartName("Mesh_042"), "");
   assert.equal(zones.zoneForPartName(undefined), "");
 });
+
+test("step kind comes from the painting step label", () => {
+  assert.equal(zones.stepKindForText("Kantenhighlight: White Scar", TRANSLATIONS), "highlight");
+  assert.equal(zones.stepKindForText("Edge highlight: White Scar", TRANSLATIONS), "highlight");
+  assert.equal(zones.stepKindForText("Shade / Wash: Druchii Violet", TRANSLATIONS), "shade");
+  assert.equal(zones.stepKindForText("Grundschicht: Naggaroth Night", TRANSLATIONS), "");
+  assert.equal(zones.stepKindForText("White Scar", TRANSLATIONS), "");
+});

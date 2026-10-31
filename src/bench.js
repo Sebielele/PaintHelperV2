@@ -587,6 +587,9 @@
       const main = document.createElement("p");
       main.className = "bench-step";
       inline(main, split.main);
+      const stepKind = window.WPH && window.WPH.stepKindForText && window.WPH.TRANSLATIONS ? window.WPH.stepKindForText(card.step.text, window.WPH.TRANSLATIONS) : "";
+      const stepSwatch = main.querySelector(".ai-paint-swatch");
+      const stepColor = stepSwatch ? stepSwatch.style.backgroundColor : "";
       stage.append(head, counter, main);
       const hasFigure = Boolean(window.WPHFigure && Object.keys(session.zoneFills).length);
       stage.classList.toggle("has-figure", hasFigure);
@@ -597,6 +600,9 @@
         highlight: session.sectionZones.get(card.section) || [],
         title: card.section.title
       };
+      if (stepKind && stepColor) {
+        figureOptions.step = { kind: stepKind, color: stepColor };
+      }
       if (ownModel) {
         figureOptions.model = ownModel;
       }

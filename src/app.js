@@ -455,7 +455,19 @@
             ? t("placements.contrast")
             : t("placements.small");
       const colon = label.indexOf(":");
-      return (colon > -1 ? label.slice(colon + 1) : label).trim().replace(/\.$/, "");
+      const text = (colon > -1 ? label.slice(colon + 1) : label).trim().replace(/\.$/, "");
+      if (text.length <= 60) {
+        return text;
+      }
+
+      const clipped = text.slice(0, 60);
+      const comma = clipped.lastIndexOf(", ");
+      if (comma > -1) {
+        return clipped.slice(0, comma).trim();
+      }
+
+      const space = clipped.lastIndexOf(" ");
+      return (space > -1 ? clipped.slice(0, space) : clipped).trim();
     }
 
     // Everything the assistant needs to write a recipe grounded in real catalogue paints.

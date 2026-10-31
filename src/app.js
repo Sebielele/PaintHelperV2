@@ -505,7 +505,7 @@
       currentPalette.slice(0, 6).forEach((color, index) => {
         const name = colorName(color);
         const hex = String(color.hex || "").toUpperCase();
-        const known = areas.some(area => area.color === name || String(area.hex || "").toUpperCase() === hex);
+        const known = areas.some(area => area.area !== area.color && (area.color === name || String(area.hex || "").toUpperCase() === hex));
         if (!known) {
           areas.push({ area: placementAreaText(index), color: name, hex: color.hex });
         }

@@ -51,3 +51,15 @@ test("figure type comes from the unit keywords", () => {
   assert.equal(zones.figureForKeywords(undefined), "infantry");
   assert.deepEqual(zones.FIGURE_TYPES, ["infantry", "cavalry", "monster"]);
 });
+
+test("part names map to figure zones", () => {
+  assert.equal(zones.zoneForPartName("Armor_Plate"), "armor");
+  assert.equal(zones.zoneForPartName("mat_Leder_01"), "leather");
+  assert.equal(zones.zoneForPartName("Sword_Blade"), "weapon");
+  assert.equal(zones.zoneForPartName("GoldTrim"), "metal");
+  assert.equal(zones.zoneForPartName("Haut"), "skin");
+  assert.equal(zones.zoneForPartName("EyeGlow"), "accent");
+  assert.equal(zones.zoneForPartName("Base"), "base");
+  assert.equal(zones.zoneForPartName("Mesh_042"), "");
+  assert.equal(zones.zoneForPartName(undefined), "");
+});

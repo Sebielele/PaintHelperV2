@@ -204,6 +204,12 @@
     const group = new T.Group();
     scene.add(group);
     let figure = "";
+    let modelBuffer = null;
+    let modelActive = false;
+    let modelLoading = false;
+    let modelZones = [];
+    let loadToken = 0;
+    let lastOptions = {};
 
     const controls = new A.OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 1.1, 0);
@@ -230,15 +236,20 @@
       controls.update();
     }
 
-    function update(next) {
-      const opts = next || {};
-      const type = BUILDERS[opts.figure] ? opts.figure : "infantry";
-      if (type !== figure) {
-        group.clear();
-        BUILDERS[type](group, materials);
-        figure = type;
-        fitCameraToFigure();
-      }
+    function figureType(opts) {
+      return BUILDERS[opts.figure] ? opts.figure : "infantry";
+    }
+
+    function buildFigure(type) {
+      group.clear();
+      BUILDERS[type](group, materials);
+      figure = type;
+      modelActive = false;
+      modelZones = [];
+      fitCameraToFigure();
+    }
+
+    function applyMaterials(opts) {
       const fills = opts.fills || {};
       const highlight = Array.isArray(opts.highlight) ? opts.highlight : [];
       Object.keys(materials).forEach(zone => {
@@ -254,6 +265,136 @@
         material.needsUpdate = true;
       });
       renderer.domElement.setAttribute("aria-label", opts.title || "");
+    }
+
+    function zoneForPart(name) {
+      return window.WPH && window.WPH.zoneForPartName ? window.WPH.zoneForPartName(name) : "";
+    }
+
+    function applyModelMaterials(root) {
+      const found = new Set();
+      root.traverse(obj => {
+        if (!obj.isMesh) {
+          return;
+        }
+        obj.castShadow = true;
+        obj.receiveShadow = true;
+        let zone = "";
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const mat of mats) {
+          if (mat && mat.name) {
+            zone = zoneForPart(mat.name);
+            if (zone) {
+              break;
+            }
+          }
+        }
+        if (!zone) {
+          zone = zoneForPart(obj.name);
+        }
+        if (zone) {
+          found.add(zone);
+          obj.material = materials[zone];
+        }
+      });
+      return Object.keys(materials).filter(zone => found.has(zone));
+    }
+
+    function scaleModelToBase(model) {
+      const box = new T.Box3().setFromObject(model);
+      if (box.isEmpty()) {
+        return;
+      }
+      const size = box.getSize(new T.Vector3());
+      const scale = size.y > 0 ? 2.3 / size.y : 1;
+      model.scale.setScalar(scale);
+      box.setFromObject(model);
+      if (box.isEmpty()) {
+        return;
+      }
+      const center = box.getCenter(new T.Vector3());
+      model.position.x -= center.x;
+      model.position.z -= center.z;
+      model.position.y -= box.min.y;
+    }
+
+    function failModel(error) {
+      modelLoading = false;
+      buildFigure(figureType(lastOptions));
+      applyMaterials(lastOptions);
+      if (typeof lastOptions.onModelError === "function") {
+        lastOptions.onModelError(error);
+      }
+    }
+
+    function loadModel(buffer) {
+      const token = ++loadToken;
+      modelLoading = true;
+      try {
+        const loader = new A.GLTFLoader();
+        loader.parse(
+          buffer,
+          "",
+          gltf => {
+            if (token !== loadToken) {
+              return;
+            }
+            modelLoading = false;
+            const model = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+            if (!model) {
+              failModel(new Error());
+              return;
+            }
+            group.clear();
+            group.add(model);
+            scaleModelToBase(model);
+            modelZones = applyModelMaterials(model);
+            modelActive = true;
+            figure = "";
+            fitCameraToFigure();
+            applyMaterials(lastOptions);
+          },
+          error => {
+            if (token !== loadToken) {
+              return;
+            }
+            failModel(error);
+          }
+        );
+      } catch (error) {
+        if (token === loadToken) {
+          failModel(error);
+        }
+      }
+    }
+
+    function zones() {
+      return modelActive ? modelZones.slice() : Object.keys(materials).slice();
+    }
+
+    function update(next) {
+      const opts = next || {};
+      lastOptions = opts;
+      if (opts.model) {
+        if (opts.model !== modelBuffer) {
+          modelBuffer = opts.model;
+          loadModel(opts.model);
+        } else if (!modelActive && !modelLoading) {
+          const type = figureType(opts);
+          if (type !== figure) {
+            buildFigure(type);
+          }
+        }
+      } else {
+        modelBuffer = null;
+        loadToken += 1;
+        modelLoading = false;
+        const type = figureType(opts);
+        if (modelActive || type !== figure) {
+          buildFigure(type);
+        }
+      }
+      applyMaterials(opts);
     }
 
     function resize() {
@@ -281,13 +422,15 @@
 
     function dispose() {
       running = false;
+      loadToken += 1;
+      modelLoading = false;
       observer.disconnect();
       controls.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     }
 
-    return { update, dispose, element: renderer.domElement };
+    return { update, dispose, element: renderer.domElement, zones };
   }
 
   window.WPHFigure3D = { create, types: Object.keys(BUILDERS) };

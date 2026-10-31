@@ -167,11 +167,11 @@
 
   const BUILDERS = { infantry: buildInfantry, cavalry: buildCavalry, monster: buildMonster };
 
-  // options: { figure, fills: { zone: "#hex" }, highlight: [zone], title }
+  // options: { figure, fills: { zone: "#hex" }, highlight: [zone], title, step }
   function create(container, options) {
     const T = window.THREE;
     const A = window.THREE_ADDONS;
-    DIM = DIM || new T.Color("#2a2d33");
+    DIM = DIM || new T.Color("#6b7079");
     const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
@@ -200,6 +200,15 @@
         metalness: METALLIC.has(zone) ? 0.35 : 0.05,
         roughness: METALLIC.has(zone) ? 0.38 : 0.72
       });
+      const uniforms = { wphRimColor: { value: new T.Color("#ffffff") }, wphRimStrength: { value: 0 } };
+      materials[zone].userData.rim = uniforms;
+      materials[zone].onBeforeCompile = shader => {
+        shader.uniforms.wphRimColor = uniforms.wphRimColor;
+        shader.uniforms.wphRimStrength = uniforms.wphRimStrength;
+        shader.fragmentShader = "uniform vec3 wphRimColor;\nuniform float wphRimStrength;\n" + shader.fragmentShader.replace(
+          "#include <dithering_fragment>",
+          "float wphRim = pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 2.2);\ngl_FragColor.rgb = mix(gl_FragColor.rgb, wphRimColor, clamp(wphRim * wphRimStrength, 0.0, 1.0));\n#include <dithering_fragment>");
+      };
     });
     const group = new T.Group();
     scene.add(group);
@@ -252,16 +261,25 @@
     function applyMaterials(opts) {
       const fills = opts.fills || {};
       const highlight = Array.isArray(opts.highlight) ? opts.highlight : [];
+      const step = opts.step || {};
       Object.keys(materials).forEach(zone => {
         const material = materials[zone];
         const dimmed = highlight.length > 0 && !highlight.includes(zone);
         // Zones of other colours fade towards the background instead of turning see-through.
         material.color.set(fills[zone] || EMPTY);
         if (dimmed) {
-          material.color.lerp(DIM, 0.7);
+          material.color.lerp(DIM, 0.6);
         }
         material.emissive.set(highlight.includes(zone) ? fills[zone] || EMPTY : "#000000");
         material.emissiveIntensity = highlight.includes(zone) ? 0.12 : 0;
+        const active = highlight.includes(zone) && Boolean(step.color);
+        material.userData.rim.wphRimStrength.value = active && step.kind === "highlight" ? 1.6 : 0;
+        if (active) {
+          material.userData.rim.wphRimColor.value.set(step.color);
+          if (step.kind === "shade") {
+            material.color.lerp(new T.Color(step.color), 0.5);
+          }
+        }
         material.needsUpdate = true;
       });
       renderer.domElement.setAttribute("aria-label", opts.title || "");

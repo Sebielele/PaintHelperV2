@@ -2053,3 +2053,60 @@ main:not([data-workflow-view="palette"]) .toolbar h2 { font-size: 1.15rem; }
     transition: none;
   }
 }
+
+/* Role cards ("Rollen am Modell") */
+.paint-map {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.paint-map-card {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-areas:
+    "swatch role"
+    ". hex"
+    "meta meta";
+  gap: 6px 10px;
+  align-items: start;
+  padding: 12px;
+  min-width: 0;
+}
+
+.paint-map-card > div:not(.paint-map-swatch) {
+  display: contents;
+}
+
+.paint-map-swatch {
+  grid-area: swatch;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  align-self: center;
+}
+
+.paint-map-card .role,
+.paint-map-card code,
+.paint-map-card .meta {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.paint-map-card .role {
+  grid-area: role;
+  margin: 0;
+}
+
+.paint-map-card code {
+  grid-area: hex;
+  margin: 0;
+  font-size: .82rem;
+}
+
+.paint-map-card .meta {
+  grid-area: meta;
+  margin: 0;
+  color: var(--muted);
+  font-size: .85rem;
+  line-height: 1.35;
+}

@@ -58,7 +58,114 @@
     group.add(sword);
   }
 
-  const BUILDERS = { infantry: buildInfantry };
+  // Cavalry: mount, rider and lance (own design).
+  function buildCavalry(group, materials) {
+    const T = window.THREE;
+    const A = window.THREE_ADDONS;
+    const box = (w, h, d, r) => new A.RoundedBoxGeometry(w, h, d, 3, r);
+    const capsule = (r, length) => new T.CapsuleGeometry(r, length, 6, 14);
+
+    part(group, materials, "base", new T.CylinderGeometry(0.9, 0.95, 0.14, 48), [0, 0.07, 0], null, [1.55, 1, 1]);
+    part(group, materials, "skin", capsule(0.34, 0.72), [0, 1.0, 0], [Math.PI / 2, 0, 0]);
+    part(group, materials, "skin", capsule(0.16, 0.35), [0, 1.28, 0.62], [0.95, 0, 0]);
+    part(group, materials, "skin", new T.SphereGeometry(0.22, 24, 16), [0, 1.48, 0.92], null, [1, 0.85, 1.35]);
+    part(group, materials, "metal", box(0.22, 0.12, 0.16, 0.03), [0, 1.54, 1.08], [0.2, 0, 0]);
+    part(group, materials, "accent", new T.SphereGeometry(0.035, 12, 8), [0.12, 1.5, 1.02]);
+
+    const legPositions = [[-0.3, -0.45], [0.3, -0.45], [-0.3, 0.45], [0.3, 0.45]];
+    legPositions.forEach(pos => {
+      part(group, materials, "skin", capsule(0.12, 0.6), [pos[0], 0.56, pos[1]]);
+      part(group, materials, "leather", box(0.18, 0.08, 0.22, 0.03), [pos[0], 0.18, pos[1] + 0.02]);
+    });
+
+    part(group, materials, "leather", capsule(0.09, 0.45), [0, 0.95, -0.78], [-Math.PI / 2 - 0.35, 0, 0]);
+    part(group, materials, "cloth", box(0.86, 0.08, 1.45, 0.03), [0, 1.31, 0]);
+    part(group, materials, "leather", box(0.48, 0.12, 0.68, 0.05), [0, 1.39, -0.04]);
+
+    part(group, materials, "armor", capsule(0.11, 0.42), [-0.36, 1.22, 0], [0, 0, 0.28]);
+    part(group, materials, "armor", capsule(0.11, 0.42), [0.36, 1.22, 0], [0, 0, -0.28]);
+    part(group, materials, "armor", box(0.52, 0.68, 0.34, 0.1), [0, 1.92, 0]);
+    part(group, materials, "armor", new T.SphereGeometry(0.17, 20, 14), [-0.35, 2.18, 0], null, [1.1, 0.75, 1]);
+    part(group, materials, "armor", new T.SphereGeometry(0.17, 20, 14), [0.35, 2.18, 0], null, [1.1, 0.75, 1]);
+    part(group, materials, "leather", box(0.56, 0.1, 0.38, 0.03), [0, 1.6, 0]);
+    part(group, materials, "metal", box(0.12, 0.12, 0.05, 0.02), [0, 1.6, 0.2]);
+    part(group, materials, "skin", capsule(0.08, 0.42), [0.42, 1.9, 0.18], [-0.75, 0, -0.35]);
+
+    part(group, materials, "skin", new T.SphereGeometry(0.18, 26, 18), [0, 2.42, 0.02]);
+    part(group, materials, "bone", new T.ConeGeometry(0.05, 0.28, 12), [-0.13, 2.6, 0], [0, 0, 0.55]);
+    part(group, materials, "bone", new T.ConeGeometry(0.05, 0.28, 12), [0.13, 2.6, 0], [0, 0, -0.55]);
+    part(group, materials, "accent", new T.SphereGeometry(0.03, 12, 8), [-0.07, 2.45, 0.16]);
+    part(group, materials, "accent", new T.SphereGeometry(0.03, 12, 8), [0.07, 2.45, 0.16]);
+    part(group, materials, "accent", new T.SphereGeometry(0.055, 14, 10), [0, 2.02, 0.19]);
+
+    const lance = new T.Group();
+    part(lance, materials, "weapon", new T.CylinderGeometry(0.035, 0.035, 1.8, 12), [0, 0, 0]);
+    part(lance, materials, "metal", box(0.24, 0.05, 0.24, 0.02), [0, -0.72, 0]);
+    lance.position.set(0.55, 1.78, 0.35);
+    group.add(lance);
+  }
+
+  // Monster: bulky body, wings and curved blade (own design).
+  function buildMonster(group, materials) {
+    const T = window.THREE;
+    const A = window.THREE_ADDONS;
+    const box = (w, h, d, r) => new A.RoundedBoxGeometry(w, h, d, 3, r);
+    const capsule = (r, length) => new T.CapsuleGeometry(r, length, 6, 14);
+
+    part(group, materials, "base", new T.CylinderGeometry(1.05, 1.1, 0.14, 48), [0, 0.07, 0]);
+    part(group, materials, "skin", new T.SphereGeometry(0.92, 32, 24), [0, 1.62, 0], null, [1, 0.95, 0.82]);
+    part(group, materials, "armor", box(0.86, 0.72, 0.28, 0.1), [0, 1.95, 0.58]);
+    part(group, materials, "leather", box(0.98, 0.13, 0.68, 0.04), [0, 1.45, 0]);
+    part(group, materials, "metal", box(0.24, 0.18, 0.07, 0.03), [0, 1.45, 0.36]);
+    part(group, materials, "cloth", box(0.68, 0.48, 0.14, 0.04), [0, 1.22, 0.58]);
+
+    part(group, materials, "skin", capsule(0.22, 0.7), [-0.42, 0.72, 0]);
+    part(group, materials, "skin", capsule(0.22, 0.7), [0.42, 0.72, 0]);
+
+    const footX = [-0.42, 0.42];
+    footX.forEach(x => {
+      part(group, materials, "skin", box(0.46, 0.18, 0.66, 0.05), [x, 0.23, 0.18]);
+      [-0.13, 0, 0.13].forEach(offset => {
+        part(group, materials, "bone", new T.ConeGeometry(0.07, 0.24, 10), [x + offset, 0.18, 0.52], [Math.PI / 2, 0, 0]);
+      });
+    });
+
+    part(group, materials, "skin", new T.SphereGeometry(0.36, 24, 16), [0, 1.25, -0.9]);
+    part(group, materials, "skin", new T.SphereGeometry(0.26, 20, 14), [0, 1.05, -1.3]);
+    part(group, materials, "skin", new T.SphereGeometry(0.17, 16, 12), [0, 0.85, -1.6]);
+
+    part(group, materials, "cloth", box(1.1, 0.08, 1.5, 0.03), [-0.62, 2.0, -0.5], [-0.18, -0.7, 0]);
+    part(group, materials, "cloth", box(1.1, 0.08, 1.5, 0.03), [0.62, 2.0, -0.5], [-0.18, 0.7, 0]);
+
+    part(group, materials, "skin", capsule(0.17, 0.7), [-0.95, 1.75, 0.25], [-0.35, 0, 0.55]);
+    part(group, materials, "skin", capsule(0.17, 0.7), [0.95, 1.75, 0.25], [-0.35, 0, -0.55]);
+    part(group, materials, "metal", new T.CylinderGeometry(0.2, 0.2, 0.12, 16), [-0.82, 2.0, 0.15], [-0.35, 0, 0.55]);
+    part(group, materials, "metal", new T.CylinderGeometry(0.2, 0.2, 0.12, 16), [0.82, 2.0, 0.15], [-0.35, 0, -0.55]);
+
+    const hands = [[-1.25, 1.35, 0.45], [1.25, 1.35, 0.45]];
+    hands.forEach(hand => {
+      [-0.1, 0, 0.1].forEach(offset => {
+        part(group, materials, "bone", new T.ConeGeometry(0.06, 0.2, 10), [hand[0] + offset, hand[1] - 0.05, hand[2] + 0.18], [Math.PI / 2, 0, 0]);
+      });
+    });
+
+    part(group, materials, "skin", new T.SphereGeometry(0.46, 30, 22), [0, 2.68, 0.1]);
+    part(group, materials, "bone", new T.ConeGeometry(0.1, 0.7, 12), [-0.32, 2.95, -0.05], [-0.35, 0, 0.65]);
+    part(group, materials, "bone", new T.ConeGeometry(0.1, 0.7, 12), [0.32, 2.95, -0.05], [-0.35, 0, -0.65]);
+    part(group, materials, "accent", new T.SphereGeometry(0.04, 12, 8), [-0.16, 2.72, 0.48]);
+    part(group, materials, "accent", new T.SphereGeometry(0.04, 12, 8), [0.16, 2.72, 0.48]);
+    part(group, materials, "accent", new T.SphereGeometry(0.075, 16, 12), [0, 2.05, 0.72]);
+
+    const blade = new T.Group();
+    part(blade, materials, "weapon", box(0.09, 0.65, 0.025, 0.01), [0, 0.32, 0]);
+    part(blade, materials, "weapon", box(0.08, 0.45, 0.02, 0.01), [0.08, 0.78, 0], [0, 0, -0.35]);
+    part(blade, materials, "weapon", box(0.07, 0.35, 0.018, 0.01), [0.22, 1.08, 0], [0, 0, -0.7]);
+    blade.position.set(1.25, 1.35, 0.45);
+    blade.rotation.set(-0.2, 0, -0.25);
+    group.add(blade);
+  }
+
+  const BUILDERS = { infantry: buildInfantry, cavalry: buildCavalry, monster: buildMonster };
 
   // options: { figure, fills: { zone: "#hex" }, highlight: [zone], title }
   function create(container, options) {
@@ -108,6 +215,21 @@
     controls.autoRotateSpeed = 1.2;
     controls.addEventListener("start", () => { controls.autoRotate = false; });
 
+    const cameraDirection = new T.Vector3(2.5, 1.0, 5.4).normalize();
+    function fitCameraToFigure() {
+      const bounds = new T.Box3().setFromObject(group);
+      if (bounds.isEmpty()) {
+        return;
+      }
+      const center = bounds.getCenter(new T.Vector3());
+      const size = bounds.getSize(new T.Vector3());
+      const distance = 2.4 * Math.max(size.x, size.y, size.z);
+      controls.target.copy(center);
+      camera.position.copy(center).addScaledVector(cameraDirection, distance);
+      camera.updateProjectionMatrix();
+      controls.update();
+    }
+
     function update(next) {
       const opts = next || {};
       const type = BUILDERS[opts.figure] ? opts.figure : "infantry";
@@ -115,6 +237,7 @@
         group.clear();
         BUILDERS[type](group, materials);
         figure = type;
+        fitCameraToFigure();
       }
       const fills = opts.fills || {};
       const highlight = Array.isArray(opts.highlight) ? opts.highlight : [];

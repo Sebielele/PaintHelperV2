@@ -22068,6 +22068,15 @@
         },
         {
           "name": "Bad Moon Yellow",
+          "hex": "#FDC90E",
+          "finish": "contrast",
+          "type": "contrast",
+          "status": "confirmed",
+          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
+          "manufacturer_code": "29-53"
+        },
+        {
+          "name": "Bad Moon Yellow",
           "hex": "#FFF200",
           "collection": "Foundation",
           "finish": "opaque",
@@ -22075,15 +22084,6 @@
           "status": "discontinued",
           "source_url": "https://github.com/s10-steve/paintdex",
           "discontinued": true
-        },
-        {
-          "name": "Bad Moon Yellow",
-          "hex": "#FDC90E",
-          "finish": "contrast",
-          "type": "contrast",
-          "status": "confirmed",
-          "source_url": "https://github.com/SimoGecko/CitadelColours/blob/main/tables/citadel_official_colors_table.md",
-          "manufacturer_code": "29-53"
         },
         {
           "name": "Badab Black Wash",
@@ -22894,6 +22894,15 @@
           ],
           "notes": "Applied colour over a light primer (official swatch).",
           "manufacturer_code": "24-18"
+        },
+        {
+          "name": "Cassandora Yellow",
+          "hex": "#AD8A38",
+          "collection": "Shade",
+          "finish": "wash",
+          "type": "wash",
+          "status": "community",
+          "source_url": "https://github.com/s10-steve/paintdex"
         },
         {
           "name": "Castellan Green",

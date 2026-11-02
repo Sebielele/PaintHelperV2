@@ -50,6 +50,9 @@
       } else if (action === "army") {
         window.WPHWorkflow.show("army");
         window.scrollTo({ top: 0, behavior: "smooth" });
+      } else if (action === "project") {
+        window.WPHWorkflow.show("project");
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     });
     document.addEventListener("wph:ai-status", event => renderStatus(event.detail));
@@ -177,7 +180,7 @@
 
   function renderDock() {
     const view = window.WPHWorkflow ? window.WPHWorkflow.current() : "palette";
-    const map = { assist: "palette", guide: "plan", army: "army" };
+    const map = { assist: "palette", guide: "plan", army: "army", project: "project" };
     el.assistDock.querySelectorAll("[data-dock]").forEach(button => {
       if (map[button.dataset.dock] === view) {
         button.setAttribute("aria-current", "page");

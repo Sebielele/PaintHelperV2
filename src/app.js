@@ -2857,7 +2857,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const panels = Array.from(document.querySelectorAll("[data-workflow-panel]"));
   const next = document.getElementById("nextStepBtn");
   const save = document.querySelector('[data-control-group="saveShare"]');
-  const nextLabels = ["ui.nextPlan", "ui.nextPaints", "assist.nextArmy", "ui.backPalette"];
+  const nextLabels = ["ui.nextPlan", "ui.nextPaints", "assist.nextArmy", "project.next", "ui.backPalette"];
   let active = 0;
 
   function showStep(index) {

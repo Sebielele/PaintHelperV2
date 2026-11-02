@@ -488,5 +488,5 @@
     return { main: text.trim(), hint: "" };
   }
 
-  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, guideSteps, nextUnits, setStage, paintedByMonth, PHOTO_MAX_CHARS, photoKey, sanitizePhoto, photoSize, splitStepText };
+  return { STAGES, PAINTED, parseRoster, rosterFromXml, mergeArmy, unitProgress, armyProgress, sanitizeStore, sanitizeArmy, sanitizeGuide, guideSteps, nextUnits, setStage, paintedByMonth, PHOTO_MAX_CHARS, photoKey, sanitizePhoto, photoSize, splitStepText };
 }));

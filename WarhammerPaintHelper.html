@@ -48,6 +48,7 @@
       <button type="button" class="workflow-step" data-workflow="plan"><span class="step-number">02</span><span data-i18n="ui.stepPlan">Painting plan</span></button>
       <button type="button" class="workflow-step" data-workflow="paints"><span class="step-number">03</span><span data-i18n="ui.stepPaints">Paints &amp; supplies</span></button>
       <button type="button" class="workflow-step" data-workflow="army"><span class="step-number">04</span><span data-i18n="army.step">Army</span></button>
+      <button type="button" class="workflow-step" data-workflow="project"><span class="step-number">05</span><span data-i18n="project.step">Projects</span></button>
     </div>
     <button id="openSaveBtn" type="button" class="secondary" data-i18n="ui.controlSaveShare">Save / share</button>
   </nav>
@@ -594,6 +595,21 @@
       <p id="armyStatus" class="ai-status" aria-live="polite"></p>
       <div id="armyBody" class="army-body"></div>
     </section>
+
+    <section data-workflow-panel="project" id="projectPanel" class="panel army-panel project-panel" aria-labelledby="projectTitle">
+      <div class="army-head">
+        <div>
+          <p class="eyebrow" data-i18n="project.eyebrow">Build project</p>
+          <h2 id="projectTitle" data-i18n="project.title">Bases, dioramas & terrain</h2>
+        </div>
+        <div class="army-head-actions">
+          <select id="projectSelect" aria-label="Project" hidden></select>
+          <button id="projectNewBtn" type="button" class="assist-primary" data-i18n="project.new">New project</button>
+        </div>
+      </div>
+      <p id="projectStatus" class="ai-status" aria-live="polite"></p>
+      <div id="projectBody" class="army-body project-body"></div>
+    </section>
   </main>
 
   <nav id="assistDock" class="assist-dock" aria-label="Quick actions">
@@ -601,6 +617,7 @@
     <button type="button" data-dock="guide" class="secondary"><span aria-hidden="true">📋</span><span data-i18n="assist.dockGuide">Guide</span></button>
     <button type="button" data-dock="bench" class="secondary"><span aria-hidden="true">🖌</span><span data-i18n="assist.dockBench">Desk</span></button>
     <button type="button" data-dock="army" class="secondary"><span aria-hidden="true">🛡</span><span data-i18n="army.step">Army</span></button>
+    <button type="button" data-dock="project" class="secondary"><span aria-hidden="true">🧱</span><span data-i18n="project.step">Projects</span></button>
   </nav>
 
   <script src="src/core.js?v=0.36"></script>
@@ -629,6 +646,7 @@
   <script src="src/figure.js?v=0.36"></script>
   <script src="src/assist.js?v=0.36"></script>
   <script src="src/army.js?v=0.36"></script>
+  <script src="src/project.js?v=0.36"></script>
   <script src="src/kit.js?v=0.36"></script>
   <script src="src/kit-ui.js?v=0.36"></script>
   <script src="src/backup.js?v=0.36"></script>

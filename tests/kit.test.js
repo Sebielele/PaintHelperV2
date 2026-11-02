@@ -46,6 +46,21 @@ test("collects palette guides and army unit guides as sources", () => {
   assert.deepEqual(kit.collectSources({ items: "x" }, { armies: [null] }), []);
 });
 
+test("collects project element guides as sources", () => {
+  const projects = { version: 1, projects: [{
+    id: "proj-a", name: "Project A", elements: [
+      { id: "el-a", name: "No guide" },
+      { id: "el-b", name: "Guide element", guide: { text: "1. **White Scar**", createdAt: "2026-10-01" } }
+    ]
+  }] };
+  const sources = kit.collectSources(null, null, projects);
+  assert.equal(sources.length, 1);
+  assert.deepEqual(sources.map(source => [source.id, source.kind, source.label, source.group]), [
+    ["element:proj-a:el-b", "element", "Guide element", "Project A"]
+  ]);
+  assert.deepEqual(kit.collectSources(null, null, { projects: [null] }), []);
+});
+
 test("resolves needed paints across guides and reports unknown names", () => {
   const sources = [
     { label: "A", text: "**Mephiston Red** **Nuln Oil** **Unobtainium Gold**" },

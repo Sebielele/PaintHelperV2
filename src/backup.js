@@ -100,6 +100,7 @@
       else if (key.startsWith("wph.guides")) areas.add("guides");
       else if (key.startsWith("wph.settings") || key.startsWith("wph.profiles")) areas.add("palettes");
       else if (key.startsWith("wph.kit")) areas.add("kit");
+      else if (key.startsWith("wph.projects")) areas.add("projects");
       else areas.add("other");
     });
     return Array.from(areas);

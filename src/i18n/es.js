@@ -1177,6 +1177,7 @@
       noMatch: "Ninguna guía coincide con el filtro.",
       paletteGuides: "Guías de paletas",
       armyGuides: "Guías del ejército",
+      projectGuides: "Guías de proyectos",
       paintCount: "{count} pinturas",
       pickGuides: "Marca las guías que quieres pintar.",
       summary: "{guides} guías · {needed} pinturas · llevar {pack} botes · comprar {buy}.",
@@ -1212,6 +1213,7 @@
         guides: "guías",
         palettes: "paletas y ajustes",
         kit: "maletín",
+        projects: "Proyectos",
         other: "otros"
       },
       errors: {

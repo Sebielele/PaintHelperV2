@@ -48,7 +48,7 @@
 
   // All saved guides as kit sources: guides per palette ("wph.guides.v1") and guides per
   // army unit ("wph.armies.v1"). Each source: { id, kind, label, group, text, createdAt }.
-  function collectSources(guidesStore, armiesStore) {
+  function collectSources(guidesStore, armiesStore, projectsStore) {
     const sources = [];
     const guideItems = guidesStore && Array.isArray(guidesStore.items) ? guidesStore.items : [];
     guideItems.forEach(item => {
@@ -85,6 +85,29 @@
             }
           }
         });
+      });
+    });
+    const projects = projectsStore && Array.isArray(projectsStore.projects) ? projectsStore.projects : [];
+    projects.forEach(project => {
+      if (!project || typeof project.id !== "string") {
+        return;
+      }
+      (Array.isArray(project.elements) ? project.elements : []).forEach(element => {
+        const guide = element && element.guide;
+        if (guide && typeof guide.text === "string" && guide.text.trim()) {
+          const elementId = element.id === undefined || element.id === null ? "" : String(element.id);
+          const id = `element:${project.id}:${elementId}`;
+          if (!sources.some(source => source.id === id)) {
+            sources.push({
+              id,
+              kind: "element",
+              label: String(element.name || "–"),
+              group: String(project.name || ""),
+              text: guide.text,
+              createdAt: typeof guide.createdAt === "string" ? guide.createdAt : ""
+            });
+          }
+        }
       });
     });
     return sources.slice(0, MAX_SOURCES);

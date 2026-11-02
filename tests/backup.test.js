@@ -49,3 +49,7 @@ test("unit photos count as army projects in the restore summary", () => {
   assert.deepEqual(backup.describeItems({ "wph.photo.09563ff1": "data:image/jpeg;base64,AA==" }), ["armies"]);
   assert.deepEqual(backup.describeItems({ "wph.armies.v1": "", "wph.photo.9508f0e7": "" }), ["armies"]);
 });
+
+test("project keys count as projects in the restore summary", () => {
+  assert.deepEqual(backup.describeItems({ "wph.projects.v1": "" }), ["projects"]);
+});

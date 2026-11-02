@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "activeId": "proj-dexcessa",
+  "projects": [{
+    "id": "proj-dexcessa",
+    "name": "Dexcessa – Display-Sockel",
+    "description": "Modularer Sockel: Spiel-Base mit Verlies auf ovalen Terrassen, später Synessa-Modul.",
+    "paletteId": "",
+    "notes": "Modul 195×160 mm, Boden 30 mm, 3 Stufen à 5×12 mm.\nBase 105×70×6 mm (Resin), Magnete 8×2 bei ±35 mm.\nKegel 45° Ø8, Magnete 8×2 an den Stirnseiten (links N, rechts S).",
+    "links": [
+      { "label": "CAD (OpenSCAD)", "url": "Nextcloud/Paint/Slaanesh Display/CAD/dexcessa_sockel.scad" },
+      { "label": "Konzeptszene", "url": "Nextcloud/Paint/Slaanesh Display/CAD/konzeptszene_v3.png" }
+    ],
+    "elements": [
+      { "id": "el-modul", "name": "Modul Dexcessa (Terrassen)", "group": "Sockel", "kind": "fdm", "qty": 1, "stage": 0, "file": "CAD/modul_dexcessa.stl", "notes": "0,12 mm, 10 % Gyroid" },
+      { "id": "el-kappe-l", "name": "Kappe links", "group": "Sockel", "kind": "fdm", "qty": 1, "stage": 0, "file": "CAD/kappe_links.stl", "notes": "" },
+      { "id": "el-kappe-r", "name": "Kappe rechts", "group": "Sockel", "kind": "fdm", "qty": 1, "stage": 0, "file": "CAD/kappe_rechts.stl", "notes": "" },
+      { "id": "el-base", "name": "Spiel-Base 105×70", "group": "Sockel", "kind": "resin", "qty": 1, "stage": 0, "file": "CAD/spiel_base.stl", "notes": "" },
+      { "id": "el-gitter", "name": "Gitterrahmen", "group": "Sockel", "kind": "resin", "qty": 1, "stage": 0, "file": "CAD/gitterrahmen.stl", "notes": "4 Stäbe Kupfer Ø1,38" },
+      { "id": "el-dexcessa", "name": "Dexcessa", "group": "Figuren", "kind": "kit", "qty": 1, "stage": 0, "file": "", "notes": "" },
+      { "id": "el-relictor", "name": "Lord-Relictor (gefallen)", "group": "Gefallene", "kind": "kit", "qty": 1, "stage": 0, "file": "", "notes": "Oberste Stufe vor der Base, Stab gebrochen, Reliquiar mit Seelenblitz" },
+      { "id": "el-annihilator", "name": "Annihilator (gefallen)", "group": "Gefallene", "kind": "kit", "qty": 2, "stage": 0, "file": "", "notes": "Über Stufenkanten hängend" },
+      { "id": "el-haende", "name": "Hände im Verlies", "group": "Gefallene", "kind": "kit", "qty": 7, "stage": 0, "file": "", "notes": "" }
+    ],
+    "supplies": [
+      { "name": "Kupferdraht 1,5 mm² eindrähtig", "qty": "20 cm", "have": true, "note": "Gitterstäbe" },
+      { "name": "Magnet 8×2 mm", "qty": "6", "have": true, "note": "" },
+      { "name": "Lord-Relictor", "qty": "1", "have": false, "note": "" },
+      { "name": "Annihilators", "qty": "1 Box", "have": false, "note": "" },
+      { "name": "PLA matt schwarz", "qty": "ca. 350 g", "have": false, "note": "" }
+    ],
+    "createdAt": "2026-11-02T12:00:00Z",
+    "updatedAt": "2026-11-02T12:00:00Z"
+  }]
+}

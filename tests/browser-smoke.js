@@ -136,7 +136,7 @@ async function main() {
     // Check each step on a phone, tablets (portrait/landscape) and a desktop.
     for (const width of [375, 820, 1180, 1440]) {
       await page.setViewportSize({ width, height: 900 });
-      for (const view of ["palette", "plan", "paints", "army"]) {
+      for (const view of ["palette", "plan", "paints", "army", "project"]) {
         await page.click(`[data-workflow="${view}"]`);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true,
           `Horizontal overflow in ${view} at ${width}px`);

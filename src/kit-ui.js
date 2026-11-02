@@ -6,6 +6,7 @@
   const STORE_KEY = "wph.kit.v1";
   const GUIDES_KEY = "wph.guides.v1";
   const ARMIES_KEY = "wph.armies.v1";
+  const PROJECTS_KEY = "wph.projects.v1";
   const TOLERANCES = [0, 5, 10, 15];
   const Kit = window.WPHKit;
   let app = null;
@@ -126,7 +127,7 @@
 
   function render() {
     syncOpen();
-    sources = Kit.collectSources(readJson(GUIDES_KEY), readJson(ARMIES_KEY));
+    sources = Kit.collectSources(readJson(GUIDES_KEY), readJson(ARMIES_KEY), readJson(PROJECTS_KEY));
     // Forget guides that no longer exist.
     const known = new Set(sources.map(source => source.id));
     const kept = settings.selected.filter(id => known.has(id));
@@ -153,7 +154,14 @@
     }
     const groups = new Map();
     visible.forEach(source => {
-      const group = source.kind === "unit" ? source.group || t("kit.armyGuides") : t("kit.paletteGuides");
+      let group;
+      if (source.kind === "unit") {
+        group = source.group || t("kit.armyGuides");
+      } else if (source.kind === "element") {
+        group = source.group || t("kit.projectGuides");
+      } else {
+        group = t("kit.paletteGuides");
+      }
       if (!groups.has(group)) {
         groups.set(group, []);
       }

@@ -1177,6 +1177,7 @@
       noMatch: "Keine Anleitung passt zum Filter.",
       paletteGuides: "Anleitungen zu Paletten",
       armyGuides: "Anleitungen zur Armee",
+      projectGuides: "Projekt-Anleitungen",
       paintCount: "{count} Farben",
       pickGuides: "Hake die Anleitungen an, die du malen willst.",
       summary: "{guides} Anleitungen · {needed} Farben · {pack} Töpfe einpacken · {buy} kaufen.",
@@ -1212,6 +1213,7 @@
         guides: "Anleitungen",
         palettes: "Paletten und Einstellungen",
         kit: "Malkoffer",
+        projects: "Projekte",
         other: "Weiteres"
       },
       errors: {

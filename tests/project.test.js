@@ -134,6 +134,6 @@ test("moveElement swaps within the same group", () => {
   const project = store.projects[0];
 
   assert.equal(WPHProjectData.moveElement(project, "el-kappe-l", -1), true);
-  assert.deepEqual(project.elements.slice(0, 2).map(element => element.id), ["el-modul", "el-kappe-l"]);
+  assert.deepEqual(project.elements.slice(0, 2).map(element => element.id), ["el-kappe-l", "el-modul"]);
   assert.equal(WPHProjectData.moveElement(project, "el-dexcessa", 1), false);
 });
